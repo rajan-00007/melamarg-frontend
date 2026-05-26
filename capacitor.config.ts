@@ -13,6 +13,7 @@ const config: CapacitorConfig = {
       '192.168.1.*',      // common LAN subnet
       '192.168.0.*',      // common LAN subnet
       '10.42.0.*',        // Linux USB tethering subnet
+      'api-wp-events.infoviz.co',
     ],
     cleartext: true
   },

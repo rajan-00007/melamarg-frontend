@@ -5,6 +5,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { App } from '@capacitor/app';
 import axiosClient from '@/lib/axios/axiosClient';
+import { API_ENDPOINTS } from '@/lib/axios/endpoints';
 
 export interface EventItem {
   id: string;
@@ -418,7 +419,7 @@ const UserTestContext = createContext<UserTestContextType | undefined>(undefined
 
 export function UserTestProvider({ children }: { children: React.ReactNode }) {
   const [backendUrl, setBackendUrlState] = useState(
-    sanitizeBackendUrl(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000')
+    sanitizeBackendUrl(process.env.NEXT_PUBLIC_API_URL || 'https://api-wp-events.infoviz.co')
   );
   const [detectedIpPreset, setDetectedIpPreset] = useState<string | null>(null);
   const [usbTetheringPreset, setUsbTetheringPreset] = useState<string | null>(null);
@@ -548,7 +549,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
     setApiError(false);
     console.log('[fetchEventsCatalog] Fetching events via axiosClient...');
     try {
-      const res = await axiosClient.get('events');
+      const res = await axiosClient.get(API_ENDPOINTS.events.base);
       const json = res.data;
       if (json && json.success && Array.isArray(json.data)) {
         const backendEvents = json.data;
@@ -609,7 +610,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
         let newEdges = loadedEdges;
 
         try {
-          const pRes = await axiosClient.get(`pois?eventId=${event.id}`);
+          const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id));
           const pJson = pRes.data;
           if (pJson.success && Array.isArray(pJson.data)) {
             newPois = pJson.data;
@@ -620,7 +621,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-          const rRes = await axiosClient.get(`events/${event.id}/routes`);
+          const rRes = await axiosClient.get(API_ENDPOINTS.events.routes(event.id));
           const rJson = rRes.data;
           if ((rJson.status === 'success' || rJson.success) && rJson.data) {
             if (Array.isArray(rJson.data.nodes)) {
@@ -1316,7 +1317,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
         
         try {
           console.log('[Push] Registering web token with backend via axiosClient...');
-          const result = await axiosClient.post('notifications/register', {
+          const result = await axiosClient.post(API_ENDPOINTS.notifications.register, {
             eventId,
             fcmToken: webToken,
             platform: 'web'
@@ -1390,7 +1391,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
       setPlatformName(detectedPlatform);
 
       if (isAndroid) {
-        const localIp = 'http://192.168.1.5:5000';
+        const localIp = 'https://api-wp-events.infoviz.co';
         setUsbTetheringPreset(localIp);
         if (!savedUrl && !process.env.NEXT_PUBLIC_API_URL) {
           setBackendUrl(localIp);
@@ -1513,12 +1514,12 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
     const workerCode = `
       let intervalId = null;
       self.onmessage = function(e) {
-        const { eventId, backendUrl } = e.data;
+        const { alertsUrl } = e.data;
         if (intervalId) clearInterval(intervalId);
         
         const fetchAlerts = async () => {
           try {
-            const response = await fetch(backendUrl + '/api/notifications/events/' + eventId);
+            const response = await fetch(alertsUrl);
             const data = await response.json();
             if (data && data.success) {
               self.postMessage({ success: true, data: data.data || [] });
@@ -1541,8 +1542,8 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
       workerUrl = URL.createObjectURL(blob);
       worker = new Worker(workerUrl);
 
-      const url = localStorage.getItem('mm_test_backend_url') || 'http://localhost:5000';
-      worker.postMessage({ eventId: selectedEvent.id, backendUrl: url });
+      const url = API_ENDPOINTS.notifications.eventAlerts(selectedEvent.id);
+      worker.postMessage({ alertsUrl: url });
 
       worker.onmessage = (e) => {
         const { success, data, error } = e.data;
@@ -1608,8 +1609,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
       
       const fetchAlerts = async () => {
         try {
-          const url = localStorage.getItem('mm_test_backend_url') || 'http://localhost:5000';
-          const response = await fetch(`${url}/api/notifications/events/${selectedEvent.id}`);
+          const response = await fetch(API_ENDPOINTS.notifications.eventAlerts(selectedEvent.id));
           const data = await response.json();
           if (data && data.success) {
             const list = data.data || [];
@@ -1704,7 +1704,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
 
         try {
           const platform = cap.getPlatform() || 'android';
-          await axiosClient.post('notifications/register', {
+          await axiosClient.post(API_ENDPOINTS.notifications.register, {
             eventId: activeEvent.id,
             fcmToken,
             platform

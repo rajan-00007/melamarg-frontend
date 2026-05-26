@@ -116,7 +116,7 @@ export default function UserTestPage() {
               </AlertText>
               <ConfigureButton
                 onClick={() => {
-                  const newUrl = prompt('Enter backend API server URL (e.g. http://192.168.1.100:5000):', backendUrl);
+                  const newUrl = prompt('Enter backend API server URL (e.g. https://api-wp-events.infoviz.co):', backendUrl);
                   if (newUrl !== null) {
                     setBackendUrl(newUrl.trim());
                   }

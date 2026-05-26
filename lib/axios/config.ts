@@ -19,5 +19,5 @@ export const getBaseUrl = (): string => {
   }
   return process.env.NEXT_PUBLIC_API_URL
     ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') + '/api/'
-    : 'http://192.168.1.5:5000/api/';
+    : 'https://api-wp-events.infoviz.co/api/';
 };
