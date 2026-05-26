@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "63141160868",
+    "project_id": "melamarg-5454f",
+    "storage_bucket": "melamarg-5454f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63141160868:android:19ab0e2c750fdaaa1c0331",
+        "android_client_info": {
+          "package_name": "com.melamarg.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCheX3VNbUtH4XqSAHGmYh9JwskbNGGGBQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
