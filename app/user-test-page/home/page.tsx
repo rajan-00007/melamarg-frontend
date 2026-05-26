@@ -69,7 +69,7 @@ export default function EventHomePage() {
           <span className="checkmark">✓</span>
         </StatusBadge>
       </StatusBox>
- 
+  
       {/* Grid 3x3 of POI categories */}
       <CategoriesGrid>
         {[
