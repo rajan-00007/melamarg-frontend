@@ -6,6 +6,9 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { App } from '@capacitor/app';
 import axiosClient from '@/lib/axios/axiosClient';
 import { API_ENDPOINTS } from '@/lib/axios/endpoints';
+import { getWebFcmToken, getFirebaseApp } from '@/lib/firebase';
+import { getMessaging, onMessage } from 'firebase/messaging';
+import { addCoordinate, getCoordinates, clearCoordinates } from '../../../lib/indexedDbHelper';
 
 export interface EventItem {
   id: string;
@@ -413,6 +416,13 @@ interface UserTestContextType {
   startGpsWatch: () => Promise<void>;
   stopGpsWatch: () => void;
   registerPushNotifications: (eventId: string) => Promise<void>;
+  isTrackingWalk: boolean;
+  setIsTrackingWalk: (val: boolean) => void;
+  walkCoordinates: [number, number][];
+  walkStats: { distance: number; duration: number; speed: number };
+  clearWalkHistory: () => Promise<void>;
+  showWalkTrail: boolean;
+  setShowWalkTrail: (val: boolean) => void;
 }
 
 const UserTestContext = createContext<UserTestContextType | undefined>(undefined);
@@ -443,6 +453,35 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
   const [routeNodes, setRouteNodes] = useState<NodeItem[]>([]);
   const [routeEdges, setRouteEdges] = useState<EdgeItem[]>([]);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
+
+  // --- Walk Tracking State & Refs ---
+  const [isTrackingWalk, setIsTrackingWalkState] = useState(false);
+  const [walkCoordinates, setWalkCoordinates] = useState<[number, number][]>([]);
+  const [walkStats, setWalkStats] = useState({ distance: 0, duration: 0, speed: 0 });
+  const [showWalkTrail, setShowWalkTrail] = useState(true);
+  const trackingStartTimeRef = useRef<number | null>(null);
+  const totalDistanceRef = useRef<number>(0);
+
+  const isTrackingWalkRef = useRef(false);
+  const selectedEventRef = useRef<EventItem | null>(null);
+  const walkCoordinatesRef = useRef<[number, number][]>([]);
+  const gpsAccuracyRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    isTrackingWalkRef.current = isTrackingWalk;
+  }, [isTrackingWalk]);
+
+  useEffect(() => {
+    selectedEventRef.current = selectedEvent;
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    walkCoordinatesRef.current = walkCoordinates;
+  }, [walkCoordinates]);
+
+  useEffect(() => {
+    gpsAccuracyRef.current = gpsAccuracy;
+  }, [gpsAccuracy]);
   
   // Load Leaflet dynamically on mount of the context provider
   useEffect(() => {
@@ -787,6 +826,60 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
 
     setUserGps([latitude, longitude]);
 
+    // --- WALK TRACKING AND FILTERING ---
+    if (isTrackingWalkRef.current && selectedEventRef.current) {
+      const lastCoord = walkCoordinatesRef.current[walkCoordinatesRef.current.length - 1];
+      const evId = selectedEventRef.current.id;
+      const currentAcc = accuracy !== undefined ? accuracy : 10;
+      
+      // 1. Accuracy Filter: Ignore weak signals (> 20 meters) specifically for path logging
+      if (currentAcc <= 20) {
+        if (!lastCoord) {
+          // First point of the session!
+          console.log(`[Walk Tracking] Logging first coordinate: ${latitude}, ${longitude}`);
+          addCoordinate(evId, latitude, longitude, currentAcc)
+            .then(() => {
+              setWalkCoordinates([[latitude, longitude]]);
+            })
+            .catch(e => console.error('Failed to save first coordinate:', e));
+        } else {
+          // Calculate Haversine distance from the last recorded point
+          const dist = getHaversineDistance(lastCoord[0], lastCoord[1], latitude, longitude);
+          
+          // 2. Drift Filter: Only log if distance is >= 2.5 meters
+          if (dist >= 2.5) {
+            console.log(`[Walk Tracking] Logging new point: ${latitude}, ${longitude} (dist: ${dist.toFixed(1)}m)`);
+            addCoordinate(evId, latitude, longitude, currentAcc)
+              .then(() => {
+                const newCoords = [...walkCoordinatesRef.current, [latitude, longitude] as [number, number]];
+                setWalkCoordinates(newCoords);
+                
+                // Update live telemetry stats
+                totalDistanceRef.current += dist;
+                
+                // Calculate active duration
+                let duration = 0;
+                if (trackingStartTimeRef.current) {
+                  duration = Math.max(1, Math.round((Date.now() - trackingStartTimeRef.current) / 1000 / 60)); // minutes
+                } else {
+                  trackingStartTimeRef.current = Date.now();
+                  duration = 1;
+                }
+                
+                setWalkStats({
+                  distance: Number((totalDistanceRef.current / 1000).toFixed(2)),
+                  duration: duration,
+                  speed: Number((totalDistanceRef.current / (duration * 60 || 1)).toFixed(1))
+                });
+              })
+              .catch(e => console.error('Failed to log walk coordinate:', e));
+          }
+        }
+      } else {
+        console.warn(`[Walk Tracking] Weak GPS accuracy (${currentAcc}m > 20m limit). Point ignored for tracking.`);
+      }
+    }
+
     // Increase accuracy limit to 1000m so cell-tower OS cache locks inside work and allow navigation to start
     const LOCK_ACCURACY_LIMIT = 1000;
     if (accuracy !== undefined && accuracy > LOCK_ACCURACY_LIMIT) {
@@ -888,10 +981,94 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getRealGps]);
 
+  const loadOfflineWalkCoordinates = useCallback(async (eventId: string) => {
+    try {
+      const coords = await getCoordinates(eventId);
+      const mapped = coords.map(c => [c.latitude, c.longitude] as [number, number]);
+      setWalkCoordinates(mapped);
+      
+      let distSum = 0;
+      for (let i = 0; i < mapped.length - 1; i++) {
+        distSum += getHaversineDistance(mapped[i][0], mapped[i][1], mapped[i+1][0], mapped[i+1][1]);
+      }
+      totalDistanceRef.current = distSum;
+      
+      let duration = 0;
+      if (coords.length > 1) {
+        duration = Math.round((coords[coords.length - 1].timestamp - coords[0].timestamp) / 1000 / 60); // minutes
+      }
+      
+      setWalkStats({
+        distance: Number((distSum / 1000).toFixed(2)),
+        duration: duration,
+        speed: coords.length > 1 ? Number((distSum / (duration * 60 || 1)).toFixed(1)) : 0
+      });
+      if (coords.length > 0) {
+        setShowWalkTrail(true);
+      }
+      console.log(`[Walk Tracking] Loaded ${coords.length} offline coordinates from IndexedDB for event ${eventId}`);
+    } catch (e) {
+      console.error('[Walk Tracking] Failed to load offline walk coordinates:', e);
+    }
+  }, []);
+
+  const setIsTrackingWalk = useCallback(async (val: boolean) => {
+    setIsTrackingWalkState(val);
+    if (typeof window !== 'undefined' && selectedEventRef.current) {
+      localStorage.setItem(`mm_tracking_active_${selectedEventRef.current.id}`, val ? 'true' : 'false');
+    }
+    
+    if (val) {
+      setShowWalkTrail(true); // Automatically show the trail when tracking is enabled!
+      console.log('[Walk Tracking] Started tracking walk session');
+      if (!trackingStartTimeRef.current) {
+        trackingStartTimeRef.current = Date.now();
+      }
+      // Record current position as start if empty
+      if (selectedEventRef.current && walkCoordinatesRef.current.length === 0 && userGps) {
+        try {
+          await addCoordinate(selectedEventRef.current.id, userGps[0], userGps[1], gpsAccuracyRef.current || 10);
+          setWalkCoordinates([[userGps[0], userGps[1]]]);
+        } catch (e) {
+          console.error('Failed to record start walk coordinate:', e);
+        }
+      }
+    } else {
+      console.log('[Walk Tracking] Stopped tracking walk session');
+      trackingStartTimeRef.current = null;
+    }
+  }, [userGps]);
+
+  const clearWalkHistory = useCallback(async () => {
+    if (selectedEventRef.current) {
+      console.log(`[Walk Tracking] Clearing walk history for event: ${selectedEventRef.current.id}`);
+      try {
+        await clearCoordinates(selectedEventRef.current.id);
+        setWalkCoordinates([]);
+        setWalkStats({ distance: 0, duration: 0, speed: 0 });
+        totalDistanceRef.current = 0;
+        trackingStartTimeRef.current = null;
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(`mm_tracking_active_${selectedEventRef.current.id}`);
+        }
+      } catch (e) {
+        console.error('Failed to clear walk history:', e);
+      }
+    }
+  }, []);
+
   const handleEventSelection = async (event: EventItem) => {
     setSelectedEvent(event);
     
     if (downloadedEventIds.includes(event.id)) {
+      await loadOfflineWalkCoordinates(event.id);
+      if (typeof window !== 'undefined') {
+        const trackingActive = localStorage.getItem(`mm_tracking_active_${event.id}`) === 'true';
+        setIsTrackingWalkState(trackingActive);
+        if (trackingActive) {
+          trackingStartTimeRef.current = Date.now();
+        }
+      }
       if (locationPermission === true) {
         await initializeUserGps(event);
         await loadEventPoisAndGraph(event);
@@ -911,6 +1088,15 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
               const updated = [...downloadedEventIds, event.id];
               setDownloadedEventIds(updated);
               localStorage.setItem('mm_downloaded_event_ids', JSON.stringify(updated));
+
+              await loadOfflineWalkCoordinates(event.id);
+              if (typeof window !== 'undefined') {
+                const trackingActive = localStorage.getItem(`mm_tracking_active_${event.id}`) === 'true';
+                setIsTrackingWalkState(trackingActive);
+                if (trackingActive) {
+                  trackingStartTimeRef.current = Date.now();
+                }
+              }
 
               if (locationPermission === true) {
                 await initializeUserGps(event);
@@ -1305,37 +1491,28 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
       const cap = (window as any).Capacitor;
       const isNative = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
       if (!isNative) {
-        console.log('[Push] Running on web platform. Initializing Web Push simulation.');
-        
-        let webToken = localStorage.getItem('mm_web_push_token');
-        if (!webToken) {
-          webToken = `web-fcm-token-${eventId}-${Math.random().toString(36).substring(2, 15)}`;
-          localStorage.setItem('mm_web_push_token', webToken);
-        }
-        
-        console.log(`[Push] Web push token generated: ${webToken}`);
+        console.log('[Push] Running on web platform. Initializing real Firebase Web Push.');
         
         try {
-          console.log('[Push] Registering web token with backend via axiosClient...');
-          const result = await axiosClient.post(API_ENDPOINTS.notifications.register, {
-            eventId,
-            fcmToken: webToken,
-            platform: 'web'
-          });
-          if (result.data?.success) {
-            console.log('[Push] Successfully registered Web push token with backend database.');
+          const webToken = await getWebFcmToken();
+          if (webToken) {
+            console.log(`[Push] Real Web FCM token obtained: ${webToken}`);
+            console.log('[Push] Registering token with backend via axiosClient...');
+            const result = await axiosClient.post(API_ENDPOINTS.notifications.register, {
+              eventId,
+              fcmToken: webToken,
+              platform: 'web'
+            });
+            if (result.data?.success) {
+              console.log('[Push] Successfully registered Web push token with backend database.');
+            } else {
+              console.error('[Push] Failed to register Web push token with backend database:', result.data);
+            }
           } else {
-            console.error('[Push] Failed to register Web push token with backend database:', result.data);
+            console.warn('[Push] Could not obtain Web FCM token. Fallback may be required.');
           }
         } catch (err) {
-          console.error('[Push] Error posting Web push token to backend:', err);
-        }
-
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-          if (Notification.permission === 'default') {
-            const perm = await Notification.requestPermission();
-            console.log('[Push] HTML5 Browser Notification permission requested. Status:', perm);
-          }
+          console.error('[Push] Error fetching or registering Web push token:', err);
         }
         
         return;
@@ -1504,186 +1681,80 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
     setActiveToasts([]);
   }, [selectedEvent]);
 
-  // Real-time Notifications Web Worker or standard interval polling
+  // Real-time Notifications live listener and history fetcher
   useEffect(() => {
     if (!selectedEvent) {
       setNotifications([]);
       return;
     }
 
-    const workerCode = `
-      let intervalId = null;
-      self.onmessage = function(e) {
-        const { alertsUrl } = e.data;
-        if (intervalId) clearInterval(intervalId);
-        
-        const fetchAlerts = async () => {
-          try {
-            const response = await fetch(alertsUrl);
-            const data = await response.json();
-            if (data && data.success) {
-              self.postMessage({ success: true, data: data.data || [] });
-            }
-          } catch (err) {
-            self.postMessage({ success: false, error: err.message });
-          }
-        };
-        
-        fetchAlerts();
-        intervalId = setInterval(fetchAlerts, 6000);
-      };
-    `;
-
-    let worker: Worker | null = null;
-    let workerUrl: string | null = null;
-
-    try {
-      const blob = new Blob([workerCode], { type: 'application/javascript' });
-      workerUrl = URL.createObjectURL(blob);
-      worker = new Worker(workerUrl);
-
-      const url = API_ENDPOINTS.notifications.eventAlerts(selectedEvent.id);
-      worker.postMessage({ alertsUrl: url });
-
-      worker.onmessage = (e) => {
-        const { success, data, error } = e.data;
-        if (success && Array.isArray(data)) {
-          const list = data;
-          if (list.length > 0) {
-            const newAlerts: any[] = [];
-            list.forEach((alertItem: any) => {
-              if (!seenNotificationIdsRef.current.has(alertItem.id)) {
-                seenNotificationIdsRef.current.add(alertItem.id);
-                if (!isFirstLoadRef.current) {
-                  newAlerts.push(alertItem);
-                }
-              }
-            });
-
-            newAlerts.forEach((newAlert) => {
-              const isBackground = typeof document !== 'undefined' && document.visibilityState === 'hidden';
-              if (isBackground) {
-                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                  try {
-                    const notification = new Notification(`[Alert] ${newAlert.title}`, {
-                      body: newAlert.message,
-                      tag: newAlert.id
-                    });
-                    notification.onclick = (event) => {
-                      event.preventDefault();
-                      window.focus();
-                      if (newAlert.latitude && newAlert.longitude) {
-                        const targetPoi = {
-                          id: `alert-poi-${newAlert.id}`,
-                          name_en: `Alert: ${newAlert.title}`,
-                          latitude: Number(newAlert.latitude),
-                          longitude: Number(newAlert.longitude),
-                          category_name: 'Alert Target',
-                          description: newAlert.message
-                        };
-                        setNavTarget(targetPoi);
-                        setScreenMode('navigation');
-                        setArrivalNotify(false);
-                        logNavigationInstructions(targetPoi);
-                      }
-                    };
-                  } catch (err) {
-                    console.error('[Push] Failed to trigger standard HTML5 Notification popup:', err);
-                  }
-                }
-              } else {
-                triggerToast(newAlert);
-              }
-            });
-            isFirstLoadRef.current = false;
-          } else {
-            isFirstLoadRef.current = false;
-          }
+    // 1. Fetch historical alerts feed (One-off)
+    const fetchHistory = async () => {
+      try {
+        console.log(`[Push] Loading notification history for event ${selectedEvent.id}...`);
+        const res = await axiosClient.get(API_ENDPOINTS.notifications.eventAlerts(selectedEvent.id));
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          const list = res.data.data;
           setNotifications(list);
-        } else if (error) {
-          console.error('Failed to poll alerts via background worker:', error);
+          list.forEach((alert: any) => {
+            seenNotificationIdsRef.current.add(alert.id);
+          });
+          console.log(`[Push] Loaded ${list.length} historical alerts successfully.`);
         }
-      };
-    } catch (e) {
-      console.error('Failed to initialize inline background web worker:', e);
-      
-      const fetchAlerts = async () => {
-        try {
-          const response = await fetch(API_ENDPOINTS.notifications.eventAlerts(selectedEvent.id));
-          const data = await response.json();
-          if (data && data.success) {
-            const list = data.data || [];
-            if (list.length > 0) {
-              const newAlerts: any[] = [];
-              list.forEach((alertItem: any) => {
-                if (!seenNotificationIdsRef.current.has(alertItem.id)) {
-                  seenNotificationIdsRef.current.add(alertItem.id);
-                  if (!isFirstLoadRef.current) {
-                    newAlerts.push(alertItem);
-                  }
-                }
-              });
-
-              newAlerts.forEach((newAlert) => {
-                const isBackground = typeof document !== 'undefined' && document.visibilityState === 'hidden';
-                if (isBackground) {
-                  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                    try {
-                      const notification = new Notification(`[Alert] ${newAlert.title}`, {
-                        body: newAlert.message,
-                        tag: newAlert.id
-                      });
-                      notification.onclick = (event) => {
-                        event.preventDefault();
-                        window.focus();
-                        if (newAlert.latitude && newAlert.longitude) {
-                          const targetPoi = {
-                            id: `alert-poi-${newAlert.id}`,
-                            name_en: `Alert: ${newAlert.title}`,
-                            latitude: Number(newAlert.latitude),
-                            longitude: Number(newAlert.longitude),
-                            category_name: 'Alert Target',
-                            description: newAlert.message
-                          };
-                          setNavTarget(targetPoi);
-                          setScreenMode('navigation');
-                          setArrivalNotify(false);
-                          logNavigationInstructions(targetPoi);
-                        }
-                      };
-                    } catch (err) {
-                      console.error('[Push] Failed to trigger standard HTML5 popup:', err);
-                    }
-                  }
-                } else {
-                  triggerToast(newAlert);
-                }
-              });
-              isFirstLoadRef.current = false;
-            } else {
-              isFirstLoadRef.current = false;
-            }
-            setNotifications(list);
-          }
-        } catch (err) {
-          console.error('Failed to poll alerts (fallback):', err);
-        }
-      };
-
-      fetchAlerts();
-      const interval = setInterval(fetchAlerts, 6000);
-      return () => clearInterval(interval);
-    }
-
-    return () => {
-      if (worker) {
-        worker.terminate();
-      }
-      if (workerUrl) {
-        URL.revokeObjectURL(workerUrl);
+      } catch (err) {
+        console.error('[Push] Failed to load notification history:', err);
       }
     };
-  }, [selectedEvent, triggerToast, logNavigationInstructions]);
+
+    fetchHistory();
+
+    // 2. Set up real-time FCM Web Push listener (Only on Web build)
+    const cap = (window as any).Capacitor;
+    const isNative = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
+    if (!isNative) {
+      console.log('[Push] Registering live foreground FCM listener on web browser...');
+      let unsubscribe: (() => void) | null = null;
+      
+      try {
+        const app = getFirebaseApp();
+        const messaging = getMessaging(app);
+        unsubscribe = onMessage(messaging, (payload) => {
+          console.log('[FCM] Live Web foreground notification received:', payload);
+          
+          const title = payload.notification?.title || payload.data?.title || 'Broadcast Update';
+          const body = payload.notification?.body || payload.data?.message || payload.data?.body || '';
+          
+          if (body) {
+            const newAlert = {
+              id: payload.messageId || `fcm-${Date.now()}`,
+              title,
+              message: body,
+              is_emergency: payload.data?.isEmergency === 'true' || payload.data?.is_emergency === 'true',
+              latitude: payload.data?.latitude ? Number(payload.data.latitude) : undefined,
+              longitude: payload.data?.longitude ? Number(payload.data.longitude) : undefined,
+              created_at: new Date().toISOString()
+            };
+
+            setNotifications(prev => {
+              if (prev.some(n => n.id === newAlert.id)) return prev;
+              return [newAlert, ...prev];
+            });
+
+            // Trigger visual in-app toast
+            triggerToast(newAlert);
+          }
+        });
+      } catch (err) {
+        console.error('[Push] Failed to subscribe to web foreground push messages:', err);
+      }
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    }
+  }, [selectedEvent, triggerToast]);
 
   // Capacitor native push notification listeners setup
   useEffect(() => {
@@ -1844,7 +1915,14 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
         handleGpsUpdate,
         startGpsWatch,
         stopGpsWatch,
-        registerPushNotifications
+        registerPushNotifications,
+        isTrackingWalk,
+        setIsTrackingWalk,
+        walkCoordinates,
+        walkStats,
+        clearWalkHistory,
+        showWalkTrail,
+        setShowWalkTrail
       }}
     >
       {children}

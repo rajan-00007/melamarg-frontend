@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useUserTest } from '../context/UserTestContext';
 import { Navigation, MapPin } from 'lucide-react';
 import {
@@ -12,8 +12,67 @@ import {
   CoordinatesDisplay,
   GPSLockedPill,
   GPSSearchingPill,
-  GPSLostPill
+  GPSLostPill,
+  SplitWrapper,
+  DashboardContainer,
+  MapContainer,
+  CentralCard,
+  ArrowAnimationWrapper,
+  ArrowWrapper,
+  DirectionText,
+  NextInstruction,
+  SidePOICard,
+  POITag,
+  POIEmoji,
+  POIName,
+  POIDistance,
+  NoPOIText,
+  QuadrantBadgeContainer,
+  MiniQuadrantBadge,
+  CentralMiniPOI,
+  MiddleColumn,
+  TrackToggleCard,
+  TelemetryHUDOverlay,
+  TelemetryStatsGrid,
+  TelemetryCol,
+  TelemetryLabel,
+  TelemetryValue,
+  TelemetryDivider,
+  TelemetryStatusDot,
+  HistoryClearButton
 } from './page.styled';
+
+// Pure Utility Helpers (defined at module scope to avoid hoisting/initialization errors)
+const getHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
+const getCompassBearing = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const lambda1 = (lon1 * Math.PI) / 180;
+  const lambda2 = (lon2 * Math.PI) / 180;
+
+  const y = Math.sin(lambda2 - lambda1) * Math.cos(phi2);
+  const x =
+    Math.cos(phi1) * Math.sin(phi2) -
+    Math.sin(phi1) * Math.cos(phi2) * Math.cos(lambda2 - lambda1);
+  
+  const theta = Math.atan2(y, x);
+  const bearing = ((theta * 180) / Math.PI + 360) % 360;
+  return Math.round(bearing);
+};
 
 export default function EventMapPage() {
   const {
@@ -27,10 +86,152 @@ export default function EventMapPage() {
     routeEdges,
     leafletLoaded,
     navTarget,
+    setNavTarget,
     getRealGps,
     handleGpsUpdate,
-    screenMode
+    screenMode,
+    deviceHeading,
+    computeNavigationStats,
+    isTrackingWalk,
+    setIsTrackingWalk,
+    walkCoordinates,
+    walkStats,
+    clearWalkHistory,
+    showWalkTrail,
+    setShowWalkTrail
   } = useUserTest();
+
+  // GPS-derived movement heading
+  const [gpsHeading, setGpsHeading] = useState<number>(0);
+  const lastGpsRef = useRef<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (!userGps) return;
+    if (!lastGpsRef.current) {
+      lastGpsRef.current = userGps;
+      return;
+    }
+
+    const dist = getHaversineDistance(
+      lastGpsRef.current[0],
+      lastGpsRef.current[1],
+      userGps[0],
+      userGps[1]
+    );
+
+    // Update heading only for significant movement to filter GPS jitter
+    if (dist > 1.5) {
+      const newHeading = getCompassBearing(
+        lastGpsRef.current[0],
+        lastGpsRef.current[1],
+        userGps[0],
+        userGps[1]
+      );
+      setGpsHeading(newHeading);
+      lastGpsRef.current = userGps;
+    }
+  }, [userGps]);
+
+  // Real-time calculation of nearest POIs in 4 quadrants (Front, Back, Left, Right)
+  const nearestQuadrantPOIs = useMemo(() => {
+    if (!poisList || poisList.length === 0) {
+      return { front: null, back: null, left: null, right: null };
+    }
+
+    // Determine current heading of travel
+    let heading = 0;
+    if (navTarget) {
+      // If navigating, use bearing to next waypoint
+      const stats = computeNavigationStats(userGps[0], userGps[1]);
+      if (stats && typeof stats.bearing === 'number') {
+        heading = stats.bearing;
+      }
+    } else {
+      // Fallback to GPS-derived heading, or deviceHeading if active, or default to 0
+      heading = gpsHeading || deviceHeading || 0;
+    }
+
+    let nearestFront: any = null;
+    let nearestBack: any = null;
+    let nearestLeft: any = null;
+    let nearestRight: any = null;
+
+    let minFrontDist = Infinity;
+    let minBackDist = Infinity;
+    let minLeftDist = Infinity;
+    let minRightDist = Infinity;
+
+    poisList.forEach((poi) => {
+      // Skip the active navigation target POI to avoid listing it on the sides
+      if (navTarget && poi.id === navTarget.id) return;
+
+      const lat = Number(poi.latitude);
+      const lng = Number(poi.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const dist = getHaversineDistance(userGps[0], userGps[1], lat, lng);
+      const absBearing = getCompassBearing(userGps[0], userGps[1], lat, lng);
+
+      // Relative angle from user heading (0 to 360)
+      const relativeAngle = (absBearing - heading + 360) % 360;
+
+      // Classify into 4 quadrants
+      if (relativeAngle >= 315 || relativeAngle < 45) {
+        // Front (315 to 45)
+        if (dist < minFrontDist) {
+          minFrontDist = dist;
+          nearestFront = { ...poi, distance: Math.round(dist) };
+        }
+      } else if (relativeAngle >= 45 && relativeAngle < 135) {
+        // Right (45 to 135)
+        if (dist < minRightDist) {
+          minRightDist = dist;
+          nearestRight = { ...poi, distance: Math.round(dist) };
+        }
+      } else if (relativeAngle >= 135 && relativeAngle < 225) {
+        // Back (135 to 225)
+        if (dist < minBackDist) {
+          minBackDist = dist;
+          nearestBack = { ...poi, distance: Math.round(dist) };
+        }
+      } else {
+        // Left (225 to 315)
+        if (dist < minLeftDist) {
+          minLeftDist = dist;
+          nearestLeft = { ...poi, distance: Math.round(dist) };
+        }
+      }
+    });
+
+    return { front: nearestFront, back: nearestBack, left: nearestLeft, right: nearestRight };
+  }, [poisList, userGps, navTarget, gpsHeading, deviceHeading, computeNavigationStats]);
+
+  // Helper to map POI category names to emojis/icons
+  const getCategoryEmoji = (category: string): string => {
+    const c = (category || '').toLowerCase();
+    if (c.includes('toilet') || c.includes('washroom') || c.includes('restroom')) return '🚽';
+    if (c.includes('police') || c.includes('security') || c.includes('post')) return '👮';
+    if (c.includes('medical') || c.includes('hospital') || c.includes('health') || c.includes('first')) return '🏥';
+    if (c.includes('water') || c.includes('drink')) return '💧';
+    if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) return '🚪';
+    if (c.includes('parking')) return '🅿️';
+    if (c.includes('food') || c.includes('eat') || c.includes('restaurant')) return '🍔';
+    return '📍';
+  };
+
+  const getDirectionArrowAndColor = (direction: string) => {
+    const dir = (direction || '').toUpperCase();
+    if (dir.includes('LEFT')) {
+      return { arrow: '←', color: '#10b981' };
+    }
+    if (dir.includes('RIGHT')) {
+      return { arrow: '→', color: '#10b981' };
+    }
+    if (dir.includes('AROUND') || dir.includes('BACK')) {
+      return { arrow: '↓', color: '#f59e0b' };
+    }
+    return { arrow: '↑', color: '#10b981' }; // Default is STRAIGHT
+  };
 
   const mapRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
@@ -38,39 +239,8 @@ export default function EventMapPage() {
   const poisLayerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const activeRouteLayerRef = useRef<any>(null);
+  const walkLayerRef = useRef<any>(null);
   const LRef = useRef<any>(null);
-
-  // Helper to find snap/entrance Snapping inside Leaflet effect
-  const getHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3;
-    const phi1 = (lat1 * Math.PI) / 180;
-    const phi2 = (lat2 * Math.PI) / 180;
-    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  };
-
-  const getCompassBearing = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const phi1 = (lat1 * Math.PI) / 180;
-    const phi2 = (lat2 * Math.PI) / 180;
-    const lambda1 = (lon1 * Math.PI) / 180;
-    const lambda2 = (lon2 * Math.PI) / 180;
-
-    const y = Math.sin(lambda2 - lambda1) * Math.cos(phi2);
-    const x =
-      Math.cos(phi1) * Math.sin(phi2) -
-      Math.sin(phi1) * Math.cos(phi2) * Math.cos(lambda2 - lambda1);
-    
-    const theta = Math.atan2(y, x);
-    const bearing = ((theta * 180) / Math.PI + 360) % 360;
-    return Math.round(bearing);
-  };
 
   const findOptimalEntranceNode = (
     userLat: number,
@@ -485,6 +655,9 @@ export default function EventMapPage() {
         mapRef.current = null;
         userMarkerRef.current = null;
         activeRouteLayerRef.current = null;
+        if (walkLayerRef.current) {
+          walkLayerRef.current = null;
+        }
       }
     };
   }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent]);
@@ -635,6 +808,93 @@ export default function EventMapPage() {
     }
   }, [navTarget, userGps, leafletLoaded, routeNodes, routeEdges, screenMode]);
 
+  // WALK PATH & ARROWS RENDER EFFECT
+  useEffect(() => {
+    if (!mapRef.current || !leafletLoaded) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
+
+    if (!walkLayerRef.current) {
+      walkLayerRef.current = L.layerGroup().addTo(mapRef.current);
+    } else {
+      if (!mapRef.current.hasLayer(walkLayerRef.current)) {
+        walkLayerRef.current.addTo(mapRef.current);
+      }
+      walkLayerRef.current.clearLayers();
+    }
+
+    if (!showWalkTrail || walkCoordinates.length === 0) return;
+
+    const latlngs = walkCoordinates.map(coord => [Number(coord[0]), Number(coord[1])]);
+
+    // 1. Draw Polyline (Dashed electric purple)
+    L.polyline(latlngs, {
+      color: '#a855f7',
+      weight: 5,
+      opacity: 0.85,
+      dashArray: '6, 10',
+      lineJoin: 'round',
+      lineCap: 'round'
+    }).addTo(walkLayerRef.current);
+
+    // 2. Draw Start Marker (🏁)
+    if (latlngs.length > 0) {
+      const startPoint = latlngs[0];
+      const startIcon = L.divIcon({
+        html: `
+          <div style="
+            background: #1e1b4b;
+            width: 22px; height: 22px; border-radius: 50%;
+            border: 2px solid #a855f7;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px;
+          ">🏁</div>
+        `,
+        className: '',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+      L.marker(startPoint, { icon: startIcon })
+        .addTo(walkLayerRef.current)
+        .bindPopup('<strong style="color:#a855f7">Walk Start Point</strong>');
+    }
+
+    // 3. Draw Rotated SVG Arrowheads (▲) at regular intervals (every 5th point)
+    if (latlngs.length >= 2) {
+      for (let i = 0; i < latlngs.length - 1; i += 5) {
+        const pt1 = latlngs[i];
+        const nextIdx = Math.min(i + 1, latlngs.length - 1);
+        const pt2 = latlngs[nextIdx];
+
+        if (pt1[0] === pt2[0] && pt1[1] === pt2[1]) continue;
+
+        const bearing = getCompassBearing(pt1[0], pt1[1], pt2[0], pt2[1]);
+
+        const arrowIcon = L.divIcon({
+          html: `
+            <div style="
+              transform: rotate(${bearing}deg);
+              color: #c084fc;
+              font-size: 10px;
+              line-height: 1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 900;
+              text-shadow: 0 0 3px rgba(0,0,0,0.8);
+            ">▲</div>
+          `,
+          className: '',
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+
+        L.marker(pt1, { icon: arrowIcon }).addTo(walkLayerRef.current);
+      }
+    }
+  }, [walkCoordinates, showWalkTrail, leafletLoaded]);
+
   const renderGpsStatusPill = () => {
     if (gpsStatus === 'locked') {
       return (
@@ -661,41 +921,250 @@ export default function EventMapPage() {
   };
 
   return (
-    <MapWrapper>
-      <MapCanvas id="standalone-leaflet-map-canvas" />
+    <SplitWrapper>
+      {/* Top 40% Navigation Dashboard */}
+      <DashboardContainer>
+        {/* Left POI Card */}
+        {nearestQuadrantPOIs.left ? (
+          <SidePOICard 
+            $side="left" 
+            $hasPoi={true}
+            onClick={() => setNavTarget(nearestQuadrantPOIs.left)}
+          >
+            <POITag $side="left">
+              <span>← LEFT</span>
+            </POITag>
+            <POIEmoji>{getCategoryEmoji(nearestQuadrantPOIs.left.category_name)}</POIEmoji>
+            <POIName>{nearestQuadrantPOIs.left.name_en}</POIName>
+            <POIDistance>{nearestQuadrantPOIs.left.distance}m</POIDistance>
+          </SidePOICard>
+        ) : (
+          <SidePOICard $side="left" $hasPoi={false}>
+            <POITag $side="left">
+              <span>← LEFT</span>
+            </POITag>
+            <NoPOIText>No POI near</NoPOIText>
+          </SidePOICard>
+        )}
 
-      {/* GPS Status Pill Top Left */}
-      <GlowStatusOverlay>
-        {renderGpsStatusPill()}
-      </GlowStatusOverlay>
+        {/* Central Navigation Instruction Card */}
+        {(() => {
+          const stats = navTarget ? computeNavigationStats(userGps[0], userGps[1]) : null;
+          const dirColor = navTarget && stats 
+            ? ((stats.directionText.includes('AROUND') || stats.directionText.includes('BACK')) ? '#f59e0b' : '#10b981')
+            : '#06b6d4'; // Explore mode cyan glow
+          const rotationAngle = navTarget && stats ? (stats.bearing - deviceHeading + 360) % 360 : 0;
 
-      {/* Recenter button */}
-      <ControlsOverlay>
-        <RecenterButton
-          onClick={async () => {
-            const pos = await getRealGps();
-            if (pos) {
-              setUserGps(pos);
-              if (mapRef.current) mapRef.current.setView(pos, 17);
-            } else if (mapRef.current) {
-              mapRef.current.setView(userGps, 17);
-            }
-          }}
-          title="Go to my real GPS location"
-        >
-          <Navigation className="w-4 h-4 rotate-45 text-cyan-400" />
-        </RecenterButton>
-      </ControlsOverlay>
+          return (
+            <MiddleColumn>
+              {/* Top Quadrant: Front POI */}
+              {nearestQuadrantPOIs.front ? (
+                <CentralMiniPOI $side="front" onClick={() => setNavTarget(nearestQuadrantPOIs.front)}>
+                  ▲ {getCategoryEmoji(nearestQuadrantPOIs.front.category_name)}
+                  <span className="name">{nearestQuadrantPOIs.front.name_en}</span>
+                  <span className="dist">{nearestQuadrantPOIs.front.distance}m</span>
+                </CentralMiniPOI>
+              ) : (
+                <CentralMiniPOI $side="front" style={{ opacity: 0.35, pointerEvents: 'none', background: 'rgba(9, 9, 11, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  ▲ <span className="name" style={{ color: '#71717a' }}>FRONT</span>
+                </CentralMiniPOI>
+              )}
 
-      {/* GPS coordinates text display at bottom */}
-      <CoordinatesDisplay>
-        <MapPin className="w-3 h-3 text-cyan-400" />
-        <span>
-          {userGps[0].toFixed(6)}, {userGps[1].toFixed(6)}
-          {gpsAccuracy !== null && ` • Accuracy: ${Math.round(gpsAccuracy)}m`}
-          {gpsStatus !== 'locked' && ' (Searching for strong GPS lock)'}
-        </span>
-      </CoordinatesDisplay>
-    </MapWrapper>
+              {/* Middle Arrow Card Block */}
+              <CentralCard>
+                {/* Rotating SVG Arrow */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <ArrowAnimationWrapper>
+                    <ArrowWrapper 
+                      style={{ 
+                        color: dirColor, 
+                        filter: `drop-shadow(0 0 15px ${dirColor}88)`,
+                        transform: `rotate(${rotationAngle}deg)`
+                      }}
+                    >
+                      <svg
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        style={{ width: '2.5rem', height: '2.5rem', display: 'block' }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                      </svg>
+                    </ArrowWrapper>
+                  </ArrowAnimationWrapper>
+                  <DirectionText style={{ color: dirColor, fontSize: '0.85rem' }}>
+                    {navTarget ? (stats?.directionText || 'STRAIGHT') : 'EXPLORE'}
+                  </DirectionText>
+                  <NextInstruction style={{ fontSize: '0.65rem' }}>
+                    {navTarget ? (
+                      `to ${stats?.targetNodeName || navTarget.name_en} in ${stats?.distance || 0}m`
+                    ) : (
+                      'Move to explore'
+                    )}
+                  </NextInstruction>
+                </div>
+              </CentralCard>
+
+              {/* Bottom Quadrant: Back POI */}
+              {nearestQuadrantPOIs.back ? (
+                <CentralMiniPOI $side="back" onClick={() => setNavTarget(nearestQuadrantPOIs.back)}>
+                  ▼ {getCategoryEmoji(nearestQuadrantPOIs.back.category_name)}
+                  <span className="name">{nearestQuadrantPOIs.back.name_en}</span>
+                  <span className="dist">{nearestQuadrantPOIs.back.distance}m</span>
+                </CentralMiniPOI>
+              ) : (
+                <CentralMiniPOI $side="back" style={{ opacity: 0.35, pointerEvents: 'none', background: 'rgba(9, 9, 11, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  ▼ <span className="name" style={{ color: '#71717a' }}>BACK</span>
+                </CentralMiniPOI>
+              )}
+            </MiddleColumn>
+          );
+        })()}
+
+        {/* Right POI Card */}
+        {nearestQuadrantPOIs.right ? (
+          <SidePOICard 
+            $side="right" 
+            $hasPoi={true}
+            onClick={() => setNavTarget(nearestQuadrantPOIs.right)}
+          >
+            <POITag $side="right">
+              <span>RIGHT →</span>
+            </POITag>
+            <POIEmoji>{getCategoryEmoji(nearestQuadrantPOIs.right.category_name)}</POIEmoji>
+            <POIName>{nearestQuadrantPOIs.right.name_en}</POIName>
+            <POIDistance>{nearestQuadrantPOIs.right.distance}m</POIDistance>
+          </SidePOICard>
+        ) : (
+          <SidePOICard $side="right" $hasPoi={false}>
+            <POITag $side="right">
+              <span>RIGHT →</span>
+            </POITag>
+            <NoPOIText>No POI near</NoPOIText>
+          </SidePOICard>
+        )}
+      </DashboardContainer>
+
+      {/* Bottom 50% Map Canvas */}
+      <MapContainer>
+        <MapWrapper style={{ minHeight: 'unset', height: '100%' }}>
+          <MapCanvas id="standalone-leaflet-map-canvas" />
+
+          {/* GPS Status Pill Top Left */}
+          <GlowStatusOverlay>
+            {renderGpsStatusPill()}
+          </GlowStatusOverlay>
+
+          {/* Recenter & Tracking Controls */}
+          <ControlsOverlay>
+            {/* Track My Walk Switch Switcher */}
+            <TrackToggleCard>
+              <div className="toggle-row">
+                <span className="toggle-label">Track Walk</span>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={isTrackingWalk}
+                    onChange={(e) => setIsTrackingWalk(e.target.checked)}
+                  />
+                  <span className="slider"></span>
+                </label>
+              </div>
+              <div className="toggle-row">
+                <span className="toggle-label">Show Walked Route</span>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={showWalkTrail}
+                    onChange={(e) => setShowWalkTrail(e.target.checked)}
+                  />
+                  <span className="slider"></span>
+                </label>
+              </div>
+            </TrackToggleCard>
+
+            <RecenterButton
+              onClick={async () => {
+                const pos = await getRealGps();
+                if (pos) {
+                  setUserGps(pos);
+                  if (mapRef.current) mapRef.current.setView(pos, 17);
+                } else if (mapRef.current) {
+                  mapRef.current.setView(userGps, 17);
+                }
+              }}
+              title="Go to my real GPS location"
+            >
+              <Navigation className="w-4 h-4 rotate-45 text-cyan-400" />
+            </RecenterButton>
+          </ControlsOverlay>
+
+          {/* Telemetry HUD Overlay (Active when showing trail) */}
+          {showWalkTrail && walkCoordinates.length > 0 && (
+            <TelemetryHUDOverlay>
+              <TelemetryStatusDot style={{ color: isTrackingWalk ? '#a855f7' : '#a1a1aa' }}>
+                <span className={isTrackingWalk ? "pulse" : ""} style={{ backgroundColor: isTrackingWalk ? "#c084fc" : "#71717a" }}></span>
+                <span>{isTrackingWalk ? "Tracking" : "Saved Route"}</span>
+              </TelemetryStatusDot>
+              
+              <TelemetryDivider />
+              
+              <TelemetryStatsGrid>
+                <TelemetryCol>
+                  <TelemetryLabel>Distance</TelemetryLabel>
+                  <TelemetryValue>
+                    {walkStats.distance} <span className="unit">km</span>
+                  </TelemetryValue>
+                </TelemetryCol>
+                
+                <TelemetryDivider />
+                
+                <TelemetryCol>
+                  <TelemetryLabel>Duration</TelemetryLabel>
+                  <TelemetryValue>
+                    {walkStats.duration} <span className="unit">min</span>
+                  </TelemetryValue>
+                </TelemetryCol>
+                
+                <TelemetryDivider />
+                
+                <TelemetryCol>
+                  <TelemetryLabel>Avg Speed</TelemetryLabel>
+                  <TelemetryValue>
+                    {walkStats.speed} <span className="unit">m/s</span>
+                  </TelemetryValue>
+                </TelemetryCol>
+              </TelemetryStatsGrid>
+
+              {walkCoordinates.length > 0 && (
+                <>
+                  <TelemetryDivider />
+                  <HistoryClearButton 
+                    onClick={() => {
+                      if (confirm("Are you sure you want to clear your current walking history? This cannot be undone.")) {
+                        clearWalkHistory();
+                      }
+                    }}
+                    title="Clear history logs"
+                  >
+                    Clear
+                  </HistoryClearButton>
+                </>
+              )}
+            </TelemetryHUDOverlay>
+          )}
+
+          {/* GPS coordinates text display at bottom */}
+          <CoordinatesDisplay>
+            <MapPin className="w-3 h-3 text-cyan-400" />
+            <span>
+              {userGps[0].toFixed(6)}, {userGps[1].toFixed(6)}
+              {gpsAccuracy !== null && ` • Accuracy: ${Math.round(gpsAccuracy)}m`}
+              {gpsStatus !== 'locked' && ' (Searching for strong GPS lock)'}
+            </span>
+          </CoordinatesDisplay>
+        </MapWrapper>
+      </MapContainer>
+    </SplitWrapper>
   );
 }
