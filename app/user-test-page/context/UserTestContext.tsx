@@ -360,6 +360,7 @@ interface UserTestContextType {
   events: EventItem[];
   setEvents: React.Dispatch<React.SetStateAction<EventItem[]>>;
   loadingEvents: boolean;
+  loadingMapData: boolean;
   downloadedEventIds: string[];
   setDownloadedEventIds: React.Dispatch<React.SetStateAction<string[]>>;
   apiError: boolean;
@@ -436,6 +437,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
   const [offlineMode, setOfflineMode] = useState(false);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [loadingMapData, setLoadingMapData] = useState(false);
   const [downloadedEventIds, setDownloadedEventIds] = useState<string[]>([]);
   const [apiError, setApiError] = useState(false);
   const [platformName, setPlatformName] = useState<string>('web');
@@ -616,108 +618,118 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
   const loadEventPoisAndGraph = useCallback(async (event: EventItem) => {
     if (!event) return;
 
-    const isMock = event.id.startsWith('mock-');
-    let loadedPois = isMock ? MOCK_POIS : [];
-    let loadedNodes = isMock ? MOCK_NODES : [];
-    let loadedEdges = isMock ? MOCK_EDGES : [];
-    let hasLocalCache = false;
-
-    if (typeof window !== 'undefined') {
-      const cachedPois = localStorage.getItem(`mm_offline_pois_${event.id}`);
-      const cachedRoutes = localStorage.getItem(`mm_offline_routes_${event.id}`);
-      if (cachedPois && cachedRoutes) {
-        try {
-          loadedPois = JSON.parse(cachedPois);
-          const routeData = JSON.parse(cachedRoutes);
-          if (routeData.nodes) loadedNodes = routeData.nodes;
-          if (routeData.edges) loadedEdges = routeData.edges;
-          hasLocalCache = true;
-          console.log(`[Offline Cache] Loaded ${loadedPois.length} POIs and route graph from local storage for event ${event.id}`);
-        } catch (e) {
-          console.error('Failed to parse offline cache:', e);
-        }
-      }
-    }
-
-    if (!offlineMode) {
-      try {
-        console.log(`[Fetch] Fetching latest map data from server for event ${event.id}...`);
-        let pDataFetched = false;
-        let rDataFetched = false;
-        let newPois = loadedPois;
-        let newNodes = loadedNodes;
-        let newEdges = loadedEdges;
-
-        try {
-          const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id));
-          const pJson = pRes.data;
-          if (pJson.success && Array.isArray(pJson.data)) {
-            newPois = pJson.data;
-            pDataFetched = true;
-          }
-        } catch (e) {
-          console.warn('[Fetch] POIs fetch failed:', e);
-        }
-
-        try {
-          const rRes = await axiosClient.get(API_ENDPOINTS.events.routes(event.id));
-          const rJson = rRes.data;
-          if ((rJson.status === 'success' || rJson.success) && rJson.data) {
-            if (Array.isArray(rJson.data.nodes)) {
-              newNodes = rJson.data.nodes;
-              rDataFetched = true;
-            }
-            if (Array.isArray(rJson.data.edges)) {
-              newEdges = rJson.data.edges;
-            }
-          }
-        } catch (e) {
-          console.warn('[Fetch] Routes fetch failed:', e);
-        }
-
-        if (pDataFetched || rDataFetched) {
-          loadedPois = newPois;
-          loadedNodes = newNodes;
-          loadedEdges = newEdges;
-          hasLocalCache = true;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(`mm_offline_pois_${event.id}`, JSON.stringify(newPois));
-            localStorage.setItem(`mm_offline_routes_${event.id}`, JSON.stringify({ nodes: newNodes, edges: newEdges }));
-            console.log(`[Offline Cache] Updated offline cache in storage for event ${event.id}`);
-          }
-        }
-      } catch (err) {
-        console.log('Unable to fetch latest server data. Using offline local cached files or mock.', err);
-      }
-    }
-
-    if (!hasLocalCache && event.id.startsWith('mock-') && event.center_lat && event.center_lng) {
-      const baseEvent = MOCK_EVENTS[0];
-      const latOffset = event.center_lat - baseEvent.center_lat!;
-      const lngOffset = event.center_lng - baseEvent.center_lng!;
-
-      loadedPois = loadedPois.map((p) => ({
-        ...p,
-        latitude: p.latitude + latOffset,
-        longitude: p.longitude + lngOffset
-      }));
-
-      loadedNodes = loadedNodes.map((n) => ({
-        ...n,
-        latitude: n.latitude + latOffset,
-        longitude: n.longitude + lngOffset
-      }));
+    setLoadingMapData(true);
+    try {
+      const isMock = event.id.startsWith('mock-');
+      let loadedPois = isMock ? MOCK_POIS : [];
+      let loadedNodes = isMock ? MOCK_NODES : [];
+      let loadedEdges = isMock ? MOCK_EDGES : [];
+      let hasLocalCache = false;
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem(`mm_offline_pois_${event.id}`, JSON.stringify(loadedPois));
-        localStorage.setItem(`mm_offline_routes_${event.id}`, JSON.stringify({ nodes: loadedNodes, edges: loadedEdges }));
+        const cachedPois = localStorage.getItem(`mm_offline_pois_${event.id}`);
+        const cachedRoutes = localStorage.getItem(`mm_offline_routes_${event.id}`);
+        if (cachedPois && cachedRoutes) {
+          try {
+            loadedPois = JSON.parse(cachedPois);
+            const routeData = JSON.parse(cachedRoutes);
+            if (routeData.nodes) loadedNodes = routeData.nodes;
+            if (routeData.edges) loadedEdges = routeData.edges;
+            hasLocalCache = true;
+            console.log(`[Offline Cache] Loaded ${loadedPois.length} POIs and route graph from local storage for event ${event.id}`);
+          } catch (e) {
+            console.error('Failed to parse offline cache:', e);
+          }
+        }
       }
-    }
 
-    setPoisList(loadedPois);
-    setRouteNodes(loadedNodes);
-    setRouteEdges(loadedEdges);
+      // Set cached data immediately so UI isn't empty during network fetch
+      setPoisList(loadedPois);
+      setRouteNodes(loadedNodes);
+      setRouteEdges(loadedEdges);
+
+      if (!offlineMode) {
+        try {
+          console.log(`[Fetch] Fetching latest map data from server for event ${event.id}...`);
+          let pDataFetched = false;
+          let rDataFetched = false;
+          let newPois = loadedPois;
+          let newNodes = loadedNodes;
+          let newEdges = loadedEdges;
+
+          try {
+            const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id));
+            const pJson = pRes.data;
+            if (pJson.success && Array.isArray(pJson.data)) {
+              newPois = pJson.data;
+              pDataFetched = true;
+            }
+          } catch (e) {
+            console.warn('[Fetch] POIs fetch failed:', e);
+          }
+
+          try {
+            const rRes = await axiosClient.get(API_ENDPOINTS.events.routes(event.id));
+            const rJson = rRes.data;
+            if ((rJson.status === 'success' || rJson.success) && rJson.data) {
+              if (Array.isArray(rJson.data.nodes)) {
+                newNodes = rJson.data.nodes;
+                rDataFetched = true;
+              }
+              if (Array.isArray(rJson.data.edges)) {
+                newEdges = rJson.data.edges;
+              }
+            }
+          } catch (e) {
+            console.warn('[Fetch] Routes fetch failed:', e);
+          }
+
+          if (pDataFetched || rDataFetched) {
+            loadedPois = newPois;
+            loadedNodes = newNodes;
+            loadedEdges = newEdges;
+            hasLocalCache = true;
+            
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(`mm_offline_pois_${event.id}`, JSON.stringify(newPois));
+              localStorage.setItem(`mm_offline_routes_${event.id}`, JSON.stringify({ nodes: newNodes, edges: newEdges }));
+              console.log(`[Offline Cache] Updated offline cache in storage for event ${event.id}`);
+            }
+          }
+        } catch (err) {
+          console.log('Unable to fetch latest server data. Using offline local cached files or mock.', err);
+        }
+      }
+
+      if (!hasLocalCache && event.id.startsWith('mock-') && event.center_lat && event.center_lng) {
+        const baseEvent = MOCK_EVENTS[0];
+        const latOffset = event.center_lat - baseEvent.center_lat!;
+        const lngOffset = event.center_lng - baseEvent.center_lng!;
+
+        loadedPois = loadedPois.map((p) => ({
+          ...p,
+          latitude: p.latitude + latOffset,
+          longitude: p.longitude + lngOffset
+        }));
+
+        loadedNodes = loadedNodes.map((n) => ({
+          ...n,
+          latitude: n.latitude + latOffset,
+          longitude: n.longitude + lngOffset
+        }));
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`mm_offline_pois_${event.id}`, JSON.stringify(loadedPois));
+          localStorage.setItem(`mm_offline_routes_${event.id}`, JSON.stringify({ nodes: loadedNodes, edges: loadedEdges }));
+        }
+      }
+
+      setPoisList(loadedPois);
+      setRouteNodes(loadedNodes);
+      setRouteEdges(loadedEdges);
+    } finally {
+      setLoadingMapData(false);
+    }
   }, [offlineMode]);
 
   // Real GPS positioning logic (Google Maps style 2-stage)
@@ -1860,6 +1872,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
         events,
         setEvents,
         loadingEvents,
+        loadingMapData,
         downloadedEventIds,
         setDownloadedEventIds,
         apiError,

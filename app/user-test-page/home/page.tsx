@@ -33,7 +33,8 @@ export default function EventHomePage() {
     poisList,
     getCategoryStats,
     setActiveCategory,
-    walkStats
+    walkStats,
+    loadingMapData
   } = useUserTest();
 
   if (!selectedEvent) return null;
@@ -43,8 +44,45 @@ export default function EventHomePage() {
     ? selectedEvent.name.toUpperCase().replace(' - ', ' · ')
     : 'RATH YATRA 2025 · PURI';
 
+  if (poisList.length === 0 && loadingMapData) {
+    return (
+      <HomeContainer style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#a1a1aa', textAlign: 'center' }}>
+          <div style={{
+            width: '2.5rem',
+            height: '2.5rem',
+            border: '3px solid rgba(34, 211, 238, 0.1)',
+            borderTopColor: '#22d3ee',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 0.4; }
+              50% { opacity: 1; }
+            }
+          `}</style>
+          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fafafa' }}>Syncing map assets...</div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a' }}>Downloading points of interest and routing sectors</div>
+        </div>
+      </HomeContainer>
+    );
+  }
+
   return (
     <HomeContainer>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+      `}</style>
       
       {/* Event Header Card (Full-bleed dark brown) */}
       <EventHeaderCard>
@@ -60,16 +98,46 @@ export default function EventHomePage() {
       </EventHeaderCard>
 
       {/* Offline Map Status Header Box */}
-      <StatusBox>
-        <StatusInfo>
-          <StatusTitle>Offline map ready</StatusTitle>
-          <StatusText>{poisList.length} POIs loaded</StatusText>
-        </StatusInfo>
-        <StatusBadge>
-          <span>OFFLINE</span>
-          <span className="checkmark">✓</span>
-        </StatusBadge>
-      </StatusBox>
+      {loadingMapData ? (
+        <StatusBox style={{ borderColor: 'rgba(34, 211, 238, 0.2)' }}>
+          <StatusInfo>
+            <StatusTitle style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                display: 'inline-block',
+                width: '0.5rem',
+                height: '0.5rem',
+                backgroundColor: '#22d3ee',
+                borderRadius: '50%',
+                animation: 'pulse 1.5s infinite'
+              }} />
+              <span>Checking for updates...</span>
+            </StatusTitle>
+            <StatusText style={{ paddingLeft: '1rem' }}>{poisList.length} POIs active · Updating...</StatusText>
+          </StatusInfo>
+          <StatusBadge style={{ backgroundColor: 'rgba(34, 211, 238, 0.1)', color: '#22d3ee', borderColor: 'rgba(34, 211, 238, 0.2)' }}>
+            <span style={{
+              display: 'inline-block',
+              width: '12px',
+              height: '12px',
+              border: '2px solid rgba(34, 211, 238, 0.2)',
+              borderTopColor: '#22d3ee',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+          </StatusBadge>
+        </StatusBox>
+      ) : (
+        <StatusBox>
+          <StatusInfo>
+            <StatusTitle>Offline map ready</StatusTitle>
+            <StatusText>{poisList.length} POIs loaded</StatusText>
+          </StatusInfo>
+          <StatusBadge>
+            <span>OFFLINE</span>
+            <span className="checkmark">✓</span>
+          </StatusBadge>
+        </StatusBox>
+      )}
 
       {/* Active Walk Telemetry Quick Link Banner */}
       {walkStats && walkStats.distance > 0 && (
