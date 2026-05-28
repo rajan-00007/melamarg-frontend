@@ -43,6 +43,7 @@ const bounce = keyframes`
   }
 `;
 
+// Root Navigation Container
 export const NavContainer = styled.div`
   flex-grow: 1;
   display: flex;
@@ -62,9 +63,9 @@ export const NavContainer = styled.div`
 export const Overlay = styled.div`
   position: absolute;
   inset: 0;
-  background-color: rgba(9, 9, 11, 0.85); /* bg-zinc-950/85 */
+  background-color: rgba(9, 9, 11, 0.85); /* bg-zinc-955/85 */
   backdrop-filter: blur(8px); /* backdrop-blur-md */
-  z-index: 30;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -168,31 +169,13 @@ export const StopButton = styled.button`
   }
 `;
 
-// Directions Dashboard (Upper Panel)
-export const DirectionsDashboard = styled.div`
-  height: 28%;
-  min-height: 175px;
-  overflow-y: auto;
-  padding: 0.875rem; /* p-3.5 */
-  padding-bottom: 0.5rem; /* pb-2 */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.625rem; /* space-y-2.5 */
-  background-color: rgba(10, 10, 15, 0.95); /* bg-[#0a0a0f]/95 */
-  border-bottom: 1px solid #18181b; /* border-zinc-900 */
-  z-index: 10;
-  position: relative;
-  flex-shrink: 0;
-`;
-
 // Arrival Notification Overlay
 export const ArrivalOverlay = styled.div`
   position: absolute;
   inset: 0;
   background-color: rgba(2, 44, 34, 0.95); /* bg-emerald-955/95 */
   backdrop-filter: blur(8px); /* backdrop-blur-md */
-  z-index: 20;
+  z-index: 40;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -254,174 +237,41 @@ export const BackButton = styled.button`
   }
 `;
 
-export const NavHeaderCategory = styled.div`
-  font-size: 9px;
-  color: #d97706;
-  text-transform: uppercase;
-  letter-spacing: 0.1em; /* tracking-widest */
-  font-weight: 900;
-  line-height: 1;
-`;
+// SPLIT SCREEN & REDESIGNED 3-COLUMN DASHBOARD STYLES
 
-export const NavHeaderTitle = styled.h3`
-  font-size: 0.875rem; /* text-sm */
-  font-weight: 800;
-  color: #fafafa; /* text-zinc-50 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
-  margin: 0;
-  margin-top: 0.25rem; /* mt-1 */
-  line-height: 1.25;
-`;
-
-export const NavHeaderStatsWrapper = styled.div`
+export const SplitWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: end;
-  gap: 0.25rem; /* gap-1 */
-  flex-shrink: 0;
-`;
-
-export const NavHeaderStats = styled.span`
-  font-size: 10px;
-  color: #71717a; /* text-zinc-450 */
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; /* font-mono */
-  font-weight: 900;
-`;
-
-// Compass Banner
-export const CompassBanner = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.875rem; /* space-x-3.5 */
-  background-color: rgba(24, 24, 27, 0.6); /* bg-zinc-900/60 */
-  border: 1px solid rgba(39, 39, 42, 0.8); /* border-zinc-800/80 */
-  border-radius: 1rem; /* rounded-2xl */
-  padding: 0.625rem; /* p-2.5 */
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-`;
-
-export const CompassRing = styled.div`
+  height: 100%;
+  width: 100%;
   position: relative;
-  height: 3.25rem; /* h-13 */
-  width: 3.25rem; /* w-13 */
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background-color: #09090b; /* bg-zinc-950 */
-  border: 1px solid rgba(39, 39, 42, 0.8); /* border-zinc-800/80 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  background-color: #07070a;
 `;
 
-export const CompassText = styled.div`
-  flex-grow: 1;
-  min-width: 0;
+export const DashboardContainer = styled.div<{ $isExpanded?: boolean }>`
+  height: ${props => props.$isExpanded ? '15%' : '72%'};
+  min-height: ${props => props.$isExpanded ? '90px' : '390px'};
+  background: linear-gradient(180deg, #0b0b14 0%, #07070a 100%);
+  border-bottom: 1px solid #18181b;
+  position: relative;
+  z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem; /* space-y-0.5 */
-`;
-
-export const CompassSub = styled.div`
-  font-size: 7.5px;
-  color: #71717a; /* text-zinc-505 */
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.05em; /* tracking-wider */
-  line-height: 1;
-`;
-
-export const CompassTitle = styled.div`
-  font-size: 0.75rem; /* text-xs */
-  font-weight: 900;
-  color: #10b981; /* text-emerald-400 */
-  text-transform: uppercase;
-  letter-spacing: 0.05em; /* tracking-wide */
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem; /* gap-1.5 */
-  margin-top: 0.125rem;
-`;
-
-export const CompassInstruction = styled.p`
-  font-size: 10px;
-  font-weight: 700;
-  color: #d4d4d8; /* text-zinc-300 */
-  line-height: 1.5;
-  white-space: nowrap;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
 `;
 
-// Controls
-export const ControlsGrid = styled.div`
-  display: grid;
-  grid-template-cols: repeat(2, minmax(0, 1fr)); /* grid-cols-2 */
-  gap: 0.75rem; /* gap-3 */
-  padding-top: 0.125rem; /* pt-0.5 */
-`;
-
-export const SimulateButton = styled.button`
-  padding: 0.5rem; /* py-2 */
-  background: linear-gradient(to right, #059669, #14b8a6); /* from-emerald-600 to-teal-500 */
-  color: #ffffff;
-  font-weight: 900;
-  border-radius: 0.75rem; /* rounded-xl */
-  font-size: 0.75rem; /* text-xs */
-  cursor: pointer;
-  border: 0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem; /* gap-1.5 */
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(to right, #10b981, #2dd4bf);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;
-
-export const StopNavigationButton = styled.button`
-  padding: 0.5rem; /* py-2 */
-  background-color: rgba(127, 29, 29, 0.2); /* bg-red-955/20 */
-  color: #f87171; /* text-red-400 */
-  border: 1px solid rgba(185, 28, 28, 0.3); /* border-red-900/30 */
-  font-weight: 900;
-  border-radius: 0.75rem; /* rounded-xl */
-  font-size: 0.75rem; /* text-xs */
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(185, 28, 28, 0.4);
-  }
-`;
-
-// Map Panel (Lower Panel)
-interface MapPanelProps {
-  isExpanded: boolean;
-}
-
-export const MapPanel = styled.div<MapPanelProps>`
+export const MapContainer = styled.div<{ $isExpanded?: boolean }>`
+  height: ${props => props.$isExpanded ? '85%' : '28%'};
+  min-height: ${props => props.$isExpanded ? '350px' : '150px'};
   position: relative;
-  z-index: 0;
-  border-top: 1px solid #18181b; /* border-zinc-900 */
-  height: ${props => props.isExpanded ? '100%' : '72%'};
-  ${props => props.isExpanded && 'flex-grow: 1;'}
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: ${props => props.$isExpanded ? 'default' : 'pointer'};
 `;
 
 export const MapCanvas = styled.div`
@@ -429,182 +279,468 @@ export const MapCanvas = styled.div`
   height: 100%;
   position: absolute;
   inset: 0;
+  z-index: 1;
 `;
 
-export const MapToggleButton = styled.button`
-  position: absolute;
-  top: 1rem; /* top-4 */
-  left: 1rem; /* left-4 */
-  z-index: 20;
-  padding: 0.625rem; /* p-2.5 */
-  background-color: rgba(24, 24, 27, 0.9); /* bg-zinc-900/90 */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  border-radius: 0.75rem; /* rounded-xl */
-  color: #22d3ee; /* text-cyan-400 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
+// Expanded active navigation center card (flex: 1 to fill middle column height completely)
+export const CentralCard = styled.div`
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  background: rgba(24, 24, 27, 0.4);
+  border: 1px solid rgba(39, 39, 42, 0.6);
+  border-radius: 1.25rem;
+  padding: 0.75rem 0.5rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(8px); /* backdrop-blur-md */
-  transition: all 0.2s;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  box-sizing: border-box;
 
   &:hover {
-    color: #ffffff;
-    border-color: #3f3f46;
+    border-color: rgba(34, 211, 238, 0.4);
+    box-shadow: 0 10px 30px 0 rgba(34, 211, 238, 0.1);
   }
 `;
 
-export const MapRecenterButton = styled.button`
-  position: absolute;
-  top: 1rem; /* top-4 */
-  right: 1rem; /* right-4 */
-  z-index: 20;
-  padding: 0.625rem; /* p-2.5 */
-  background-color: rgba(24, 24, 27, 0.9); /* bg-zinc-900/90 */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  border-radius: 0.75rem; /* rounded-xl */
-  color: #22d3ee; /* text-cyan-400 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
+export const ArrowAnimationWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(8px); /* backdrop-blur-md */
-  transition: all 0.2s;
+  margin-bottom: 0.45rem;
+  animation: float 3s ease-in-out infinite;
 
-  &:hover {
-    color: #ffffff;
-    border-color: #3f3f46;
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
   }
 `;
 
-// Expanded banner overlay
-export const ExpandedBanner = styled.div`
-  position: absolute;
-  top: 4rem; /* top-16 */
-  left: 1rem;
-  right: 1rem; /* left-4 right-4 */
-  z-index: 20;
-  padding: 0.75rem; /* p-3 */
-  background-color: rgba(9, 9, 11, 0.9); /* bg-zinc-950/90 */
-  border: 1px solid rgba(39, 39, 42, 0.8); /* border-zinc-800/80 */
-  border-radius: 1rem; /* rounded-2xl */
+export const ArrowWrapper = styled.div`
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 3.25rem;
+  height: 3.25rem;
+`;
+
+export const DirectionText = styled.div`
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+`;
+
+export const NextInstruction = styled.div`
+  font-size: 0.75rem;
+  color: #e4e4e7;
+  font-weight: 700;
+  line-height: 1.35;
+  max-width: 95%;
+  word-wrap: break-word;
+`;
+
+interface SidePOICardProps {
+  $side: 'left' | 'right';
+  $hasPoi: boolean;
+}
+
+export const SidePOICard = styled.div<SidePOICardProps>`
+  flex: 0 1 110px;
+  height: 95%;
+  background: rgba(18, 18, 22, 0.6);
+  border: 1px solid rgba(39, 39, 42, 0.4);
+  border-radius: 1.5rem;
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  cursor: ${props => props.$hasPoi ? 'pointer' : 'default'};
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  overflow: hidden;
+  opacity: ${props => props.$hasPoi ? 1 : 0.5};
+
+  ${props => props.$side === 'left' ? `
+    border-left: 4px solid #10b981;
+    box-shadow: ${props.$hasPoi ? '0 4px 20px rgba(16, 185, 129, 0.05)' : 'none'};
+  ` : `
+    border-right: 4px solid #8b5cf6;
+    box-shadow: ${props.$hasPoi ? '0 4px 20px rgba(139, 92, 246, 0.05)' : 'none'};
+  `}
+
+  &:hover {
+    ${props => props.$hasPoi && (props.$side === 'left' ? `
+      border-color: #10b981 rgba(39,39,42,0.8) rgba(39,39,42,0.8) #10b981;
+      background: rgba(16, 185, 129, 0.05);
+      transform: translateX(2.5px);
+    ` : `
+      border-color: rgba(39,39,42,0.8) #8b5cf6 rgba(39,39,42,0.8) rgba(39,39,42,0.8);
+      background: rgba(139, 92, 246, 0.05);
+      transform: translateX(-2.5px);
+    `)}
+  }
+`;
+
+interface POITagProps {
+  $side: 'left' | 'right';
+}
+
+export const POITag = styled.div<POITagProps>`
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  justify-content: ${props => props.$side === 'left' ? 'flex-start' : 'flex-end'};
+`;
+
+export const POIEmoji = styled.div`
+  font-size: 1.5rem;
+  margin: 0.25rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const POIName = styled.div`
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fafafa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+`;
+
+export const POIDistance = styled.div`
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #a1a1aa;
+  margin-top: 0.15rem;
+  text-align: center;
+`;
+
+export const NoPOIText = styled.div`
+  font-size: 0.6rem;
+  color: #52525b;
+  font-weight: 500;
+  text-align: center;
+  margin: auto 0;
+`;
+
+// Center column container
+export const MiddleColumn = styled.div`
+  flex: 1.25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* high focus center alignment */
+  height: 95%;
+  min-width: 140px;
+  max-width: 220px;
+  box-sizing: border-box;
+  gap: 0.35rem;
+`;
+
+// Mockup dashboard header rows
+export const DashboardHeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  width: 100%;
+  margin-bottom: 0.4rem;
+`;
+
+export const DashboardHeaderTitle = styled.div`
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  span.target {
+    color: #f97316; /* Orange target color */
+    margin-left: 0.25rem;
+    font-weight: 900;
+  }
+`;
+
+export const DashboardHeaderStats = styled.div`
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #fafafa;
+  margin-top: 0.15rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  span.time {
+    font-size: 0.75rem;
+    color: #71717a;
+    font-weight: 600;
+  }
+`;
+
+export const DashboardColumns = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(8px); /* backdrop-blur-md */
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  border-left-width: 4px;
-  border-left-style: solid;
-  border-left-color: #10b981; /* border-l-[#10b981] */
-  animation: ${fadeIn} 0.4s ease-out forwards;
-`;
-
-export const ExpandedBannerLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem; /* space-x-3 */
-  min-width: 0;
+  width: 100%;
   flex: 1;
-  margin-right: 0.5rem; /* mr-2 */
+  min-height: 0;
+  gap: 0.4rem;
+  box-sizing: border-box;
 `;
 
-export const ExpandedCompassRing = styled.div`
-  position: relative;
-  height: 2.25rem; /* h-9 */
-  width: 2.25rem; /* w-9 */
-  flex-shrink: 0;
+// Horizontal Compass Slider Strip
+export const CompassSliderContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  padding: 0.35rem 0.25rem;
+  box-sizing: border-box;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+`;
+
+export const CompassSliderTrack = styled.div`
+  flex: 1;
+  height: 22px;
+  background: rgba(18, 18, 22, 0.65);
+  border: 1px solid rgba(63, 63, 70, 0.45);
   border-radius: 9999px;
-  background-color: #18181b; /* bg-zinc-900 */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-`;
-
-export const ExpandedBannerActions = styled.div`
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.375rem; /* space-x-1.5 */
-  flex-shrink: 0;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
 `;
 
-export const ExpandedSimulateButton = styled.button`
-  padding: 0.375rem 0.625rem; /* py-1.5 px-2.5 */
-  background-color: #059669; /* bg-emerald-600 */
-  color: #ffffff;
-  font-size: 8px;
+export const CompassLabel = styled.span`
+  font-size: 0.65rem;
   font-weight: 900;
-  text-transform: uppercase;
-  border-radius: 0.5rem; /* rounded-lg */
-  border: 0;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #10b981;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
+  color: #71717a;
+  letter-spacing: 0.05em;
 `;
 
-export const ExpandedCloseButton = styled.button`
-  padding: 0.375rem; /* p-1.5 */
-  background-color: rgba(127, 29, 29, 0.4); /* bg-red-955/40 */
-  border: 1px solid rgba(185, 28, 28, 0.4); /* border-red-900/40 */
-  color: #f87171; /* text-red-400 */
-  border-radius: 0.5rem; /* rounded-lg */
+export const CompassIndicatorLine = styled.div<{ $headingOffset?: number }>`
+  position: absolute;
+  width: 3px;
+  height: 12px;
+  background-color: #f97316; /* Orange tick cursor */
+  border-radius: 9999px;
+  box-shadow: 0 0 6px #f97316;
+  left: calc(50% + ${props => props.$headingOffset || 0}px);
+  transition: left 0.1s ease-out;
+  z-index: 15;
+`;
+
+export const CompassTickLine = styled.div<{ $offset: number; $isMajor?: boolean }>`
+  position: absolute;
+  width: 1px;
+  height: ${props => props.$isMajor ? '8px' : '5px'};
+  background-color: ${props => props.$isMajor ? 'rgba(161, 161, 170, 0.5)' : 'rgba(113, 113, 122, 0.25)'};
+  left: calc(50% + ${props => props.$offset}px);
+`;
+
+// Expand / Minimize Floating Button
+export const MapToggleButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  color: #d4d4d8;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    color: #ffffff;
+    border-color: #3f3f46;
+    background-color: #27272a;
+  }
+`;
+
+export const GlowStatusOverlay = styled.div`
+  position: absolute;
+  top: 1rem;
+  left: 3.5rem;
+  z-index: 9999;
+`;
+
+// Floating Recenter Controls
+export const ControlsOverlay = styled.div`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const RecenterButton = styled.button`
+  padding: 0.625rem;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  color: #d4d4d8;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
 
   &:hover {
-    background-color: rgba(185, 28, 28, 0.6);
+    color: #ffffff;
+    border-color: #3f3f46;
   }
 `;
 
-export const FooterCoordinatesDisplay = styled.div`
+export const CoordinatesDisplay = styled.div`
   position: absolute;
-  bottom: 1rem; /* bottom-4 */
+  bottom: 1rem;
   left: 1rem;
-  right: 1rem; /* left-4 right-4 */
-  z-index: 20;
-  padding: 0.5rem; /* p-2 */
-  background-color: rgba(9, 9, 11, 0.95); /* bg-zinc-950/95 */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  border-radius: 0.75rem; /* rounded-xl */
+  right: 1rem;
+  z-index: 9999;
+  padding: 0.625rem;
+  background-color: rgba(9, 9, 11, 0.9);
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
   font-size: 9px;
-  color: #22d3ee; /* text-cyan-400 */
+  color: #22d3ee;
   text-align: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; /* font-mono */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem; /* gap-1.5 */
-  backdrop-filter: blur(8px); /* backdrop-blur-md */
+  gap: 0.375rem;
+  backdrop-filter: blur(8px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 `;
 
-// GPS Status Pills (Overlay re-use)
+// Bottom Active Navigation Status Footer Bar
+export const NavigationFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background-color: #0b0b14;
+  border-top: 1px solid #18181b;
+  position: relative;
+  z-index: 30;
+  height: 52px;
+  box-sizing: border-box;
+`;
+
+export const FooterStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 10px;
+  font-weight: 800;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  span.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    display: inline-block;
+    animation: ${pulse} 1.5s infinite;
+  }
+`;
+
+export const FooterActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const FooterButton = styled.button<{ $variant?: 'mute' | 'stop' | 'simulate' }>`
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+
+  ${props => props.$variant === 'stop' ? `
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #f43f5e;
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #fff;
+    }
+  ` : props.$variant === 'simulate' ? `
+    background: linear-gradient(to right, #059669, #14b8a6);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    &:hover:not(:disabled) {
+      background: linear-gradient(to right, #10b981, #2dd4bf);
+    }
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  ` : `
+    background-color: rgba(63, 63, 70, 0.3);
+    border-color: rgba(63, 63, 70, 0.6);
+    color: #a1a1aa;
+    &:hover {
+      background-color: rgba(63, 63, 70, 0.5);
+      border-color: #a1a1aa;
+      color: #fff;
+    }
+  `}
+`;
+
+// GPS Status Pills
 export const GPSLockedPill = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem; /* gap-1 */
-  padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   background-color: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.3);
   color: #34d399;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(8px);
@@ -621,13 +757,13 @@ export const GPSLockedPill = styled.div`
 export const GPSSearchingPill = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem; /* gap-1 */
-  padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   background-color: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
   color: #fbbf24;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(8px);
@@ -644,13 +780,13 @@ export const GPSSearchingPill = styled.div`
 export const GPSLostPill = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem; /* gap-1 */
-  padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #f43f5e;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(8px);
@@ -664,39 +800,16 @@ export const GPSLostPill = styled.div`
   }
 `;
 
-const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
 export const StyledCompassIcon = styled(Compass)`
   width: 2rem;
   height: 2rem;
-  animation: ${spin} 3s linear infinite;
-`;
-
-export const CompassArrowSvg = styled.svg`
-  width: 1.75rem;
-  height: 1.75rem;
-  color: #34d399; /* text-emerald-400 */
-  transition: transform 300ms ease-out;
-`;
-
-export const ExpandedCompassArrowSvg = styled.svg`
-  width: 1.125rem;
-  height: 1.125rem;
-  color: #34d399; /* text-emerald-400 */
-  transition: transform 300ms ease-out;
+  animation: ${pulse} 3s linear infinite;
 `;
 
 export const StyledPartyPopper = styled(PartyPopper)`
   width: 2.5rem;
   height: 2.5rem;
-  color: #34d399; /* text-emerald-400 */
+  color: #34d399;
   margin-bottom: 0.5rem;
   animation: ${bounce} 1s infinite;
 `;
@@ -704,7 +817,7 @@ export const StyledPartyPopper = styled(PartyPopper)`
 export const StyledArrowLeft = styled(ArrowLeft)`
   width: 1rem;
   height: 1rem;
-  color: #a1a1aa; /* text-zinc-400 */
+  color: #a1a1aa;
 `;
 
 export const StyledNavigation = styled(Navigation)`
@@ -716,16 +829,5 @@ export const StyledNavigation = styled(Navigation)`
 export const StyledMapPin = styled(MapPin)`
   width: 0.75rem;
   height: 0.75rem;
-  color: #22d3ee; /* text-cyan-400 */
+  color: #22d3ee;
 `;
-
-export const ToggleSvg = styled.svg`
-  width: 1rem;
-  height: 1rem;
-`;
-
-export const CloseSvg = styled.svg`
-  width: 0.75rem;
-  height: 0.75rem;
-`;
-

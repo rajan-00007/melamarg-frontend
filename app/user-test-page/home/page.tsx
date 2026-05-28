@@ -33,7 +33,6 @@ export default function EventHomePage() {
     poisList,
     getCategoryStats,
     setActiveCategory,
-    walkStats,
     loadingMapData
   } = useUserTest();
 
@@ -139,25 +138,7 @@ export default function EventHomePage() {
         </StatusBox>
       )}
 
-      {/* Active Walk Telemetry Quick Link Banner */}
-      {walkStats && walkStats.distance > 0 && (
-        <BannerAlert 
-          style={{ 
-            background: 'rgba(168, 85, 247, 0.1)', 
-            borderColor: 'rgba(168, 85, 247, 0.35)', 
-            margin: '0 0 1rem 0', 
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(168, 85, 247, 0.1)'
-          }} 
-          onClick={() => router.push('/user-test-page/map')}
-        >
-          <BannerIndicator style={{ backgroundColor: '#a855f7' }} />
-          <span style={{ fontSize: '1rem', marginRight: '0.5rem', animation: 'ping 1.5s infinite' }}>👣</span>
-          <BannerText style={{ color: '#fafafa', fontSize: '11px', fontWeight: '800' }}>
-            Active Walk Session: You have walked {walkStats.distance} km today. Tap to view your path!
-          </BannerText>
-        </BannerAlert>
-      )}
+
    
       {/* Grid 3x3 of POI categories */}
       <CategoriesGrid>

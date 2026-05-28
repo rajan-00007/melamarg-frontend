@@ -8,7 +8,6 @@ import axiosClient from '@/lib/axios/axiosClient';
 import { API_ENDPOINTS } from '@/lib/axios/endpoints';
 import { getWebFcmToken, getFirebaseApp } from '@/lib/firebase';
 import { getMessaging, onMessage } from 'firebase/messaging';
-import { addCoordinate, getCoordinates, clearCoordinates } from '../../../lib/indexedDbHelper';
 
 export interface EventItem {
   id: string;
@@ -417,13 +416,6 @@ interface UserTestContextType {
   startGpsWatch: () => Promise<void>;
   stopGpsWatch: () => void;
   registerPushNotifications: (eventId: string) => Promise<void>;
-  isTrackingWalk: boolean;
-  setIsTrackingWalk: (val: boolean) => void;
-  walkCoordinates: [number, number][];
-  walkStats: { distance: number; duration: number; speed: number };
-  clearWalkHistory: () => Promise<void>;
-  showWalkTrail: boolean;
-  setShowWalkTrail: (val: boolean) => void;
 }
 
 const UserTestContext = createContext<UserTestContextType | undefined>(undefined);
@@ -455,35 +447,6 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
   const [routeNodes, setRouteNodes] = useState<NodeItem[]>([]);
   const [routeEdges, setRouteEdges] = useState<EdgeItem[]>([]);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
-
-  // --- Walk Tracking State & Refs ---
-  const [isTrackingWalk, setIsTrackingWalkState] = useState(false);
-  const [walkCoordinates, setWalkCoordinates] = useState<[number, number][]>([]);
-  const [walkStats, setWalkStats] = useState({ distance: 0, duration: 0, speed: 0 });
-  const [showWalkTrail, setShowWalkTrail] = useState(true);
-  const trackingStartTimeRef = useRef<number | null>(null);
-  const totalDistanceRef = useRef<number>(0);
-
-  const isTrackingWalkRef = useRef(false);
-  const selectedEventRef = useRef<EventItem | null>(null);
-  const walkCoordinatesRef = useRef<[number, number][]>([]);
-  const gpsAccuracyRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    isTrackingWalkRef.current = isTrackingWalk;
-  }, [isTrackingWalk]);
-
-  useEffect(() => {
-    selectedEventRef.current = selectedEvent;
-  }, [selectedEvent]);
-
-  useEffect(() => {
-    walkCoordinatesRef.current = walkCoordinates;
-  }, [walkCoordinates]);
-
-  useEffect(() => {
-    gpsAccuracyRef.current = gpsAccuracy;
-  }, [gpsAccuracy]);
   
   // Load Leaflet dynamically on mount of the context provider
   useEffect(() => {
@@ -522,6 +485,38 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
 
     loadLeafletScript();
   }, []);
+
+  // Listen to device orientation absolute/relative sensors to update deviceHeading
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOrientation = (e: any) => {
+      // iOS Compass Heading (Absolute 0-360 degrees)
+      if (e.webkitCompassHeading !== undefined) {
+        setDeviceHeading(Math.round(e.webkitCompassHeading));
+      } 
+      // Android / absolute standard (0-360 degrees)
+      else if (e.alpha !== null && e.alpha !== undefined) {
+        const heading = (360 - e.alpha) % 360;
+        setDeviceHeading(Math.round(heading));
+      }
+    };
+
+    if ('ondeviceorientationabsolute' in (window as any)) {
+      (window as any).addEventListener('deviceorientationabsolute', handleOrientation, true);
+    } else {
+      (window as any).addEventListener('deviceorientation', handleOrientation, true);
+    }
+
+    return () => {
+      if ('ondeviceorientationabsolute' in (window as any)) {
+        (window as any).removeEventListener('deviceorientationabsolute', handleOrientation, true);
+      } else {
+        (window as any).removeEventListener('deviceorientation', handleOrientation, true);
+      }
+    };
+  }, []);
+  
   
   const [navTarget, setNavTarget] = useState<POIItem | null>(null);
   const [deviceHeading, setDeviceHeading] = useState(0);
@@ -838,60 +833,6 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
 
     setUserGps([latitude, longitude]);
 
-    // --- WALK TRACKING AND FILTERING ---
-    if (isTrackingWalkRef.current && selectedEventRef.current) {
-      const lastCoord = walkCoordinatesRef.current[walkCoordinatesRef.current.length - 1];
-      const evId = selectedEventRef.current.id;
-      const currentAcc = accuracy !== undefined ? accuracy : 10;
-      
-      // 1. Accuracy Filter: Ignore weak signals (> 20 meters) specifically for path logging
-      if (currentAcc <= 20) {
-        if (!lastCoord) {
-          // First point of the session!
-          console.log(`[Walk Tracking] Logging first coordinate: ${latitude}, ${longitude}`);
-          addCoordinate(evId, latitude, longitude, currentAcc)
-            .then(() => {
-              setWalkCoordinates([[latitude, longitude]]);
-            })
-            .catch(e => console.error('Failed to save first coordinate:', e));
-        } else {
-          // Calculate Haversine distance from the last recorded point
-          const dist = getHaversineDistance(lastCoord[0], lastCoord[1], latitude, longitude);
-          
-          // 2. Drift Filter: Only log if distance is >= 2.5 meters
-          if (dist >= 2.5) {
-            console.log(`[Walk Tracking] Logging new point: ${latitude}, ${longitude} (dist: ${dist.toFixed(1)}m)`);
-            addCoordinate(evId, latitude, longitude, currentAcc)
-              .then(() => {
-                const newCoords = [...walkCoordinatesRef.current, [latitude, longitude] as [number, number]];
-                setWalkCoordinates(newCoords);
-                
-                // Update live telemetry stats
-                totalDistanceRef.current += dist;
-                
-                // Calculate active duration
-                let duration = 0;
-                if (trackingStartTimeRef.current) {
-                  duration = Math.max(1, Math.round((Date.now() - trackingStartTimeRef.current) / 1000 / 60)); // minutes
-                } else {
-                  trackingStartTimeRef.current = Date.now();
-                  duration = 1;
-                }
-                
-                setWalkStats({
-                  distance: Number((totalDistanceRef.current / 1000).toFixed(2)),
-                  duration: duration,
-                  speed: Number((totalDistanceRef.current / (duration * 60 || 1)).toFixed(1))
-                });
-              })
-              .catch(e => console.error('Failed to log walk coordinate:', e));
-          }
-        }
-      } else {
-        console.warn(`[Walk Tracking] Weak GPS accuracy (${currentAcc}m > 20m limit). Point ignored for tracking.`);
-      }
-    }
-
     // Increase accuracy limit to 1000m so cell-tower OS cache locks inside work and allow navigation to start
     const LOCK_ACCURACY_LIMIT = 1000;
     if (accuracy !== undefined && accuracy > LOCK_ACCURACY_LIMIT) {
@@ -993,94 +934,10 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getRealGps]);
 
-  const loadOfflineWalkCoordinates = useCallback(async (eventId: string) => {
-    try {
-      const coords = await getCoordinates(eventId);
-      const mapped = coords.map(c => [c.latitude, c.longitude] as [number, number]);
-      setWalkCoordinates(mapped);
-      
-      let distSum = 0;
-      for (let i = 0; i < mapped.length - 1; i++) {
-        distSum += getHaversineDistance(mapped[i][0], mapped[i][1], mapped[i+1][0], mapped[i+1][1]);
-      }
-      totalDistanceRef.current = distSum;
-      
-      let duration = 0;
-      if (coords.length > 1) {
-        duration = Math.round((coords[coords.length - 1].timestamp - coords[0].timestamp) / 1000 / 60); // minutes
-      }
-      
-      setWalkStats({
-        distance: Number((distSum / 1000).toFixed(2)),
-        duration: duration,
-        speed: coords.length > 1 ? Number((distSum / (duration * 60 || 1)).toFixed(1)) : 0
-      });
-      if (coords.length > 0) {
-        setShowWalkTrail(true);
-      }
-      console.log(`[Walk Tracking] Loaded ${coords.length} offline coordinates from IndexedDB for event ${eventId}`);
-    } catch (e) {
-      console.error('[Walk Tracking] Failed to load offline walk coordinates:', e);
-    }
-  }, []);
-
-  const setIsTrackingWalk = useCallback(async (val: boolean) => {
-    setIsTrackingWalkState(val);
-    if (typeof window !== 'undefined' && selectedEventRef.current) {
-      localStorage.setItem(`mm_tracking_active_${selectedEventRef.current.id}`, val ? 'true' : 'false');
-    }
-    
-    if (val) {
-      setShowWalkTrail(true); // Automatically show the trail when tracking is enabled!
-      console.log('[Walk Tracking] Started tracking walk session');
-      if (!trackingStartTimeRef.current) {
-        trackingStartTimeRef.current = Date.now();
-      }
-      // Record current position as start if empty
-      if (selectedEventRef.current && walkCoordinatesRef.current.length === 0 && userGps) {
-        try {
-          await addCoordinate(selectedEventRef.current.id, userGps[0], userGps[1], gpsAccuracyRef.current || 10);
-          setWalkCoordinates([[userGps[0], userGps[1]]]);
-        } catch (e) {
-          console.error('Failed to record start walk coordinate:', e);
-        }
-      }
-    } else {
-      console.log('[Walk Tracking] Stopped tracking walk session');
-      trackingStartTimeRef.current = null;
-    }
-  }, [userGps]);
-
-  const clearWalkHistory = useCallback(async () => {
-    if (selectedEventRef.current) {
-      console.log(`[Walk Tracking] Clearing walk history for event: ${selectedEventRef.current.id}`);
-      try {
-        await clearCoordinates(selectedEventRef.current.id);
-        setWalkCoordinates([]);
-        setWalkStats({ distance: 0, duration: 0, speed: 0 });
-        totalDistanceRef.current = 0;
-        trackingStartTimeRef.current = null;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(`mm_tracking_active_${selectedEventRef.current.id}`);
-        }
-      } catch (e) {
-        console.error('Failed to clear walk history:', e);
-      }
-    }
-  }, []);
-
   const handleEventSelection = async (event: EventItem) => {
     setSelectedEvent(event);
     
     if (downloadedEventIds.includes(event.id)) {
-      await loadOfflineWalkCoordinates(event.id);
-      if (typeof window !== 'undefined') {
-        const trackingActive = localStorage.getItem(`mm_tracking_active_${event.id}`) === 'true';
-        setIsTrackingWalkState(trackingActive);
-        if (trackingActive) {
-          trackingStartTimeRef.current = Date.now();
-        }
-      }
       if (locationPermission === true) {
         await initializeUserGps(event);
         await loadEventPoisAndGraph(event);
@@ -1100,15 +957,6 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
               const updated = [...downloadedEventIds, event.id];
               setDownloadedEventIds(updated);
               localStorage.setItem('mm_downloaded_event_ids', JSON.stringify(updated));
-
-              await loadOfflineWalkCoordinates(event.id);
-              if (typeof window !== 'undefined') {
-                const trackingActive = localStorage.getItem(`mm_tracking_active_${event.id}`) === 'true';
-                setIsTrackingWalkState(trackingActive);
-                if (trackingActive) {
-                  trackingStartTimeRef.current = Date.now();
-                }
-              }
 
               if (locationPermission === true) {
                 await initializeUserGps(event);
@@ -1182,6 +1030,19 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
     let nativeGranted = granted;
 
     if (granted) {
+      try {
+        // iOS Device Orientation Permission Request
+        const DeviceOrientationEventAny = (window as any).DeviceOrientationEvent;
+        if (
+          DeviceOrientationEventAny &&
+          typeof DeviceOrientationEventAny.requestPermission === 'function'
+        ) {
+          await DeviceOrientationEventAny.requestPermission();
+        }
+      } catch (err) {
+        console.warn('Failed to request DeviceOrientation permission:', err);
+      }
+
       try {
         const cap = (window as any).Capacitor;
         const isNative = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
@@ -1406,7 +1267,9 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
       } else {
         const wLat = currentStats.waypointLat;
         const wLng = currentStats.waypointLng;
-        const bearingRad = (getCompassBearing(lat, lng, wLat, wLng) * Math.PI) / 180;
+        const nextHeading = getCompassBearing(lat, lng, wLat, wLng);
+        setDeviceHeading(nextHeading);
+        const bearingRad = (nextHeading * Math.PI) / 180;
         const earthRadius = 6371e3;
         const walkStep = 5;
 
@@ -1928,14 +1791,7 @@ export function UserTestProvider({ children }: { children: React.ReactNode }) {
         handleGpsUpdate,
         startGpsWatch,
         stopGpsWatch,
-        registerPushNotifications,
-        isTrackingWalk,
-        setIsTrackingWalk,
-        walkCoordinates,
-        walkStats,
-        clearWalkHistory,
-        showWalkTrail,
-        setShowWalkTrail
+        registerPushNotifications
       }}
     >
       {children}

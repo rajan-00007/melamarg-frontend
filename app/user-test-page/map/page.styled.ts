@@ -179,48 +179,51 @@ export const SplitWrapper = styled.div`
   background-color: #07070a;
 `;
 
-export const DashboardContainer = styled.div`
-  height: 40%;
-  min-height: 200px;
+export const DashboardContainer = styled.div<{ $isExpanded?: boolean }>`
+  height: ${props => props.$isExpanded ? '15%' : '72%'};
+  min-height: ${props => props.$isExpanded ? '90px' : '390px'};
   background: linear-gradient(180deg, #0b0b14 0%, #07070a 100%);
   border-bottom: 1px solid #18181b;
   position: relative;
   z-index: 30;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1rem;
   box-sizing: border-box;
-  gap: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 `;
 
-export const MapContainer = styled.div`
-  flex: 1;
-  height: 60%;
+export const MapContainer = styled.div<{ $isExpanded?: boolean }>`
+  height: ${props => props.$isExpanded ? '85%' : '28%'};
+  min-height: ${props => props.$isExpanded ? '350px' : '150px'};
   position: relative;
   z-index: 10;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: ${props => props.$isExpanded ? 'default' : 'pointer'};
 `;
 
 export const CentralCard = styled.div`
-  flex: 1;
+  flex: 0.68;
   width: 100%;
   background: rgba(24, 24, 27, 0.4);
   border: 1px solid rgba(39, 39, 42, 0.6);
-  border-radius: 1.5rem;
-  padding: 0.5rem 0.75rem;
+  border-radius: 1.25rem;
+  padding: 0.25rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(12px);
-  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.4);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
   box-sizing: border-box;
 
   &:hover {
     border-color: rgba(34, 211, 238, 0.4);
-    box-shadow: 0 10px 40px 0 rgba(34, 211, 238, 0.1);
+    box-shadow: 0 10px 30px 0 rgba(34, 211, 238, 0.1);
   }
 `;
 
@@ -399,36 +402,60 @@ interface CentralMiniPOIProps {
 }
 
 export const CentralMiniPOI = styled.div<CentralMiniPOIProps>`
-  font-size: 0.58rem;
-  font-weight: 800;
+  flex: 0.95;
+  width: 100%;
   color: ${props => props.$side === 'front' ? '#22d3ee' : '#f97316'};
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  justify-content: center;
+  gap: 0.18rem;
   max-width: 100%;
   cursor: pointer;
   background: rgba(9, 9, 11, 0.7);
-  padding: 0.3rem 0.75rem;
+  padding: 0.55rem 0.4rem;
   border-radius: 0.75rem;
   border: 1px solid ${props => props.$side === 'front' ? 'rgba(34, 211, 238, 0.35)' : 'rgba(249, 115, 22, 0.35)'};
   box-sizing: border-box;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  text-align: center;
+
+  span.indicator {
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  span.emoji {
+    font-size: 1.35rem; /* Make emoji very big and legible! */
+    line-height: 1;
+    margin: 0.1rem 0;
+    display: inline-block;
+  }
 
   span.name {
     color: #fafafa;
     font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 90px;
+    max-width: 100%;
+    font-size: 0.65rem;
+    line-height: 1.15;
+    margin-top: 0.1rem;
+    text-align: center;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   span.dist {
     color: #a1a1aa;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.65rem;
+    margin-top: 0.05rem;
   }
 
   &:hover {
@@ -451,205 +478,208 @@ export const MiddleColumn = styled.div`
   gap: 0.35rem;
 `;
 
-// WALK TRACKING OVERLAYS
-export const TrackToggleCard = styled.div`
+// MOCKUP GRAPHICS AND INTERACTION OVERLAYS
+
+export const DashboardHeaderRow = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.65rem 0.85rem;
-  background-color: rgba(24, 24, 27, 0.9); /* bg-zinc-900/90 */
-  border: 1px solid rgba(39, 39, 42, 0.9); /* border-zinc-800 */
-  border-radius: 0.75rem; /* rounded-xl */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  z-index: 20;
-  color: #fafafa;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.025em;
+  justify-content: space-between;
+  align-items: start;
+  width: 100%;
+  margin-bottom: 0.4rem;
+`;
 
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 1.25rem;
-  }
+export const DashboardHeaderTitle = styled.div`
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 
-  .toggle-label {
-    text-transform: uppercase;
-    font-weight: 800;
-    font-size: 8.5px;
-    color: #a1a1aa;
-    white-space: nowrap;
-  }
-
-  /* Custom Switch slider styles */
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 2.25rem; /* 36px */
-    height: 1.25rem; /* 20px */
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #27272a;
-    transition: .3s;
-    border-radius: 9999px;
-    border: 1px solid #3f3f46;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 0.85rem; /* 14px */
-    width: 0.85rem; /* 14px */
-    left: 2px;
-    bottom: 2px;
-    background-color: #a1a1aa;
-    transition: .3s;
-    border-radius: 50%;
-  }
-
-  input:checked + .slider {
-    background-color: rgba(168, 85, 247, 0.2); /* purple-500/20 */
-    border-color: #a855f7; /* purple-500 */
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(16px);
-    background-color: #c084fc; /* purple-400 */
+  span.target {
+    color: #f97316; /* Orange color */
+    margin-left: 0.25rem;
+    font-weight: 900;
   }
 `;
 
-export const TelemetryHUDOverlay = styled.div`
-  position: absolute;
-  bottom: 3.25rem; /* Raised slightly to sit above default CoordinatesDisplay or bottom tab */
-  left: 1rem;
-  right: 1rem;
-  z-index: 20;
-  padding: 0.75rem 1rem;
-  background: rgba(15, 10, 25, 0.85); /* Dark violet tinted glassmorphism */
-  border: 1px solid rgba(168, 85, 247, 0.35); /* Purple outline */
-  border-radius: 1rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(168, 85, 247, 0.15);
+export const DashboardHeaderStats = styled.div`
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #fafafa;
+  margin-top: 0.15rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  span.time {
+    font-size: 0.75rem;
+    color: #71717a;
+    font-weight: 600;
+  }
+`;
+
+export const DashboardColumns = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  gap: 0.4rem;
   box-sizing: border-box;
-  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(20px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
 `;
 
-export const TelemetryStatsGrid = styled.div`
+export const CompassSliderContainer = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  flex: 1;
-  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+  padding: 0.35rem 0.25rem;
+  box-sizing: border-box;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 `;
 
-export const TelemetryCol = styled.div`
+export const CompassSliderTrack = styled.div`
+  flex: 1;
+  height: 22px;
+  background: rgba(18, 18, 22, 0.65);
+  border: 1px solid rgba(63, 63, 70, 0.45);
+  border-radius: 9999px;
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
-  flex: 1;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
 `;
 
-export const TelemetryLabel = styled.span`
-  font-size: 8px;
-  font-weight: 800;
+export const CompassLabel = styled.span`
+  font-size: 0.65rem;
+  font-weight: 900;
   color: #71717a;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
 
-export const TelemetryValue = styled.span`
-  font-size: 13px;
-  font-weight: 900;
-  color: #fafafa;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+export const CompassIndicatorLine = styled.div<{ $headingOffset?: number }>`
+  position: absolute;
+  width: 3px;
+  height: 12px;
+  background-color: #f97316; /* Orange tick */
+  border-radius: 9999px;
+  box-shadow: 0 0 6px #f97316;
+  left: calc(50% + ${props => props.$headingOffset || 0}px);
+  transition: left 0.1s ease-out;
+  z-index: 15;
+`;
 
-  span.unit {
-    font-size: 9px;
-    font-weight: 700;
-    color: #a855f7;
-    margin-left: 0.1rem;
+export const CompassTickLine = styled.div<{ $offset: number; $isMajor?: boolean }>`
+  position: absolute;
+  width: 1px;
+  height: ${props => props.$isMajor ? '8px' : '5px'};
+  background-color: ${props => props.$isMajor ? 'rgba(161, 161, 170, 0.5)' : 'rgba(113, 113, 122, 0.25)'};
+  left: calc(50% + ${props => props.$offset}px);
+`;
+
+export const MapToggleButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 20;
+  padding: 0.5rem;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  color: #d4d4d8;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    color: #ffffff;
+    border-color: #3f3f46;
+    background-color: #27272a;
   }
 `;
 
-export const TelemetryDivider = styled.div`
-  width: 1px;
-  height: 24px;
-  background-color: rgba(168, 85, 247, 0.2);
-`;
-
-export const TelemetryStatusDot = styled.div`
+export const NavigationFooter = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 8px;
-  font-weight: 800;
-  color: #a855f7;
-  text-transform: uppercase;
-  letter-spacing: 0.075em;
-  padding-right: 0.25rem;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background-color: #0b0b14;
+  border-top: 1px solid #18181b;
+  position: relative;
+  z-index: 30;
+  height: 52px;
+  box-sizing: border-box;
+`;
 
-  span.pulse {
+export const FooterStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 10px;
+  font-weight: 800;
+  color: #10b981; /* Green color */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  span.dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #c084fc;
-    animation: ${ping} 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+    background-color: #10b981;
+    display: inline-block;
+    animation: ${pulse} 1.5s infinite;
   }
 `;
 
-export const HistoryClearButton = styled.button`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+export const FooterActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const FooterButton = styled.button<{ $variant?: 'mute' | 'stop' }>`
+  padding: 0.35rem 0.75rem;
   border-radius: 0.5rem;
-  color: #f43f5e;
-  padding: 0.3rem 0.5rem;
   font-size: 9px;
   font-weight: 800;
   cursor: pointer;
+  border: 1px solid transparent;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
   text-transform: uppercase;
+  letter-spacing: 0.025em;
 
-  &:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: #ef4444;
-    color: #ffffff;
-  }
+  ${props => props.$variant === 'stop' ? `
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #f43f5e;
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #fff;
+    }
+  ` : `
+    background-color: rgba(63, 63, 70, 0.3);
+    border-color: rgba(63, 63, 70, 0.6);
+    color: #a1a1aa;
+    &:hover {
+      background-color: rgba(63, 63, 70, 0.5);
+      border-color: #a1a1aa;
+      color: #fff;
+    }
+  `}
 `;
+
+
+
+
 
 
