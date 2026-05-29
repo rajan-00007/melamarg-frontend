@@ -100,6 +100,73 @@ export default function EventMapPage() {
     loadingMapData
   } = useUserTest();
 
+  // Determine if the user is outside the selected event boundary box
+  const isUserOutsideEvent = useMemo(() => {
+    if (!selectedEvent || !userGps) return false;
+    const { north, south, east, west } = selectedEvent;
+    if (north === undefined || south === undefined || east === undefined || west === undefined) return false;
+    
+    const lat = userGps[0];
+    const lng = userGps[1];
+    
+    const n = Number(north);
+    const s = Number(south);
+    const e = Number(east);
+    const w = Number(west);
+    
+    return lat < s || lat > n || lng < w || lng > e;
+  }, [selectedEvent, userGps]);
+
+  // Find nearest designated entrance point (node with is_entrance: true)
+  const nearestEntrance = useMemo(() => {
+    if (!routeNodes || routeNodes.length === 0 || !userGps) return null;
+    const entranceNodes = routeNodes.filter((node) => node.is_entrance);
+    
+    if (entranceNodes.length === 0) {
+      // Fallback: search for any node whose name or type suggests an entrance/gate
+      const fallbackNode = routeNodes.find(
+        (node) => 
+          node.name?.toLowerCase().includes('gate') || 
+          node.name?.toLowerCase().includes('entrance') ||
+          node.node_type?.toLowerCase().includes('entrance')
+      );
+      if (fallbackNode) {
+        const dist = getHaversineDistance(userGps[0], userGps[1], fallbackNode.latitude, fallbackNode.longitude);
+        return { ...fallbackNode, distance: Math.round(dist) };
+      }
+      // Ultimate fallback: first node
+      const dist = getHaversineDistance(userGps[0], userGps[1], routeNodes[0].latitude, routeNodes[0].longitude);
+      return { ...routeNodes[0], distance: Math.round(dist) };
+    }
+    
+    let closestNode = entranceNodes[0];
+    let minDist = Infinity;
+    
+    entranceNodes.forEach((node) => {
+      const dist = getHaversineDistance(userGps[0], userGps[1], node.latitude, node.longitude);
+      if (dist < minDist) {
+        minDist = dist;
+        closestNode = node;
+      }
+    });
+    
+    return {
+      ...closestNode,
+      distance: Math.round(minDist)
+    };
+  }, [routeNodes, userGps]);
+
+  // Compute compass bearing to the entrance node
+  const entranceBearing = useMemo(() => {
+    if (!nearestEntrance || !userGps) return 0;
+    return getCompassBearing(
+      userGps[0],
+      userGps[1],
+      nearestEntrance.latitude,
+      nearestEntrance.longitude
+    );
+  }, [nearestEntrance, userGps]);
+
   // GPS-derived movement heading
   const [gpsHeading, setGpsHeading] = useState<number>(0);
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
@@ -134,7 +201,7 @@ export default function EventMapPage() {
 
   // Real-time calculation of nearest POIs in 4 quadrants (Front, Back, Left, Right)
   const nearestQuadrantPOIs = useMemo(() => {
-    if (!poisList || poisList.length === 0) {
+    if (isUserOutsideEvent || !poisList || poisList.length === 0) {
       return { front: null, back: null, left: null, right: null };
     }
 
@@ -204,7 +271,7 @@ export default function EventMapPage() {
     });
 
     return { front: nearestFront, back: nearestBack, left: nearestLeft, right: nearestRight };
-  }, [poisList, userGps, navTarget, gpsHeading, deviceHeading, computeNavigationStats]);
+  }, [poisList, userGps, navTarget, gpsHeading, deviceHeading, computeNavigationStats, isUserOutsideEvent]);
 
   // Helper to map POI category names to emojis/icons
   const getCategoryEmoji = (category: string): string => {
@@ -236,6 +303,7 @@ export default function EventMapPage() {
   const mapRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
   const userAccuracyCircleRef = useRef<any>(null);
+  const entranceGuidanceLineRef = useRef<any>(null);
   const poisLayerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const activeRouteLayerRef = useRef<any>(null);
@@ -402,10 +470,15 @@ export default function EventMapPage() {
     }
   }, [leafletLoaded]);
 
-  // REALTIME: update user marker position when GPS changes
+  // REALTIME: update user marker position when GPS changes, draw guidance to entrance if outside
   useEffect(() => {
-    if (!userMarkerRef.current || !mapRef.current) return;
-    userMarkerRef.current.setLatLng(userGps);
+    if (!mapRef.current || !leafletLoaded) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng(userGps);
+    }
     if (userAccuracyCircleRef.current) {
       userAccuracyCircleRef.current.setLatLng(userGps);
       if (gpsAccuracy !== null) {
@@ -417,7 +490,36 @@ export default function EventMapPage() {
         fillColor: color
       });
     }
-  }, [userGps, gpsAccuracy, gpsStatus]);
+
+    // Dynamic clean up and draw outside guidance line
+    if (entranceGuidanceLineRef.current) {
+      entranceGuidanceLineRef.current.remove();
+      entranceGuidanceLineRef.current = null;
+    }
+
+    if (isUserOutsideEvent && nearestEntrance) {
+      const entLat = Number(nearestEntrance.latitude);
+      const entLng = Number(nearestEntrance.longitude);
+      if (!isNaN(entLat) && !isNaN(entLng)) {
+        entranceGuidanceLineRef.current = L.polyline([
+          userGps,
+          [entLat, entLng]
+        ], {
+          color: '#fbbf24', // Amber/yellow dash line for entrance guidance
+          weight: 4,
+          opacity: 0.85,
+          dashArray: '6, 8',
+          lineJoin: 'round',
+          lineCap: 'round'
+        }).addTo(mapRef.current)
+          .bindTooltip(`Entrance: ${nearestEntrance.name || 'Entrance Point'} (${nearestEntrance.distance}m)`, {
+            permanent: true,
+            direction: 'top',
+            className: 'entrance-tooltip'
+          });
+      }
+    }
+  }, [userGps, gpsAccuracy, gpsStatus, isUserOutsideEvent, nearestEntrance, leafletLoaded]);
 
   // Force Leaflet recalculation on expanded state toggle
   useEffect(() => {
@@ -665,6 +767,9 @@ export default function EventMapPage() {
         mapRef.current = null;
         userMarkerRef.current = null;
         activeRouteLayerRef.current = null;
+      }
+      if (entranceGuidanceLineRef.current) {
+        entranceGuidanceLineRef.current = null;
       }
     };
   }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent]);
@@ -933,17 +1038,22 @@ export default function EventMapPage() {
                   <POITag $side="left">
                     <span>← LEFT</span>
                   </POITag>
-                  <NoPOIText>No POI near</NoPOIText>
+                  <NoPOIText>{isUserOutsideEvent ? 'Outside Event' : 'No POI near'}</NoPOIText>
                 </SidePOICard>
               )}
 
               {/* Central Navigation Instruction Card */}
               {(() => {
                 const stats = navTarget ? computeNavigationStats(userGps[0], userGps[1]) : null;
-                const dirColor = navTarget && stats 
-                  ? ((stats.directionText.includes('AROUND') || stats.directionText.includes('BACK')) ? '#f59e0b' : '#10b981')
-                  : '#06b6d4'; // Explore mode cyan glow
-                const rotationAngle = navTarget && stats ? (stats.bearing - deviceHeading + 360) % 360 : 0;
+                const dirColor = isUserOutsideEvent
+                  ? '#fbbf24' // Amber/warning color for outside-to-inside guidance
+                  : (navTarget && stats 
+                      ? ((stats.directionText.includes('AROUND') || stats.directionText.includes('BACK')) ? '#f59e0b' : '#10b981')
+                      : '#06b6d4'); // Explore mode cyan glow
+                
+                const rotationAngle = isUserOutsideEvent
+                  ? (entranceBearing - deviceHeading + 360) % 360
+                  : (navTarget && stats ? (stats.bearing - deviceHeading + 360) % 360 : 0);
 
                 return (
                   <MiddleColumn>
@@ -957,7 +1067,7 @@ export default function EventMapPage() {
                       </CentralMiniPOI>
                     ) : (
                       <CentralMiniPOI $side="front" style={{ opacity: 0.35, pointerEvents: 'none', background: 'rgba(9, 9, 11, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <span className="indicator">▲</span> <span className="name" style={{ color: '#71717a' }}>FRONT</span>
+                        <span className="indicator">▲</span> <span className="name" style={{ color: '#71717a' }}>{isUserOutsideEvent ? 'OUTSIDE AREA' : 'FRONT'}</span>
                       </CentralMiniPOI>
                     )}
 
@@ -983,13 +1093,26 @@ export default function EventMapPage() {
                           </ArrowWrapper>
                         </ArrowAnimationWrapper>
                         <DirectionText style={{ color: dirColor, fontSize: '0.65rem' }}>
-                          {navTarget ? (stats?.directionText || 'STRAIGHT') : 'EXPLORE'}
+                          {isUserOutsideEvent ? 'ENTER EVENT' : (navTarget ? (stats?.directionText || 'STRAIGHT') : 'EXPLORE')}
                         </DirectionText>
                         <NextInstruction style={{ fontSize: '0.5rem' }}>
-                          {navTarget ? (
-                            `to ${stats?.targetNodeName || navTarget.name_en} in ${stats?.distance || 0}m`
+                          {isUserOutsideEvent ? (
+                            nearestEntrance ? (
+                              <>
+                                <div>Enter in the event by entrance point:</div>
+                                <div style={{ color: '#fbbf24', marginTop: '2px', fontWeight: 'bold' }}>
+                                  {nearestEntrance.name} ({nearestEntrance.distance}m)
+                                </div>
+                              </>
+                            ) : (
+                              'Enter in the event by entrance point'
+                            )
                           ) : (
-                            'Move to explore'
+                            navTarget ? (
+                              `to ${stats?.targetNodeName || navTarget.name_en} in ${stats?.distance || 0}m`
+                            ) : (
+                              'Move to explore'
+                            )
                           )}
                         </NextInstruction>
                       </div>
@@ -1005,7 +1128,7 @@ export default function EventMapPage() {
                       </CentralMiniPOI>
                     ) : (
                       <CentralMiniPOI $side="back" style={{ opacity: 0.35, pointerEvents: 'none', background: 'rgba(9, 9, 11, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <span className="indicator">▼</span> <span className="name" style={{ color: '#71717a' }}>BACK</span>
+                        <span className="indicator">▼</span> <span className="name" style={{ color: '#71717a' }}>{isUserOutsideEvent ? 'OUTSIDE AREA' : 'BACK'}</span>
                       </CentralMiniPOI>
                     )}
                   </MiddleColumn>
@@ -1031,7 +1154,7 @@ export default function EventMapPage() {
                   <POITag $side="right">
                     <span>RIGHT →</span>
                   </POITag>
-                  <NoPOIText>No POI near</NoPOIText>
+                  <NoPOIText>{isUserOutsideEvent ? 'Outside Event' : 'No POI near'}</NoPOIText>
                 </SidePOICard>
               )}
             </DashboardColumns>
