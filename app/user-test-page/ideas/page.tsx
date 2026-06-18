@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Heart, Check } from 'lucide-react';
 import { useUserTest } from '../context/UserTestContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   IdeasContainer,
   IdeasHeader,
@@ -23,6 +24,7 @@ import {
 export default function IdeasPage() {
   const router = useRouter();
   const { triggerToast } = useUserTest();
+  const { t } = useLanguage();
   
   const [rating, setRating] = useState<number>(0); // by default no heart selected
   const [thoughts, setThoughts] = useState<string>(''); // by default empty to show placeholder
@@ -33,8 +35,8 @@ export default function IdeasPage() {
     // Trigger toast indicating success
     triggerToast({
       id: `feedback-submit-${Date.now()}`,
-      title: 'FEEDBACK RECEIVED',
-      message: `Thank you for rating your experience (${rating}/5 stars). Your thoughts have been submitted.`,
+      title: t('feedbackReceived'),
+      message: `${t('thankYouFeedback')} (${rating}/5)`,
       is_emergency: false
     });
 
@@ -55,13 +57,13 @@ export default function IdeasPage() {
           <ChevronLeft size={20} strokeWidth={2.5} />
         </BackButton>
         <HeaderTitles>
-          <HeaderTitle>Feedback</HeaderTitle>
-          <HeaderSubtitle>Voice of Visitor</HeaderSubtitle>
+          <HeaderTitle>{t('feedback')}</HeaderTitle>
+          <HeaderSubtitle>{t('voiceOfVisitor')}</HeaderSubtitle>
         </HeaderTitles>
       </IdeasHeader>
 
       <FeedbackCard>
-        <CardQuestion>How is your expo experience?</CardQuestion>
+        <CardQuestion>{t('expoExperience')}</CardQuestion>
 
         <HeartsRowContainer>
           {[1, 2, 3, 4, 5].map((star) => (
@@ -76,17 +78,17 @@ export default function IdeasPage() {
           ))}
         </HeartsRowContainer>
 
-        <SectionLabel>Detailed Thoughts</SectionLabel>
+        <SectionLabel>{t('detailedThoughts')}</SectionLabel>
         
         <ThoughtsTextArea
           value={thoughts}
           onChange={(e) => setThoughts(e.target.value)}
-          placeholder="Share your experience or suggestions..."
+          placeholder={t('feedbackPlaceholder')}
         />
 
         <SubmitButton onClick={handleSubmit}>
           <Check />
-          <span>Submit Feedback</span>
+          <span>{t('submitFeedback')}</span>
         </SubmitButton>
       </FeedbackCard>
     </IdeasContainer>

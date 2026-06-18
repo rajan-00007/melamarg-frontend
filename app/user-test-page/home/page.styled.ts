@@ -200,7 +200,8 @@ export const NearestHelpCard = styled.section`
   background: linear-gradient(135deg, #E65100 0%, #a43700 100%);
   color: #FFFFFF;
   padding: 1.25rem;
-  height:140px;
+  min-height: 160px;
+  height: auto;
   border-radius: 1.5rem;
   box-shadow: 0 10px 25px rgba(230, 81, 0, 0.12);
   position: relative;
@@ -239,15 +240,17 @@ export const HelpCardRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 `;
 
 export const HelpCardButton = styled.button`
   background-color: #FFFFFF;
   color: #E65100;
   border: 0;
-  border-radius: 1rem;
+  border-radius: 50%;
   width: 2.75rem;
   height: 2.75rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -499,10 +502,12 @@ export const HeaderLeft = styled.div`
   align-items: center;
   gap: 0.5rem;
   color: #FFFFFF;
+  cursor: pointer;
   
-  svg {
+  svg, img {
     width: 1.4rem;
     height: 1.4rem;
+    object-fit: contain;
     cursor: pointer;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     color: #FFFFFF;

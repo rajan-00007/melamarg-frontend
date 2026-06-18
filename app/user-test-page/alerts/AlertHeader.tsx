@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   AlertPageHeader,
   BackButton,
@@ -14,6 +15,7 @@ import {
 
 export default function AlertHeader() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   return (
     <AlertPageHeader>
@@ -21,12 +23,12 @@ export default function AlertHeader() {
         <ChevronLeft />
       </BackButton>
       <TitleContainer>
-        <TitleText>ALERTS</TitleText>
-        <SubtitleText>Safety Net</SubtitleText>
+        <TitleText>{t('alerts').toUpperCase()}</TitleText>
+        <SubtitleText>{t('safetyNet')}</SubtitleText>
       </TitleContainer>
       <EmergencyLiveBadge>
         <span className="dot" />
-        <span>Emergency Live</span>
+        <span>{t('emergencyLive')}</span>
       </EmergencyLiveBadge>
     </AlertPageHeader>
   );

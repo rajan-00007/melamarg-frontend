@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '../context/UserTestContext';
 import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   MapWrapper,
   MapCanvas,
@@ -252,6 +253,21 @@ export default function EventMapPage() {
     computeNavigationStats,
     loadingMapData
   } = useUserTest();
+
+  const { language, t, tPoiName, tPoiDesc, tEventName } = useLanguage();
+
+  const getOffPathInstruction = () => {
+    if (language === 'hi') {
+      return `${explorePathStatus.pathName} में शामिल होने के लिए ${explorePathStatus.dir} ${explorePathStatus.dist} मीटर चलें।`;
+    }
+    if (language === 'or') {
+      return `${explorePathStatus.pathName} ରେ ଯୋଗଦେବା ପାଇଁ ${explorePathStatus.dir} ${explorePathStatus.dist} ମିଟର ଚାଲନ୍ତୁ |`;
+    }
+    if (language === 'bn') {
+      return `${explorePathStatus.pathName}-এ যোগ দিতে ${explorePathStatus.dir} ${explorePathStatus.dist} মিটার হাঁটুন।`;
+    }
+    return `Move ${explorePathStatus.dist}m ${explorePathStatus.dir} to join ${explorePathStatus.pathName}.`;
+  };
 
   // Redirect to active navigation page if navTarget is active
   useEffect(() => {
@@ -1262,8 +1278,8 @@ export default function EventMapPage() {
             borderRadius: '50%',
             animation: 'map-spin 1s linear infinite'
           }} />
-          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fafafa' }}>Loading map elements...</div>
-          <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a' }}>Fetching latest points of interest and routing segments</div>
+          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fafafa' }}>{t('initializingAssets')}</div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a' }}>{t('downloadingPois')}</div>
         </div>
       )}
 
@@ -1272,37 +1288,37 @@ export default function EventMapPage() {
         <FloatingHeaderPillRow>
           <OfflineActivePill>
             <span className="dot"></span>
-            <span>Offline Navigation Active</span>
+            <span>{t('offlineNavigationActive')}</span>
           </OfflineActivePill>
           
           {gpsStatus === 'locked' ? (
             <GpsStrongPill>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0288d1' }} />
-              <span>GPS Strong</span>
+              <span>{t('gpsStrong')}</span>
             </GpsStrongPill>
           ) : gpsStatus === 'searching' ? (
             <GpsStrongPill style={{ background: '#FCF2E7', color: '#B7791F' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#B7791F', animation: 'ping 1s infinite' }} />
-              <span>Searching GPS...</span>
+              <span>{t('searchingGps')}</span>
             </GpsStrongPill>
           ) : (
             <GpsStrongPill style={{ background: '#FEE2E2', color: '#EF4444' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444' }} />
-              <span>No GPS Signal</span>
+              <span>{t('noGpsSignal')}</span>
             </GpsStrongPill>
           )}
         </FloatingHeaderPillRow>
 
         <UnifiedStatusCard>
           <UnifiedStatusHeader $isOffPath={explorePathStatus.isOff}>
-            {explorePathStatus.isOff ? `OFF PATH: ${explorePathStatus.pathName}` : `ON PATH: ${explorePathStatus.pathName}`}
+            {explorePathStatus.isOff ? `${t('offPath')}: ${explorePathStatus.pathName}` : `${t('onPath')}: ${explorePathStatus.pathName}`}
           </UnifiedStatusHeader>
           <UnifiedStatusBody>
             <MapIcon style={{ width: '1.25rem', height: '1.25rem', color: explorePathStatus.isOff ? '#dc2626' : '#1e293b', flexShrink: 0 }} />
             <span>
               {explorePathStatus.isOff 
-                ? `Move ${explorePathStatus.dist}m ${explorePathStatus.dir} to join ${explorePathStatus.pathName}.` 
-                : 'Offline Map Ready. Tap any marker to navigate.'}
+                ? getOffPathInstruction()
+                : t('offlineMapReady')}
             </span>
           </UnifiedStatusBody>
         </UnifiedStatusCard>
@@ -1326,7 +1342,7 @@ export default function EventMapPage() {
               >
                 <span className="arrow">▲</span>
                 <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="name">{tPoiName(p) || p.category_name}</span>
                 <span className="dist">({p.dist}m)</span>
               </HUDIndicatorBadge>
             ))}
@@ -1347,7 +1363,7 @@ export default function EventMapPage() {
               >
                 <span className="arrow">▼</span>
                 <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="name">{tPoiName(p) || p.category_name}</span>
                 <span className="dist">({p.dist}m)</span>
               </HUDIndicatorBadge>
             ))}
@@ -1368,7 +1384,7 @@ export default function EventMapPage() {
               >
                 <span className="arrow">◀</span>
                 <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="name">{tPoiName(p) || p.category_name}</span>
                 <span className="dist">({p.dist}m)</span>
               </HUDIndicatorBadge>
             ))}
@@ -1387,7 +1403,7 @@ export default function EventMapPage() {
                   }
                 }}
               >
-                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="name">{tPoiName(p) || p.category_name}</span>
                 <span className="dist">({p.dist}m)</span>
                 <span className="icon">{getCategoryEmoji(p.category_name)}</span>
                 <span className="arrow">▶</span>
@@ -1428,19 +1444,19 @@ export default function EventMapPage() {
 
         {selectedPoi ? (
           <ExploreBottomCard>
-            <ExploreCardTitle>{selectedPoi.name_en}</ExploreCardTitle>
+            <ExploreCardTitle>{tPoiName(selectedPoi)}</ExploreCardTitle>
             <ExplorePOIInfoRow>
               <span className="badge">{selectedPoi.category_name}</span>
               <span>•</span>
               <span>
                 {(() => {
                   const dist = getHaversineDistance(userGps[0], userGps[1], selectedPoi.latitude, selectedPoi.longitude);
-                  return dist < 1000 ? `${Math.round(dist)} m away` : `${(dist / 1000).toFixed(2)} km away`;
+                  return dist < 1000 ? `${Math.round(dist)} m ${t('metersAway')}` : `${(dist / 1000).toFixed(2)} km ${t('metersAway')}`;
                 })()}
               </span>
             </ExplorePOIInfoRow>
             {selectedPoi.description && (
-              <ExploreCardDescription>{selectedPoi.description}</ExploreCardDescription>
+              <ExploreCardDescription>{tPoiDesc(selectedPoi)}</ExploreCardDescription>
             )}
             <ExploreActionsRow>
               <ExploreNavButton
@@ -1449,18 +1465,18 @@ export default function EventMapPage() {
                 }}
               >
                 <Navigation style={{ width: '1.1rem', height: '1.1rem', transform: 'rotate(45deg)' }} />
-                <span>Start Navigation</span>
+                <span>{t('startNavigation')}</span>
               </ExploreNavButton>
               <ExploreCloseButton onClick={() => setSelectedPoi(null)}>
-                <span>Cancel</span>
+                <span>{t('cancel')}</span>
               </ExploreCloseButton>
             </ExploreActionsRow>
           </ExploreBottomCard>
         ) : (
           <ExploreBottomCard>
-            <ExploreCardTitle>{selectedEvent?.name || 'Event Map'}</ExploreCardTitle>
+            <ExploreCardTitle>{selectedEvent ? tEventName(selectedEvent) : 'Event Map'}</ExploreCardTitle>
             <ExploreCardDescription>
-              Tapping on any service icon (toilets, drinking water, police booths, medical camps) will show its distance and navigate you safely offline.
+              {t('nearestHelpSub')}
             </ExploreCardDescription>
           </ExploreBottomCard>
         )}

@@ -47,8 +47,32 @@ const spiritualList = [
 export default function AllPoisPage() {
   const router = useRouter();
   const { selectedEvent, setActiveCategory, triggerToast, poisList, userGps } = useUserTest();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [searchQuery, setSearchQuery] = React.useState('');
+
+  const getServiceLabel = (id: string, defaultLabel: string) => {
+    if (id === 'toilet' || id === 'toilets') return t('restroomsHygiene');
+    if (id === 'police') return t('police');
+    if (id === 'water') return t('drinkingWater');
+    if (id === 'food') return t('foodCamps');
+    if (id === 'sanitation') return t('sanitationCenters');
+    if (id === 'rest') return t('restAreas');
+    if (id === 'luggage') return t('luggageCloakroom');
+    if (id === 'shoes') return t('shoeStands');
+    if (id === 'temple') return t('templeGates');
+    if (id === 'prasad') return t('prasadCounters');
+    if (id === 'info') return t('infoCenters');
+    return defaultLabel;
+  };
+
+  const getServiceSub = (id: string, defaultSub: string) => {
+    if (id === 'toilets') return language === 'hi' ? '24/7 सुलभ' : language === 'or' ? '୨୪/୭ ସୁଗମ' : language === 'bn' ? '২৪/৭ অ্যাক্সেসযোগ্য' : defaultSub;
+    if (id === 'sanitation') return language === 'hi' ? 'कचरा निपटान' : language === 'or' ? 'ବର୍ଜ୍ୟବସ୍ତୁ ନିଷ୍କାସନ' : language === 'bn' ? 'বর্জ্য অপসারণ' : defaultSub;
+    if (id === 'rest') return language === 'hi' ? 'तीर्थयात्री आश्रय' : language === 'or' ? 'ତୀର୍ଥଯାତ୍ରୀ ଆଶ୍ରୟସ୍ଥଳୀ' : language === 'bn' ? 'তীর্থযাত্রী আশ্রয়স্থল' : defaultSub;
+    if (id === 'luggage') return language === 'hi' ? 'सुरक्षित भंडारण' : language === 'or' ? 'ସୁରକ୍ଷିତ ସାଇତିବା ସ୍ଥାନ' : language === 'bn' ? 'নিরাপদ স্টোরেজ' : defaultSub;
+    if (id === 'shoes') return language === 'hi' ? 'टोकन-आधारित जूता भंडारण' : language === 'or' ? 'ଟୋକନ୍-ଆଧାରିତ ଜୋତା ରଖିବା ସ୍ଥାନ' : language === 'bn' ? 'টোকেন-ভিত্তিক জুতো রাখার ব্যবস্থা' : defaultSub;
+    return defaultSub;
+  };
 
   if (!selectedEvent) return null;
 
@@ -126,24 +150,23 @@ export default function AllPoisPage() {
       }
     }
 
-    const getSuffix = (catId: string, val: number) => {
-      const plural = val !== 1;
-      if (catId === 'toilets') return plural ? 'Restrooms' : 'Restroom';
-      if (catId === 'water') return plural ? 'Points' : 'Point';
-      if (catId === 'medical') return plural ? 'Camps' : 'Camp';
-      if (catId === 'police') return plural ? 'Posts' : 'Post';
-      if (catId === 'food') return plural ? 'Camps' : 'Camp';
-      if (catId === 'sanitation') return plural ? 'Points' : 'Point';
-      if (catId === 'rest') return plural ? 'Shelters' : 'Shelter';
-      if (catId === 'luggage') return plural ? 'Cloakrooms' : 'Cloakroom';
-      if (catId === 'shoes') return plural ? 'Stands' : 'Stand';
-      return plural ? 'Units' : 'Unit';
+    const getSuffix = (catId: string) => {
+      if (catId === 'toilets') return t('restrooms');
+      if (catId === 'water') return t('drinkingWater');
+      if (catId === 'medical') return t('medical');
+      if (catId === 'police') return t('police');
+      if (catId === 'food') return t('foodCamps');
+      if (catId === 'sanitation') return t('sanitation');
+      if (catId === 'rest') return t('restAreas');
+      if (catId === 'luggage') return t('luggageCloakroom');
+      if (catId === 'shoes') return t('shoeStands');
+      return 'Units';
     };
 
     return {
       count,
-      nearest: nearestStr ? `Nearest ${nearestStr}` : '',
-      suffix: getSuffix(id, count)
+      nearest: nearestStr ? `${t('nearest')} ${nearestStr}` : '',
+      suffix: getSuffix(id)
     };
   };
 
@@ -180,7 +203,7 @@ export default function AllPoisPage() {
           <Search />
           <SearchInput
             type="text"
-            placeholder="Search all categories..."
+            placeholder={t('searchCategories')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -190,7 +213,7 @@ export default function AllPoisPage() {
         <TitleRow>
           <button onClick={() => router.back()}><ArrowLeft size={20} /></button>
           <Text variant="sectionTitle" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-            All Categories
+            {t('allCategories')}
           </Text>
         </TitleRow>
 
@@ -198,10 +221,10 @@ export default function AllPoisPage() {
           <NoResultsContainer>
             <Search />
             <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-              No categories found
+              {t('noCategoriesFound')}
             </Text>
             <Text variant="bodySmall" weight={500} color={colors.neutral[700]} style={{ margin: 0 }}>
-              We couldn't find any results matching "{searchQuery}".
+              {t('noCategoriesMatching')} "{searchQuery}".
             </Text>
           </NoResultsContainer>
         ) : (
@@ -212,7 +235,7 @@ export default function AllPoisPage() {
                 <SectionLabel>
                   <Wifi size={14} strokeWidth={2.5} color={colors.brand.primary} />
                   <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '9.5px', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-                    Essential Services
+                    {t('essentialServices')}
                   </Text>
                 </SectionLabel>
 
@@ -226,7 +249,7 @@ export default function AllPoisPage() {
                           <Icon />
                         </GridIconCircle>
                         <Text variant="bodySecondary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                          {s.label}
+                          {getServiceLabel(s.id, s.label)}
                         </Text>
                         <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '10px', margin: 0, textAlign: 'center' }}>
                           {details.count} {details.suffix} {details.nearest ? `• ${details.nearest}` : ''}
@@ -244,7 +267,7 @@ export default function AllPoisPage() {
                 <SectionLabel>
                   <GiCampfire size={14} color={colors.brand.primary} />
                   <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '9.5px', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-                    Facilities
+                    {t('facilities')}
                   </Text>
                 </SectionLabel>
 
@@ -259,10 +282,10 @@ export default function AllPoisPage() {
                         </ListIconBox>
                         <ListTextCol>
                           <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                            {f.label}
+                            {getServiceLabel(f.id, f.label)}
                           </Text>
                           <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '10.5px', margin: 0 }}>
-                            {f.sub} • {details.count} {details.suffix} {details.nearest ? `• ${details.nearest}` : ''}
+                            {getServiceSub(f.id, f.sub)} • {details.count} {details.suffix} {details.nearest ? `• ${details.nearest}` : ''}
                           </Text>
                         </ListTextCol>
                         <ChevronRight><ChevronRightIcon /></ChevronRight>
@@ -279,7 +302,7 @@ export default function AllPoisPage() {
                 <SectionLabel>
                   <MdTempleBuddhist size={14} color={colors.brand.primary} />
                   <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '9.5px', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-                    Spiritual &amp; Cultural
+                    {t('spiritualCultural')}
                   </Text>
                 </SectionLabel>
 
@@ -296,7 +319,7 @@ export default function AllPoisPage() {
                           <DoorOpen size={32} />
                         </SpiritualIconWrapper>
                         <Text variant="bodySecondary" weight={700} color={colors.base.white} style={{ position: 'relative', zIndex: 2, margin: 0 }}>
-                          Temple Gates
+                          {t('templeGates')}
                         </Text>
                       </TallImageCard>
                     )}
@@ -315,7 +338,7 @@ export default function AllPoisPage() {
                           <HandHeart size={32} />
                         </SpiritualIconWrapper>
                         <Text variant="bodySecondary" weight={700} color={colors.base.white} style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: '1.2' }}>
-                          Prasad{"\n"}Counters
+                          {t('prasadCounters')}
                         </Text>
                       </SpiritualCard>
                     )}
@@ -334,7 +357,7 @@ export default function AllPoisPage() {
                           <Info size={32} />
                         </SpiritualIconWrapper>
                         <Text variant="bodySecondary" weight={700} color={colors.neutral[900]} style={{ margin: 0, lineHeight: '1.2' }}>
-                          Info Centers
+                          {t('infoCenters')}
                         </Text>
                       </SpiritualCard>
                     )}
@@ -351,10 +374,10 @@ export default function AllPoisPage() {
                       </ListIconBox>
                       <ListTextCol>
                         <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                          {s.label}
+                          {getServiceLabel(s.id, s.label)}
                         </Text>
                         <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '10.5px', margin: 0 }}>
-                          {s.sub} • {details.count} {details.suffix} {details.nearest ? `• ${details.nearest}` : ''}
+                          {getServiceSub(s.id, s.sub)} • {details.count} {details.suffix} {details.nearest ? `• ${details.nearest}` : ''}
                         </Text>
                       </ListTextCol>
                       <ChevronRight><ChevronRightIcon /></ChevronRight>
@@ -371,10 +394,10 @@ export default function AllPoisPage() {
           <RefreshCw />
           <div>
             <Text variant="bodySmall" weight={700} color="#15803d" style={{ margin: 0 }}>
-              Map Updated 5m ago
+              {t('mapUpdated')}
             </Text>
             <Text variant="bodyTiny" weight={600} color="#16a34a" style={{ fontSize: '10.5px', margin: 0, opacity: 0.85 }}>
-              Categories are synced for offline use.
+              {t('offlineSync')}
             </Text>
           </div>
         </SyncBar>

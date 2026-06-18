@@ -24,7 +24,7 @@ import {
 export default function SanitationDetailsPage() {
   const router = useRouter();
   const { selectedEvent, setNavTarget, setScreenMode, setArrivalNotify, logNavigationInstructions, triggerToast } = useUserTest();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   if (!selectedEvent) return null;
 
@@ -55,7 +55,7 @@ export default function SanitationDetailsPage() {
             <ArrowLeft size={20} />
           </button>
           <Text variant="subSectionTitle" weight={700} color={colors.brand.primary} style={{ margin: 0 }}>
-            Sanitation
+            {t('sanitation')}
           </Text>
         </HeaderLeft>
         <LangBadge onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/all-pois/sanitation`)}>
@@ -68,7 +68,7 @@ export default function SanitationDetailsPage() {
         <MapCard>
           <StatusPill>
             <span className="dot" />
-            <span>Status: Cleaned 10m ago</span>
+            <span>{t('statusCleaned')}</span>
           </StatusPill>
 
           <MapGraphicWrapper>
@@ -104,10 +104,10 @@ export default function SanitationDetailsPage() {
           <FloatingInfoBox>
             <InfoBoxLeft>
               <Text variant="bodyPrimary" weight={700} color={colors.brand.primary} style={{ fontSize: '15px', margin: 0 }}>
-                Public Toilet Block B
+                {t('toiletBlockB')}
               </Text>
               <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11.5px', margin: 0 }}>
-                300m away • 4 min walk
+                300{t('metersAway')} • 4 {t('minWalk')}
               </Text>
             </InfoBoxLeft>
             <RoundedIconBadge>
@@ -123,10 +123,10 @@ export default function SanitationDetailsPage() {
               <FaMale />
             </GenderIconWrapper>
             <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '12.5px', margin: 0 }}>
-              Male
+              {t('male')}
             </Text>
             <Text variant="bodyTiny" weight={700} color={colors.brand.primary} style={{ fontSize: '12px', margin: 0 }}>
-              2 Open
+              2 {t('open')}
             </Text>
           </AvailabilityCard>
 
@@ -135,10 +135,10 @@ export default function SanitationDetailsPage() {
               <FaFemale />
             </GenderIconWrapper>
             <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '12.5px', margin: 0 }}>
-              Female
+              {t('female')}
             </Text>
             <Text variant="bodyTiny" weight={700} color={colors.brand.primary} style={{ fontSize: '12px', margin: 0 }}>
-              3 Open
+              3 {t('open')}
             </Text>
           </AvailabilityCard>
 
@@ -147,10 +147,10 @@ export default function SanitationDetailsPage() {
               <FaWheelchair />
             </GenderIconWrapper>
             <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '12.5px', margin: 0 }}>
-              Accessible
+              {t('accessible')}
             </Text>
             <Text variant="bodyTiny" weight={700} color={colors.brand.primary} style={{ fontSize: '12px', margin: 0 }}>
-              1 Open
+              1 {t('open')}
             </Text>
           </AvailabilityCard>
         </AvailabilityGrid>
@@ -166,25 +166,25 @@ export default function SanitationDetailsPage() {
         >
           <MdDirectionsWalk size={18} />
           <Text variant="button" weight={700} color={colors.base.white}>
-            Start Walking
+            {t('startWalking')}
           </Text>
         </StyledButton>
 
         {/* 4. Facility Details Card */}
         <DetailsCard>
           <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-            Facility Details
+            {t('facilityDetails')}
           </Text>
           
           <DetailRow style={{ marginTop: '0.25rem' }}>
             <DetailLabelGroup>
               <CapacityIcon>6</CapacityIcon>
               <Text variant="bodyPrimary" weight={600} color={colors.neutral[800]} style={{ margin: 0 }}>
-                Capacity
+                {t('capacity')}
               </Text>
             </DetailLabelGroup>
             <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-              6 Units available
+              6 {t('unitsAvailable')}
             </Text>
           </DetailRow>
 
@@ -194,11 +194,11 @@ export default function SanitationDetailsPage() {
             <DetailLabelGroup>
               <Droplets />
               <Text variant="bodyPrimary" weight={600} color={colors.neutral[800]} style={{ margin: 0 }}>
-                Water supply
+                {t('waterSupply')}
               </Text>
             </DetailLabelGroup>
             <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-              Continuous
+              {t('continuous')}
             </Text>
           </DetailRow>
         </DetailsCard>
@@ -210,10 +210,10 @@ export default function SanitationDetailsPage() {
           </CircleIconBox>
           <InfoCol>
             <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11px', margin: 0 }}>
-              Safety Note
+              {t('safetyNote')}
             </Text>
             <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-              Well lit area
+              {t('wellLitArea')}
             </Text>
           </InfoCol>
         </InfoRowCard>
@@ -225,10 +225,10 @@ export default function SanitationDetailsPage() {
           </CircleIconBox>
           <InfoCol>
             <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11px', margin: 0 }}>
-              Navigation Status
+              {t('navigationStatus')}
             </Text>
             <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-              Route: Clear
+              {t('routeClear')}
             </Text>
           </InfoCol>
         </InfoRowCard>
@@ -237,7 +237,7 @@ export default function SanitationDetailsPage() {
         <CivicBanner>
           <Info />
           <Text variant="bodySmall" weight={600} color="#8c3d0b" style={{ margin: 0, fontSize: '12px', lineHeight: '1.45' }}>
-            This facility is part of the <span style={{ fontWeight: 700 }}>Ratha Navigator Civic Network</span>. All units are equipped with grab bars and non-slip mats for safety.
+            {t('civicBannerDesc')}
           </Text>
         </CivicBanner>
       </ScrollArea>

@@ -216,6 +216,13 @@ export const EventCard = styled.div<EventCardProps>`
   }
 `;
 
+export const EventBannerImage = styled.img`
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+`;
+
 export const EventHeaderRow = styled.div`
   display: flex;
   justify-content: space-between;

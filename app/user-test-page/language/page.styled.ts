@@ -8,7 +8,7 @@ export const PageWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem 1.5rem 2.5rem 1.5rem;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
   background-color: #F9FAFC; /* Neutral 100 light backdrop */
   box-sizing: border-box;
   width: 100%;
@@ -23,14 +23,14 @@ export const OnboardingHeader = styled.div`
   justify-content: space-between;
   width: 100%;
   max-width: 360px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
 export const IndicatorDots = styled.div`
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  margin: 1rem 0;
+  margin: 0.5rem 0;
 `;
 
 export const ActiveIndicatorBar = styled.div`
@@ -49,27 +49,27 @@ export const InactiveDot = styled.div`
 
 export const IllustrationCard = styled.div`
   background: linear-gradient(135deg, #FF9E40 0%, #E65100 100%);
-  border-radius: 2rem;
+  border-radius: 1.5rem;
   width: 100%;
   max-width: 320px;
-  height: 18rem;
+  height: 11rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 15px 35px rgba(230, 81, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(230, 81, 0, 0.15);
   overflow: hidden;
-  padding: 1.5rem;
+  padding: 0.75rem 1rem;
   box-sizing: border-box;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 `;
 
 export const TextContentGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   text-align: center;
   max-width: 320px;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 `;
 
 export const LangGrid = styled.div`
@@ -78,7 +78,7 @@ export const LangGrid = styled.div`
   gap: 0.75rem;
   width: 100%;
   max-width: 320px;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.25rem;
 `;
 
 export const LangOptionCard = styled.button<{ $isActive: boolean }>`

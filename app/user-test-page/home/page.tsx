@@ -18,7 +18,6 @@ import {
   Car,
   Heart,
   MapPin,
-  Settings,
   CheckCircle,
   Navigation
 } from 'lucide-react';
@@ -163,7 +162,7 @@ export default function RedesignedEventHomePage() {
     backendUrl,
     userGps
   } = useUserTest();
-  const { language, t } = useLanguage();
+  const { language, t, tEventName, tPoiName, tPoiDesc } = useLanguage();
   
   const [activeSlide, setActiveSlide] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -187,7 +186,7 @@ export default function RedesignedEventHomePage() {
       if (idx === 0) {
         return {
           ...slide,
-          title: selectedEvent.name, // Display actual event name on the banner
+          title: tEventName(selectedEvent), // Display actual event name on the banner
           image: eventBanner || slide.image // Display actual event image if available, otherwise fallback to local
         };
       }
@@ -248,8 +247,8 @@ export default function RedesignedEventHomePage() {
               to { transform: rotate(360deg); }
             }
           `}</style>
-          <Text variant="bodySecondary" weight={700} color={colors.neutral[900]}>Syncing map assets...</Text>
-          <Text variant="bodyTiny" weight={600} color={colors.neutral[700]}>Downloading points of interest and routing sectors</Text>
+          <Text variant="bodySecondary" weight={700} color={colors.neutral[900]}>{t('syncingAssets')}</Text>
+          <Text variant="bodyTiny" weight={600} color={colors.neutral[700]}>{t('downloadingPois')}</Text>
         </div>
       </HomeContainer>
     );
@@ -266,9 +265,9 @@ export default function RedesignedEventHomePage() {
     ? [...medicalPois].sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))[0] 
     : null;
 
-  const nearestMedicalName = nearestMedical ? nearestMedical.name_en : 'Medical Camp';
+  const nearestMedicalName = nearestMedical ? tPoiName(nearestMedical) : t('medicalCamp');
   const nearestMedicalDistance = nearestMedical ? `${Math.round(nearestMedical.distance || 200)}m` : '200m';
-  const nearestMedicalDesc = nearestMedical ? nearestMedical.description || 'Nearest first aid sector' : 'South Gate (Ashwa Dwara) area';
+  const nearestMedicalDesc = nearestMedical ? (tPoiDesc(nearestMedical) || t('locatedAshwaDwara')) : t('locatedAshwaDwara');
 
   // Navigate to Nearest Medical POI
   const handleNavigateNearestMedical = () => {
@@ -344,7 +343,7 @@ export default function RedesignedEventHomePage() {
       {/* Redesigned Top Header Overlay */}
       <HomeHeader>
         <HeaderLeft onClick={() => router.push('/user-test-page')}>
-          <Settings />
+          <img src="/favicon.ico" alt="logo" />
         </HeaderLeft>
         <HeaderRight>
           <LocationBadge>
@@ -353,7 +352,7 @@ export default function RedesignedEventHomePage() {
           </LocationBadge>
           <LiveBadge style={{ backgroundColor: isGpsActive ? '#84d5c5' : '#E5EAF0', color: isGpsActive ? '#00201b' : '#475569' }}>
             <Compass style={{ opacity: isGpsActive ? 1 : 0.4 }} />
-            <span>{isGpsActive ? 'Live' : 'Offline'}</span>
+            <span>{isGpsActive ? t('gpsLive') : t('offline')}</span>
           </LiveBadge>
           <LangButton onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/home`)}>
             {language.toUpperCase()}
@@ -369,9 +368,19 @@ export default function RedesignedEventHomePage() {
               <SlideImage src={slide.image} alt={slide.title} />
               <SlideOverlay />
               <SlideInfo>
-                <SlideBadge $bgColor={slide.badgeColor}>{slide.badge}</SlideBadge>
+                <SlideBadge $bgColor={slide.badgeColor}>
+                  {slide.badge === 'Featured' ? t('featured') :
+                   slide.badge === 'Art & Culture' ? t('artCulture') :
+                   slide.badge === 'Live Event' ? t('liveEvent') : slide.badge}
+                </SlideBadge>
                 <Text variant="sectionTitle" weight={800} color="#FFFFFF" style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '20px', margin: 0 }}>
-                  {slide.title}
+                  {slide.title === 'Temple Heritage' ? t('pilgrimGuide') :
+                   slide.title === 'Grand Procession' ? t('exploreLiveMap') :
+                   slide.title === 'Grand Boita Bandana' ? t('navigatingSafely') :
+                   slide.title === 'Cuttack Cultural Stage' ? t('navigatingSafely') :
+                   slide.title === 'Sangam Confluence' ? t('exploreLiveMap') :
+                   slide.title === 'Twilight Diya Ceremony' ? t('exploreLiveMap') :
+                   slide.title}
                 </Text>
               </SlideInfo>
             </SlideItem>
@@ -400,11 +409,11 @@ export default function RedesignedEventHomePage() {
         <NearestHelpCard>
           <HelpBadgeWrapper>
             <HelpBadgeDot />
-            <HelpBadgeText>Nearest Help</HelpBadgeText>
+            <HelpBadgeText>{t('nearestHelp')}</HelpBadgeText>
           </HelpBadgeWrapper>
 
           <HelpCardRow>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', flex: 1, minWidth: 0 }}>
               <Text variant="sectionTitle" weight={700} color="#FFFFFF" style={{margin: 0, letterSpacing: '-0.01em' }}>
                 {nearestMedicalName} ({nearestMedicalDistance})
               </Text>
@@ -427,10 +436,10 @@ export default function RedesignedEventHomePage() {
             </SosIconBox>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <Text variant="bodyPrimary" weight={700} color="#93000a" style={{  margin: 0 }}>
-                SOS Help
+                {t('sosHelp')}
               </Text>
               <Text variant="bodySecondary" weight={600} color="rgba(147, 0, 10, 0.8)" style={{  margin: 0 }}>
-                Tap for emergency assistance
+                {t('tapForEmergency')}
               </Text>
             </div>
           </SosButton>
@@ -458,18 +467,25 @@ export default function RedesignedEventHomePage() {
               count = poisList.filter(p => p.category_name.toLowerCase().includes(query)).length;
             }
 
-            const getSuffix = (id: string, val: number) => {
-              const plural = val !== 1;
-              if (id === 'toilet') return plural ? 'Restrooms' : 'Restroom';
-              if (id === 'water') return plural ? 'Points' : 'Point';
-              if (id === 'medical') return plural ? 'Camps' : 'Camp';
-              if (id === 'police') return plural ? 'Posts' : 'Post';
-              if (id === 'food') return plural ? 'Camps' : 'Camp';
-              if (id === 'sanitation') return plural ? 'Points' : 'Point';
-              return plural ? 'Units' : 'Unit';
+            const getSuffix = (catId: string) => {
+              if (catId === 'toilet') return t('restrooms');
+              if (catId === 'water') return t('drinkingWater');
+              if (catId === 'medical') return t('medical');
+              if (catId === 'police') return t('police');
+              if (catId === 'food') return t('foodCamps');
+              if (catId === 'sanitation') return t('sanitation');
+              return 'Units';
             };
 
-            const suffix = getSuffix(item.id, count);
+            const getServiceLabel = (catId: string, defaultLabel: string) => {
+              if (catId === 'toilet') return t('restrooms');
+              if (catId === 'water') return t('drinkingWater');
+              if (catId === 'medical') return t('medical');
+              if (catId === 'police') return t('police');
+              if (catId === 'food') return t('foodCamps');
+              if (catId === 'sanitation') return t('sanitation');
+              return defaultLabel;
+            };
 
             return (
               <GridItemCard 
@@ -483,10 +499,10 @@ export default function RedesignedEventHomePage() {
                   <Icon />
                 </GridIconBox>
                 <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0 }}>
-                  {item.label}
+                  {getServiceLabel(item.id, item.label)}
                 </Text>
                 <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11px', margin: 0, marginTop: '2px' }}>
-                  {count} {suffix}
+                  {count} {getSuffix(item.id)}
                 </Text>
               </GridItemCard>
             );
@@ -499,19 +515,19 @@ export default function RedesignedEventHomePage() {
           router.push('/user-test-page/pois');
         }}>
           <LayoutGrid />
-          <span>View All Categories</span>
+          <span>{t('viewAllCategories')}</span>
         </ViewAllButton>
 
         {/* Safety & Planning Section */}
         <SafetySection>
-          <SectionTitle>Safety & Planning</SectionTitle>
+          <SectionTitle>{t('safetyPlanning')}</SectionTitle>
           <SafetyGrid>
             <SafetyCard onClick={() => router.push('/user-test-page/saved')}>
               <SafetyIconBox $bgColor="rgba(76, 97, 108, 0.08)" $color="#4C616C">
                 <Users />
               </SafetyIconBox>
               <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0, textAlign: 'left' }}>
-                Family Meetup
+                {t('familyMeetup')}
               </Text>
             </SafetyCard>
 
@@ -520,7 +536,7 @@ export default function RedesignedEventHomePage() {
                 <MapPin />
               </SafetyIconBox>
               <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0, textAlign: 'left' }}>
-                Save My Spot
+                {t('saveMySpot')}
               </Text>
             </SafetyCard>
 
@@ -534,10 +550,10 @@ export default function RedesignedEventHomePage() {
               </ParkingIconBox>
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <Text variant="bodySecondary" weight={600} color={colors.neutral[900]} style={{  margin: 0 }}>
-                  Live Parking
+                  {t('liveParking')}
                 </Text>
                 <Text variant="caption" weight={600} color="#E65100" style={{ margin: 0 }}>
-                  Bus Stand: 20 spots
+                  {t('busStandSpots')}
                 </Text>
               </div>
               <ChevronRight color="#B5B7BD" size={18} />

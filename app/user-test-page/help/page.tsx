@@ -152,9 +152,9 @@ export default function EventHelpPage() {
   const currentLng = userGps ? `${userGps[1].toFixed(4)}° E` : '85.8312° E';
 
   const helplineList = [
-    { name: 'Police Control Room', number: '100', icon: MdLocalPolice },
-    { name: 'Ambulance Service', number: '108', icon: FaBriefcaseMedical },
-    { name: 'National Help Line', number: '112', icon: AlertTriangle }
+    { name: t('policeControlRoom'), number: '100', icon: MdLocalPolice },
+    { name: t('ambulanceServices'), number: '108', icon: FaBriefcaseMedical },
+    { name: t('nationalHelpLine'), number: '112', icon: AlertTriangle }
   ];
 
   const emergencyCategories = [
@@ -181,7 +181,7 @@ export default function EventHelpPage() {
               {t('emergencyAssistance')}
             </Text>
             <Text variant="bodySmall" weight={600} color="#ba1a1a" style={{ fontSize: '12.5px', lineHeight: 1.4, margin: 0, opacity: 0.9 }}>
-              Tap any button below for immediate assistance. Stay calm.
+              {t('emergencySub')}
             </Text>
           </EmergencyTextGroup>
         </EmergencyCard>
@@ -302,7 +302,7 @@ export default function EventHelpPage() {
                   {t('nearestHelpBooth')}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
-                  250 meters away (3 min walk)
+                  250 {t('metersAway')} (3 {t('minWalk')})
                 </div>
               </div>
               <div
@@ -340,7 +340,7 @@ export default function EventHelpPage() {
               }}
             >
               <MapIcon size={16} />
-              Show Path on Map
+              {t('showPath')}
             </button>
           </div>
         </div>
@@ -367,7 +367,7 @@ export default function EventHelpPage() {
                         {hp.name}
                       </Text>
                       <Text variant="caption" weight={600} color={colors.neutral[700]} style={{  margin: 0 }}>
-                        Dial {hp.number}
+                        {t('dial')} {hp.number}
                       </Text>
                     </div>
                   </HelplineContentLeft>

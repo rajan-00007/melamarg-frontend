@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '../context/UserTestContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   PoisContainer,
   BrandHeader,
@@ -49,19 +50,17 @@ export default function CategoryPoisPage() {
     setArrivalNotify,
     logNavigationInstructions
   } = useUserTest();
+  const { t, tPoiName } = useLanguage();
 
   const sortedPois = getSortedPois();
 
   return (
     <PoisContainer>
-      
-
-
       {/* Category list header */}
       <HeaderBar>
         <BackButton onClick={() => router.push('/user-test-page/home')}>
           <StyledChevronLeft />
-          <span>Back</span>
+          <span>{t('back')}</span>
         </BackButton>
 
         <CategoryTitle>
@@ -70,55 +69,55 @@ export default function CategoryPoisPage() {
               case 'toilet': return (
                 <>
                   <StyledCompass />
-                  <span>Toilets & Sanitation</span>
+                  <span>{t('toiletSanitation')}</span>
                 </>
               );
               case 'police': return (
                 <>
                   <StyledShield />
-                  <span>Police & Help</span>
+                  <span>{t('policeHelp')}</span>
                 </>
               );
               case 'medical': return (
                 <>
                   <StyledHeartPulse />
-                  <span>Medical Centers</span>
+                  <span>{t('medicalCenters')}</span>
                 </>
               );
               case 'lost': return (
                 <>
                   <StyledSearch />
-                  <span>Lost & Found</span>
+                  <span>{t('lostFound')}</span>
                 </>
               );
               case 'water': return (
                 <>
                   <StyledDroplets />
-                  <span>Drinking Water</span>
+                  <span>{t('drinkingWater')}</span>
                 </>
               );
               case 'exit': return (
                 <>
                   <StyledLogOut />
-                  <span>Exit Gate points</span>
+                  <span>{t('exitGatePoints')}</span>
                 </>
               );
               case 'food': return (
                 <>
                   <StyledUtensils />
-                  <span>Food & Dining</span>
+                  <span>{t('foodDining')}</span>
                 </>
               );
               case 'parking': return (
                 <>
                   <StyledCar />
-                  <span>Parking Zones</span>
+                  <span>{t('parkingZones')}</span>
                 </>
               );
               default: return (
                 <>
                   <StyledAlertTriangle />
-                  <span>Emergency Zones</span>
+                  <span>{t('emergencyZones')}</span>
                 </>
               );
             }
@@ -126,17 +125,17 @@ export default function CategoryPoisPage() {
         </CategoryTitle>
 
         <CountBadge>
-          {sortedPois.length} nearest
+          {sortedPois.length} {t('nearest')}
         </CountBadge>
       </HeaderBar>
 
-      <ListSubtitle>Sorted by walking distance from your location</ListSubtitle>
+      <ListSubtitle>{t('sortedDistance')}</ListSubtitle>
 
       {/* Cards List */}
       <CardsList>
         {sortedPois.length === 0 ? (
           <EmptyState>
-            No custom POIs in this category yet. Click reset or switch to mock offline mode.
+            {t('noCustomPois')}
           </EmptyState>
         ) : (
           sortedPois.map((poi, idx) => (
@@ -147,13 +146,13 @@ export default function CategoryPoisPage() {
                 </IndexCircle>
 
                 <PoiDetails>
-                  <PoiTitle>{poi.name_en}</PoiTitle>
+                  <PoiTitle>{tPoiName(poi)}</PoiTitle>
                   <PoiStats>
                     <span>{poi.distance}m</span>
                     <DotSeparator>•</DotSeparator>
-                    <WalkText>~{poi.time} min walk</WalkText>
+                    <WalkText>~{poi.time} {t('minWalk')}</WalkText>
                     <DotSeparator>•</DotSeparator>
-                    <StatusText>Open</StatusText>
+                    <StatusText>{t('open')}</StatusText>
                   </PoiStats>
                 </PoiDetails>
               </PoiInfoWrapper>
@@ -167,7 +166,7 @@ export default function CategoryPoisPage() {
                   router.push('/user-test-page/navigation');
                 }}
               >
-                <span>Go</span>
+                <span>{t('go')}</span>
                 <StyledArrowRight />
               </GoButton>
             </PoiCard>
@@ -177,7 +176,7 @@ export default function CategoryPoisPage() {
 
       {/* Tip info box */}
       <TipBox>
-        Tip: Nearest 3 shown. Tap any Go button to start navigation. No internet needed.
+        {t('poisTip')}
       </TipBox>
     </PoisContainer>
   );

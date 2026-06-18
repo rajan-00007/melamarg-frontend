@@ -7,6 +7,7 @@ import { Signal } from 'lucide-react';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 import { getEventNavigatorName } from './components/NavigatorHeader';
+import { useLanguage } from './context/LanguageContext';
 
 import {
   Wrapper,
@@ -25,6 +26,7 @@ import {
   EmptyState,
   EventList,
   EventCard,
+  EventBannerImage,
   EventHeaderRow,
   EventTitle,
   DownloadedBadge,
@@ -74,6 +76,24 @@ export default function UserTestPage() {
     handleGrantPermission
   } = useUserTest();
 
+  const { t, tEventName, tEventDesc } = useLanguage();
+
+  const getEventBannerImage = (event: any) => {
+    let url = event.banner_url;
+    if (url) {
+      if (url.startsWith('/') && backendUrl) {
+        return `${backendUrl.replace(/\/+$/, '')}${url}`;
+      }
+      return url;
+    }
+    // Default image based on name
+    const name = event.name?.toLowerCase() || '';
+    const id = event.id?.toLowerCase() || '';
+    if (name.includes('bali') || id.includes('bali')) return '/baliyatra_banner.png';
+    if (name.includes('kumbh') || id.includes('kumbh')) return '/kumbhmela_banner.png';
+    return '/rathyatra_banner.png';
+  };
+
   // Redirect to home if setup is fully complete
   useEffect(() => {
     if (selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission === true) {
@@ -88,25 +108,25 @@ export default function UserTestPage() {
       {screenMode === 'selector' && (
         <SelectorContainer>
           <Header>
-            <Title>MelaMarg</Title>
+            <Title>{t('melaMarg')}</Title>
             <Subtitle>
-              Download offline event maps, nodes, and points of interest to navigate dense crowd areas without cellular networks.
+              {t('melaMargSubtitle')}
             </Subtitle>
           </Header>
 
           {downloadedEventIds.length > 0 && (
             <ClearCacheButton onClick={clearDownloadedCache}>
               <StyledTrash />
-              <span>Clear Download Cache ({downloadedEventIds.length})</span>
+              <span>{t('clearCache')} ({downloadedEventIds.length})</span>
             </ClearCacheButton>
           )}
 
           {apiError && (
             <AlertBox>
               <StyledAlertTriangle />
-              <AlertTitle>Backend Unreachable</AlertTitle>
+              <AlertTitle>{t('backendUnreachable')}</AlertTitle>
               <AlertText>
-                Could not reach server at <span className="underline font-mono text-cyan-400">{backendUrl}</span>. {events.length > 0 ? 'Showing already downloaded offline maps.' : 'No downloaded offline maps found. Please check your connection.'}
+                {t('couldNotReachServer')} at <span className="underline font-mono text-cyan-400">{backendUrl}</span>. {events.length > 0 ? t('noMapsCheckConnection') : t('noMapsCheckConnection')}
               </AlertText>
               <ConfigureButton
                 onClick={() => {
@@ -116,7 +136,7 @@ export default function UserTestPage() {
                   }
                 }}
               >
-                Configure Server Endpoint
+                {t('configureServer')}
               </ConfigureButton>
             </AlertBox>
           )}
@@ -124,32 +144,33 @@ export default function UserTestPage() {
           {loadingEvents ? (
             <LoadingContainer>
               <Spinner />
-              <LoadingText>Querying festival map catalogs...</LoadingText>
+              <LoadingText>{t('queryingCatalogs')}</LoadingText>
             </LoadingContainer>
           ) : (
             <EventList>
               {events.length === 0 ? (
                 <EmptyState>
-                  No downloaded offline maps found. Connect to the internet to download maps.
+                  {t('noMapsConnectInternet')}
                 </EmptyState>
               ) : (
                 events.map((event: any) => {
                   const isDownloaded = downloadedEventIds.includes(event.id);
                   return (
                     <EventCard key={event.id} $isDownloaded={isDownloaded}>
+                      <EventBannerImage src={getEventBannerImage(event)} alt={tEventName(event)} />
                       <EventHeaderRow>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <EventTitle>
-                            <span>{event.name}</span>
+                            <span>{tEventName(event)}</span>
                             {isDownloaded && (
                               <DownloadedBadge>
                                 <StyledCheckCircle />
-                                <span>Downloaded</span>
+                                <span>{t('downloaded')}</span>
                               </DownloadedBadge>
                             )}
                           </EventTitle>
                           <EventDescription>
-                            {event.description || 'Offline navigation, crowd sectors, and emergency POI zones.'}
+                            {tEventDesc(event) || t('offlineDesc')}
                           </EventDescription>
                         </div>
                       </EventHeaderRow>
@@ -162,14 +183,14 @@ export default function UserTestPage() {
                           {isDownloaded ? (
                             <>
                               <StyledZap fill="currentColor" />
-                              <span>Open Offline Map</span>
+                              <span>{t('openOfflineMap')}</span>
                             </>
                           ) : (
                             <>
                               <DownloadButtonSvg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </DownloadButtonSvg>
-                              <span>Download offline package</span>
+                              <span>{t('downloadOfflinePackage')}</span>
                             </>
                           )}
                         </DownloadOrOpenButton>
@@ -199,7 +220,7 @@ export default function UserTestPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Text variant="bodySmall" weight={800} color={colors.neutral[800]} style={{ letterSpacing: '0.15em', opacity: 0.7, textTransform: 'uppercase' }}>
-              Initializing Offline Assets
+              {t('initializingAssets')}
             </Text>
 
             <DownloadLogoCard>
@@ -227,10 +248,10 @@ export default function UserTestPage() {
 
             <DownloadTextGroup>
               <Text variant="hero" weight={900} color={colors.brand.primary} style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '28px', margin: 0 }}>
-                {selectedEvent ? getEventNavigatorName(selectedEvent.name) : 'Ratha Navigator'}
+                {selectedEvent ? getEventNavigatorName(tEventName(selectedEvent)) : 'Ratha Navigator'}
               </Text>
               <Text variant="bodySecondary" weight={600} color={colors.neutral[800]} style={{ margin: 0, fontSize: '15px', opacity: 0.85 }}>
-                Find Help. Even Offline.
+                {t('findHelpOffline')}
               </Text>
             </DownloadTextGroup>
           </div>
@@ -241,12 +262,12 @@ export default function UserTestPage() {
             </ProgressBarBg>
             <ConnectionStatusRow>
               <Signal />
-              <span>Optimizing for low connectivity</span>
+              <span>{t('optimizingConnectivity')}</span>
             </ConnectionStatusRow>
           </ProgressWrapper>
 
           <Text variant="bodySmall" weight={700} color={colors.neutral[700]} style={{ letterSpacing: '0.01em', opacity: 0.7 }}>
-            Inspired by Puri. Built for Pilgrims.
+            {t('inspiredByPuri')}
           </Text>
         </DownloadingContainer>
       )}
@@ -261,18 +282,18 @@ export default function UserTestPage() {
           </PermissionIconBox>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <PermissionTitle>Allow location tracking?</PermissionTitle>
+            <PermissionTitle>{t('allowLocationTracking')}</PermissionTitle>
             <PermissionText>
-              MelaMarg requires precise GPS location to track your coordinates and calculate the correct compass bearings offline.
+              {t('locationPermissionDesc')}
             </PermissionText>
           </div>
 
           <PermissionButtons>
             <AllowButton onClick={() => handleGrantPermission(true)}>
-              Allow while using app
+              {t('allowWhileUsing')}
             </AllowButton>
             <DenyButton onClick={() => handleGrantPermission(false)}>
-              Deny
+              {t('deny')}
             </DenyButton>
           </PermissionButtons>
         </PermissionContainer>

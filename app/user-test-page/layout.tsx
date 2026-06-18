@@ -96,6 +96,8 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
     triggerToast
   } = useUserTest();
 
+  const { t } = useLanguage();
+
   // First visit check: redirect to language selection page if no language chosen yet
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -283,7 +285,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
       {currentTab === 'home' && (
         <FloatingExploreButton onClick={() => router.push('/user-test-page/map')}>
           <Compass style={{ transform: 'rotate(0deg)' }} />
-          <span>Explore Map</span>
+          <span>{t('exploreLiveMap')}</span>
         </FloatingExploreButton>
       )}
 
@@ -301,7 +303,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             <NavIconWrapper $isActive={currentTab === 'home'}>
               <Home />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'home'}>Home</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'home'}>{t('home')}</NavButtonText>
           </NavButton>
 
           <NavButton
@@ -314,7 +316,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             <NavIconWrapper $isActive={currentTab === 'map'}>
               <Map />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'map'}>Map</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'map'}>{t('map')}</NavButtonText>
           </NavButton>
 
           <NavButton
@@ -327,7 +329,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             <NavIconWrapper $isActive={currentTab === 'all-pois'}>
               <LayoutGrid />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'all-pois'}>Categories</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'all-pois'}>{t('categories')}</NavButtonText>
           </NavButton>
 
           <NavButton
@@ -345,7 +347,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
                 {notifications.filter(n => !dismissedNotificationIds.includes(n.id)).length}
               </NavBadge>
             )}
-            <NavButtonText $isActive={currentTab === 'alerts'}>Alerts</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'alerts'}>{t('alerts')}</NavButtonText>
           </NavButton>
 
           <NavButton
@@ -358,7 +360,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             <NavIconWrapper $isActive={currentTab === 'help'}>
               <HelpCircle />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'help'}>Support</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'help'}>{t('support')}</NavButtonText>
           </NavButton>
 
           <NavButton
@@ -371,7 +373,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             <NavIconWrapper $isActive={currentTab === 'ideas'}>
               <MessageSquare />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'ideas'}>Ideas</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'ideas'}>{t('ideas')}</NavButtonText>
           </NavButton>
         </BottomNav>
       )}

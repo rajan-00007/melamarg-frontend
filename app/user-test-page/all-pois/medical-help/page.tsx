@@ -26,7 +26,7 @@ import {
 export default function MedicalHelpDetailsPage() {
   const router = useRouter();
   const { selectedEvent, setNavTarget, setScreenMode, setArrivalNotify, logNavigationInstructions, poisList, userGps } = useUserTest();
-  const { language } = useLanguage();
+  const { language, t, tPoiName, tPoiDesc } = useLanguage();
 
   if (!selectedEvent) return null;
 
@@ -46,19 +46,19 @@ export default function MedicalHelpDetailsPage() {
   }
 
   // Fallback details matching mockup
-  const name = nearestMedical ? nearestMedical.name_en : 'Medical Camp #4';
-  const description = nearestMedical ? (nearestMedical.description || 'Located precisely within the Ashwa Dwara area, following the main pilgrim corridor.') : 'Located precisely within the Ashwa Dwara area, following the main pilgrim corridor.';
+  const name = nearestMedical ? tPoiName(nearestMedical) : t('medicalCamp4');
+  const description = nearestMedical ? tPoiDesc(nearestMedical) : t('locatedAshwaDwara');
   const lat = nearestMedical ? nearestMedical.latitude : 19.8055;
   const lng = nearestMedical ? nearestMedical.longitude : 85.8208;
   
-  let distanceStr = '200m away';
-  let walkMinutesStr = '4 min walk';
+  let distanceStr = `200 ${t('metersAway')}`;
+  let walkMinutesStr = `4 ${t('minWalk')}`;
   if (nearestMedical) {
     const dist = nearestMedical.distance;
-    distanceStr = dist >= 1000 ? `${(dist / 1000).toFixed(1)}km away` : `${Math.round(dist)}m away`;
+    distanceStr = dist >= 1000 ? `${(dist / 1000).toFixed(1)}km` : `${Math.round(dist)} ${t('metersAway')}`;
     
     const mins = Math.max(1, Math.round(dist / 80));
-    walkMinutesStr = `${mins} min walk`;
+    walkMinutesStr = `${mins} ${t('minWalk')}`;
   }
 
   const handleStartWalking = () => {
@@ -87,7 +87,7 @@ export default function MedicalHelpDetailsPage() {
             <ArrowLeft size={20} />
           </button>
           <Text variant="subSectionTitle" weight={700} color={colors.brand.primary} style={{ margin: 0 }}>
-            Medical Help
+            {t('medicalHelp')}
           </Text>
         </HeaderLeft>
         <LangBadge onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/all-pois/medical-help`)}>
@@ -100,7 +100,7 @@ export default function MedicalHelpDetailsPage() {
         <MapCard>
           <StatusPill>
             <span className="dot" />
-            <span>Status: Open - 24/7</span>
+            <span>{t('statusOpen247')}</span>
           </StatusPill>
 
           <MapGraphicWrapper>
@@ -154,14 +154,14 @@ export default function MedicalHelpDetailsPage() {
             <SubtitleItem $color="#0d9488">
               <CheckCircle2 size={16} />
               <Text variant="bodyPrimary" weight={600} color="#0d9488" style={{ margin: 0 }}>
-                Open - 24/7
+                {t('open')} - 24/7
               </Text>
             </SubtitleItem>
 
             <SubtitleItem>
               <Clock size={16} />
               <Text variant="bodyPrimary" weight={600} color={colors.neutral[700]} style={{ margin: 0 }}>
-                Current Wait: ~10 mins
+                {t('currentWait10')}
               </Text>
             </SubtitleItem>
           </SubtitleRow>
@@ -178,14 +178,14 @@ export default function MedicalHelpDetailsPage() {
         >
           <MdDirectionsWalk size={18} />
           <Text variant="button" weight={700} color={colors.base.white}>
-            Start Walking
+            {t('startWalking')}
           </Text>
         </StyledButton>
 
         {/* 4. Services Available */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'left', margin: 0 }}>
-            Services Available
+            {t('servicesAvailable')}
           </Text>
 
           <ServicesGrid>
@@ -194,7 +194,7 @@ export default function MedicalHelpDetailsPage() {
                 <FaBriefcaseMedical />
               </ServiceIconBox>
               <Text variant="bodySecondary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                First Aid
+                {t('firstAid')}
               </Text>
             </ServiceCard>
 
@@ -203,7 +203,7 @@ export default function MedicalHelpDetailsPage() {
                 <Droplets />
               </ServiceIconBox>
               <Text variant="bodySecondary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                Hydration
+                {t('hydration')}
               </Text>
             </ServiceCard>
           </ServicesGrid>
@@ -214,10 +214,10 @@ export default function MedicalHelpDetailsPage() {
             </StretcherIconBox>
             <StretcherTextCol>
               <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                Emergency Stretcher
+                {t('emergencyStretcher')}
               </Text>
               <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11px', margin: 0 }}>
-                Priority transport available
+                {t('priorityTransport')}
               </Text>
             </StretcherTextCol>
           </StretcherRowCard>
@@ -226,14 +226,14 @@ export default function MedicalHelpDetailsPage() {
         {/* 5. Facility Info */}
         <InfoCard>
           <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'left', margin: 0 }}>
-            Facility Info
+            {t('facilityInfo')}
           </Text>
 
           <InfoRow style={{ marginTop: '0.25rem' }}>
             <InfoLabelGroup>
               <Bed size={18} />
               <Text variant="bodyPrimary" weight={600} color={colors.neutral[800]} style={{ margin: 0 }}>
-                Total Patient Beds
+                {t('totalPatientBeds')}
               </Text>
             </InfoLabelGroup>
             <Text variant="bodyPrimary" weight={700} color={colors.brand.primary} style={{ margin: 0 }}>
@@ -247,7 +247,7 @@ export default function MedicalHelpDetailsPage() {
             <InfoLabelGroup>
               <UserCheck size={18} />
               <Text variant="bodyPrimary" weight={600} color={colors.neutral[800]} style={{ margin: 0 }}>
-                Doctors on Site
+                {t('doctorsOnSite')}
               </Text>
             </InfoLabelGroup>
             <Text variant="bodyPrimary" weight={700} color={colors.brand.primary} style={{ margin: 0 }}>
@@ -259,14 +259,14 @@ export default function MedicalHelpDetailsPage() {
         {/* 6. Location Notes (Text Notes Only, Map box removed) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           <Text variant="bodyTiny" weight={700} color={colors.brand.secondary} style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'left', margin: 0 }}>
-            Location Notes
+            {t('locationNotes')}
           </Text>
 
           <NotesCard>
             <NotesHeaderRow>
               <MapPin />
               <Text variant="bodyPrimary" weight={700} color={colors.neutral[900]} style={{ margin: 0 }}>
-                Near South Gate
+                {t('nearSouthGate')}
               </Text>
             </NotesHeaderRow>
 
@@ -280,7 +280,7 @@ export default function MedicalHelpDetailsPage() {
         <EmergencyBanner>
           <Info />
           <Text variant="bodySmall" weight={600} color="#b91c1c" style={{ margin: 0, fontSize: '12px', lineHeight: '1.45' }}>
-            In case of extreme emergency, please press the <span style={{ fontWeight: 700 }}>Red Emergency Button</span> in the navigation bar to alert nearby security forces.
+            {t('extremeEmergencyBanner')}
           </Text>
         </EmergencyBanner>
       </ScrollArea>

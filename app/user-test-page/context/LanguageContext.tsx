@@ -8,6 +8,9 @@ interface LanguageContextType {
   setLanguage: (lang: LanguageType) => void;
   t: (key: keyof typeof translations['en']) => string;
   tPoiName: (poi: any) => string;
+  tPoiDesc: (poi: any) => string;
+  tEventName: (event: any) => string;
+  tEventDesc: (event: any) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -44,12 +47,39 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (!poi) return '';
     if (language === 'hi' && poi.name_hi) return poi.name_hi;
     if (language === 'or' && poi.name_or) return poi.name_or;
-    // Bengali fallback using en for now unless provided, or fallback
+    if (language === 'bn' && poi.name_bn) return poi.name_bn;
     return poi.name_en || poi.name || '';
   }, [language]);
 
+  // Localized POI description helper
+  const tPoiDesc = useCallback((poi: any): string => {
+    if (!poi) return '';
+    if (language === 'hi' && poi.description_hi) return poi.description_hi;
+    if (language === 'or' && poi.description_or) return poi.description_or;
+    if (language === 'bn' && poi.description_bn) return poi.description_bn;
+    return poi.description_en || poi.description || '';
+  }, [language]);
+
+  // Localized Event name helper
+  const tEventName = useCallback((event: any): string => {
+    if (!event) return '';
+    if (language === 'hi' && event.name_hi) return event.name_hi;
+    if (language === 'or' && event.name_or) return event.name_or;
+    if (language === 'bn' && event.name_bn) return event.name_bn;
+    return event.name_en || event.name || '';
+  }, [language]);
+
+  // Localized Event description helper
+  const tEventDesc = useCallback((event: any): string => {
+    if (!event) return '';
+    if (language === 'hi' && event.description_hi) return event.description_hi;
+    if (language === 'or' && event.description_or) return event.description_or;
+    if (language === 'bn' && event.description_bn) return event.description_bn;
+    return event.description_en || event.description || '';
+  }, [language]);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, tPoiName }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, tPoiName, tPoiDesc, tEventName, tEventDesc }}>
       {children}
     </LanguageContext.Provider>
   );

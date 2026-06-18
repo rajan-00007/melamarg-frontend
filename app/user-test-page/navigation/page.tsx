@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '../context/UserTestContext';
 import { Navigation, MapPin, Volume2, VolumeX, LogOut, Compass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   NavContainer,
   Overlay,
@@ -147,6 +148,8 @@ export default function CompassNavigationPage() {
     getRealGps,
     poisList
   } = useUserTest();
+
+  const { language, t, tPoiName } = useLanguage();
 
   const mapRef = useRef<any>(null);
 
@@ -346,14 +349,26 @@ export default function CompassNavigationPage() {
 
   // Computes precise turn prompts at Dijkstra intersection junctions
   const getDetailedInstruction = () => {
-    if (!navTarget || !stats) return 'No active target';
+    if (!navTarget || !stats) return t('noSafetyAlerts');
 
     const distanceVal = stats.distance;
 
     if (stats.isOffRoute) {
       if (stats.offRouteDistance && stats.offRouteDirectionText) {
-        return `Move ${stats.offRouteDistance}m ${stats.offRouteDirectionText} to join nearest path.`;
+        let dirTranslated = stats.offRouteDirectionText;
+        if (stats.offRouteDirectionText.includes('Right')) dirTranslated = language === 'hi' ? 'दाएं ➔' : language === 'or' ? 'ଡାହାଣ ➔' : language === 'bn' ? 'ডান ➔' : 'Right ➔';
+        else if (stats.offRouteDirectionText.includes('Left')) dirTranslated = language === 'hi' ? 'बाएं ⬅' : language === 'or' ? 'ବାମ ⬅' : language === 'bn' ? 'বাম ⬅' : 'Left ⬅';
+        else if (stats.offRouteDirectionText.includes('Around')) dirTranslated = language === 'hi' ? 'पीछे ⬇' : language === 'or' ? 'ପଛକୁ ⬇' : language === 'bn' ? 'পেছনে ⬇' : 'Around ⬇';
+        else if (stats.offRouteDirectionText.includes('Straight')) dirTranslated = language === 'hi' ? 'सीधे ⬆' : language === 'or' ? 'ସିଧା ⬆' : language === 'bn' ? 'সোজা ⬆' : 'Straight ⬆';
+
+        if (language === 'hi') return `निकटतम पथ में शामिल होने के लिए ${stats.offRouteDistance} मीटर ${dirTranslated} चलें।`;
+        if (language === 'or') return `ନିକଟତମ ପଥରେ ଯୋଗଦେବା ପାଇଁ ${stats.offRouteDistance} ମିଟର ${dirTranslated} ଚାଲନ୍ତୁ |`;
+        if (language === 'bn') return `নিকটবর্তী পথে যোগ দিতে ${stats.offRouteDistance} মিটার ${dirTranslated} হাঁটুন।`;
+        return `Move ${stats.offRouteDistance}m ${dirTranslated} to join nearest path.`;
       }
+      if (language === 'hi') return `[${stats.targetNodeName}] पर मार्ग में शामिल होने के लिए ${distanceVal} मीटर चलें`;
+      if (language === 'or') return `[${stats.targetNodeName}] ଠାରେ ପଥରେ ଯୋଗଦେବା ପାଇଁ ${distanceVal} ମିଟର ଚାଲନ୍ତୁ`;
+      if (language === 'bn') return `[${stats.targetNodeName}] এ রুটে যোগ দিতে ${distanceVal} মিটার হাঁটুন`;
       return `Walk ${distanceVal}m to join route at [${stats.targetNodeName}]`;
     }
 
@@ -365,15 +380,24 @@ export default function CompassNavigationPage() {
       const relative = (b2 - b1 + 360) % 360;
 
       let turnText = "";
-      if (relative > 45 && relative <= 135) turnText = ", then turn RIGHT";
-      else if (relative > 225 && relative <= 315) turnText = ", then turn LEFT";
-      else if (relative > 135 && relative <= 225) turnText = ", then turn AROUND";
+      if (relative > 45 && relative <= 135) turnText = language === 'hi' ? ", फिर दाएं मुड़ें" : language === 'or' ? ", ପରେ ଡାହାଣକୁ ବୁଲନ୍ତୁ" : language === 'bn' ? ", তারপর ডানদিকে ঘুরুন" : ", then turn RIGHT";
+      else if (relative > 225 && relative <= 315) turnText = language === 'hi' ? ", फिर बाएं मुड़ें" : language === 'or' ? ", ପରେ ବାମକୁ ବୁଲନ୍ତୁ" : language === 'bn' ? ", তারপর বামদিকে ঘুরুন" : ", then turn LEFT";
+      else if (relative > 135 && relative <= 225) turnText = language === 'hi' ? ", फिर पीछे मुड़ें" : language === 'or' ? ", ପରେ ପଛକୁ ବୁଲନ୍ତୁ" : language === 'bn' ? ", তারপর পেছনে ঘুরুন" : ", then turn AROUND";
 
+      if (language === 'hi') return `[${stats.targetNodeName}] तक ${distanceVal} मीटर सीधे चलें${turnText}`;
+      if (language === 'or') return `[${stats.targetNodeName}] ପର୍ଯ୍ୟନ୍ତ ${distanceVal} ମିଟର ସିଧା ଚାଲନ୍ତୁ${turnText}`;
+      if (language === 'bn') return `[${stats.targetNodeName}] পর্যন্ত ${distanceVal} মিটার সোজা হাঁটুন${turnText}`;
       return `Walk ${distanceVal}m straight to [${stats.targetNodeName}]${turnText}`;
     } else if (path.length === 2) {
+      if (language === 'hi') return `[${stats.targetNodeName}] तक ${distanceVal} मीटर सीधे चलें, फिर गंतव्य की ओर बढ़ें`;
+      if (language === 'or') return `[${stats.targetNodeName}] ପର୍ଯ୍ୟନ୍ତ ${distanceVal} ମିଟର ସିଧା ଚାଲନ୍ତୁ, ପରେ ଗନ୍ତବ୍ୟ ସ୍ଥଳକୁ ଯାଆନ୍ତୁ`;
+      if (language === 'bn') return `[${stats.targetNodeName}] পর্যন্ত ${distanceVal} মিটার সোজা হাঁটুন, তারপর গন্তব্যের দিকে যান`;
       return `Walk ${distanceVal}m straight to [${stats.targetNodeName}], then head to destination`;
     } else {
-      return `Walk final ${distanceVal}m to ${navTarget.name_en}`;
+      if (language === 'hi') return `${tPoiName(navTarget)} तक अंतिम ${distanceVal} मीटर चलें`;
+      if (language === 'or') return `${tPoiName(navTarget)} ପର୍ଯ୍ୟନ୍ତ ଶେଷ ${distanceVal} ମିଟର ଚାଲନ୍ତୁ`;
+      if (language === 'bn') return `${tPoiName(navTarget)} পর্যন্ত শেষ ${distanceVal} মিটার হাঁটুন`;
+      return `Walk final ${distanceVal}m to ${tPoiName(navTarget)}`;
     }
   };
 
@@ -761,9 +785,9 @@ export default function CompassNavigationPage() {
                 <StyledCompassIcon />
               </WarningIconWrapper>
             </CenterBox>
-            <OverlayTitle>Waiting for GPS Signal...</OverlayTitle>
+            <OverlayTitle>{t('waitingForGps')}</OverlayTitle>
             <OverlayText>
-              We require a high-accuracy GPS lock (<span style={{ color: '#fbbf24', fontWeight: 'bold' }}>50m</span>) to compute reliable offline walking routes.
+              {t('gpsRequiredDesc')}
             </OverlayText>
             <OverlayPillWrapper>
               {renderGpsStatusPill()}
@@ -775,7 +799,7 @@ export default function CompassNavigationPage() {
                   timestamp: Date.now()
                 })}
               >
-                Bypass / Force Mock GPS Lock
+                {t('forceMockGps')}
               </BypassButton>
               <StopButton
                 onClick={() => {
@@ -785,7 +809,7 @@ export default function CompassNavigationPage() {
                   router.push('/user-test-page/pois');
                 }}
               >
-                Stop Navigation
+                {t('stopNavigation')}
               </StopButton>
             </div>
           </OverlayBox>
@@ -795,8 +819,8 @@ export default function CompassNavigationPage() {
       {arrivalNotify && (
         <ArrivalOverlay>
           <StyledPartyPopper />
-          <ArrivalTitle>Destination Reached!</ArrivalTitle>
-          <ArrivalText>You have arrived safely at {navTarget.name_en}.</ArrivalText>
+          <ArrivalTitle>{t('destinationReached')}</ArrivalTitle>
+          <ArrivalText>{t('arrivedSafelyAt')} {tPoiName(navTarget)}.</ArrivalText>
           <ArrivalButton
             onClick={() => {
               setNavTarget(null);
@@ -806,7 +830,7 @@ export default function CompassNavigationPage() {
               router.push('/user-test-page/pois');
             }}
           >
-            Return to POI List
+            {t('returnToPoiList')}
           </ArrivalButton>
         </ArrivalOverlay>
       )}
@@ -820,30 +844,30 @@ export default function CompassNavigationPage() {
           <FloatingHeaderPillRow>
             <OfflineActivePill>
               <span className="dot"></span>
-              <span>Offline Navigation Active</span>
+              <span>{t('offlineNavigationActive')}</span>
             </OfflineActivePill>
             
             {gpsStatus === 'locked' ? (
               <GpsStrongPill>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0288d1' }} />
-                <span>GPS Strong</span>
+                <span>{t('gpsStrong')}</span>
               </GpsStrongPill>
             ) : gpsStatus === 'searching' ? (
               <GpsStrongPill style={{ background: '#FCF2E7', color: '#B7791F' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#B7791F', animation: 'ping 1s infinite' }} />
-                <span>Searching GPS...</span>
+                <span>{t('searchingGps')}</span>
               </GpsStrongPill>
             ) : (
               <GpsStrongPill style={{ background: '#FEE2E2', color: '#EF4444' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444' }} />
-                <span>No GPS Signal</span>
+                <span>{t('noGpsSignal')}</span>
               </GpsStrongPill>
             )}
           </FloatingHeaderPillRow>
 
           <UnifiedStatusCard>
             <UnifiedStatusHeader $isOffPath={stats.isOffRoute}>
-              {stats.isOffRoute ? 'OFF PATH' : 'ON PATH'}
+              {stats.isOffRoute ? t('offPath') : t('onPath')}
             </UnifiedStatusHeader>
             <UnifiedStatusBody>
               {getArrowIcon(stats.directionText)}
@@ -859,7 +883,7 @@ export default function CompassNavigationPage() {
               onClick={handleSimulateWalking}
               disabled={isWalking || arrivalNotify}
             >
-              {isWalking ? 'Walking...' : 'Simulate Walk'}
+              {isWalking ? t('walking') : t('simulateWalk')}
             </FloatingSimulateButton>
             
             <FloatingLocateButton
@@ -890,8 +914,8 @@ export default function CompassNavigationPage() {
 
           <PremiumBottomCard>
             <BottomCardProgressHeader>
-              <BottomCardDestinationText>{navTarget.name_en}</BottomCardDestinationText>
-              <BottomCardPercentageText>{progressPercent}% Complete</BottomCardPercentageText>
+              <BottomCardDestinationText>{tPoiName(navTarget)}</BottomCardDestinationText>
+              <BottomCardPercentageText>{progressPercent}% {t('complete')}</BottomCardPercentageText>
             </BottomCardProgressHeader>
 
             <BottomProgressBarContainer>
@@ -900,21 +924,25 @@ export default function CompassNavigationPage() {
 
             <BottomMetricsRow>
               <BottomMetricCol>
-                <BottomMetricLabel>Arrival</BottomMetricLabel>
+                <BottomMetricLabel>{t('arrival')}</BottomMetricLabel>
                 <BottomMetricValue className="arrival-time">{arrivalTimeStr}</BottomMetricValue>
               </BottomMetricCol>
 
               <BottomMetricCol>
-                <BottomMetricLabel>Time</BottomMetricLabel>
+                <BottomMetricLabel>{t('time')}</BottomMetricLabel>
                 <BottomMetricValue>
-                  {stats.time < 60 ? `${stats.time} sec` : `${Math.ceil(stats.time / 60)} min`}
+                  {stats.time < 60 
+                    ? `${stats.time} ${language === 'hi' ? 'सेकंड' : language === 'or' ? 'ସେକେଣ୍ଡ' : language === 'bn' ? 'সেকেন্ড' : 'sec'}` 
+                    : `${Math.ceil(stats.time / 60)} ${language === 'hi' ? 'मिनट' : language === 'or' ? 'ମିନିଟ୍' : language === 'bn' ? 'মিনিট' : 'min'}`}
                 </BottomMetricValue>
               </BottomMetricCol>
 
               <BottomMetricCol>
-                <BottomMetricLabel>Distance</BottomMetricLabel>
+                <BottomMetricLabel>{t('distance')}</BottomMetricLabel>
                 <BottomMetricValue>
-                  {stats.distance < 1000 ? `${stats.distance} m` : `${(stats.distance / 1000).toFixed(2)} km`}
+                  {stats.distance < 1000 
+                    ? `${stats.distance} ${language === 'hi' ? 'मीटर' : language === 'or' ? 'ମିଟର' : language === 'bn' ? 'মিটার' : 'm'}` 
+                    : `${(stats.distance / 1000).toFixed(2)} ${language === 'hi' ? 'किमी' : language === 'or' ? 'କିମି' : language === 'bn' ? 'কিমি' : 'km'}`}
                 </BottomMetricValue>
               </BottomMetricCol>
             </BottomMetricsRow>
@@ -926,12 +954,12 @@ export default function CompassNavigationPage() {
                 ) : (
                   <VolumeX style={{ width: '1.1rem', height: '1.1rem' }} />
                 )}
-                <span>Voice {voiceOn ? 'On' : 'Off'}</span>
+                <span>{voiceOn ? t('voiceOn') : t('voiceOff')}</span>
               </BottomVoiceButton>
 
               <BottomExitButton
                 onClick={() => {
-                  if (confirm("Are you sure you want to stop navigation?")) {
+                  if (confirm(t('confirmExitNav'))) {
                     setNavTarget(null);
                     setScreenMode('pois');
                     setIsWalking(false);
@@ -940,7 +968,7 @@ export default function CompassNavigationPage() {
                 }}
               >
                 <LogOut style={{ width: '1rem', height: '1rem' }} />
-                <span>Exit</span>
+                <span>{t('exit')}</span>
               </BottomExitButton>
             </BottomActionsRow>
           </PremiumBottomCard>

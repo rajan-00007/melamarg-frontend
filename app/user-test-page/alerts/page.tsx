@@ -255,8 +255,8 @@ export default function EventAlertsPage() {
           {displayAlerts.length === 0 ? (
             <EmptyFeed>
               <Bell size={32} />
-              <EmptyTitle>All clear in this sector</EmptyTitle>
-              <EmptySubtitle>No administrative safety broadcast alerts currently active.</EmptySubtitle>
+              <EmptyTitle>{t('allClearSector')}</EmptyTitle>
+              <EmptySubtitle>{t('noSafetyAlerts')}</EmptySubtitle>
             </EmptyFeed>
           ) : (
             displayAlerts.map((alert) => (
