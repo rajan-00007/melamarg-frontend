@@ -5,7 +5,22 @@ import { POIItem, NodeItem, getHaversineDistance, getCompassBearing, findOptimal
 import { useGps } from './GpsContext';
 import { useMapData } from './MapDataContext';
 
+export interface NavigationStats {
+  distance: number;
+  time: number;
+  bearing: number;
+  directionText: string;
+  isOffRoute: boolean;
+  pathNodes: NodeItem[];
+  targetNodeName: string;
+  waypointLat: number;
+  waypointLng: number;
+  offRouteDistance?: number;
+  offRouteDirectionText?: string;
+}
+
 export interface NavigationContextType {
+  stats: NavigationStats;
   navTarget: POIItem | null;
   setNavTarget: React.Dispatch<React.SetStateAction<POIItem | null>>;
   deviceHeading: number;
@@ -14,8 +29,8 @@ export interface NavigationContextType {
   setIsWalking: React.Dispatch<React.SetStateAction<boolean>>;
   arrivalNotify: boolean;
   setArrivalNotify: React.Dispatch<React.SetStateAction<boolean>>;
-  computeNavigationStats: (currentLat: number, currentLng: number) => any;
-  getNavigationStats: () => any;
+  computeNavigationStats: (currentLat: number, currentLng: number) => NavigationStats;
+  getNavigationStats: () => NavigationStats;
   handleSimulateWalking: () => void;
   logNavigationInstructions: (poi: POIItem) => void;
 }
@@ -122,7 +137,77 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     );
 
     const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
-    const isOffRoute = minUserDist > 15;
+    
+    // Check if user is off route by calculating distance to path segments
+    let isOffRoute = true;
+    let minOffRouteDist = Infinity;
+    let minOffRouteX = 0;
+    let minOffRouteY = 0;
+
+    if (path && path.length > 1) {
+      const pLat = currentLat;
+      const pLng = currentLng;
+      const latFactor = 111320;
+      const lngFactor = 111320 * Math.cos(pLat * Math.PI / 180);
+      const px = pLng * lngFactor;
+      const py = pLat * latFactor;
+
+      for (let i = 0; i < path.length - 1; i++) {
+        const ax = Number(path[i].longitude) * lngFactor;
+        const ay = Number(path[i].latitude) * latFactor;
+        const bx = Number(path[i+1].longitude) * lngFactor;
+        const by = Number(path[i+1].latitude) * latFactor;
+        
+        const l2 = (bx - ax) * (bx - ax) + (by - ay) * (by - ay);
+        let dist = 0;
+        let projX = 0;
+        let projY = 0;
+
+        if (l2 === 0) {
+          projX = ax;
+          projY = ay;
+          dist = Math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay));
+        } else {
+          let t = ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / l2;
+          t = Math.max(0, Math.min(1, t));
+          projX = ax + t * (bx - ax);
+          projY = ay + t * (by - ay);
+          dist = Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
+        }
+        
+        if (dist < minOffRouteDist) {
+          minOffRouteDist = dist;
+          minOffRouteX = projX / lngFactor;
+          minOffRouteY = projY / latFactor;
+        }
+      }
+      
+      if (minOffRouteDist <= 15) {
+        isOffRoute = false;
+      }
+    } else {
+      minOffRouteDist = minUserDist;
+      minOffRouteX = nearestNodeToUser.longitude;
+      minOffRouteY = nearestNodeToUser.latitude;
+      isOffRoute = minUserDist > 15;
+    }
+
+    let offRouteDistance = 0;
+    let offRouteDirectionText = '';
+
+    if (isOffRoute && minOffRouteDist !== Infinity) {
+      offRouteDistance = Math.round(minOffRouteDist);
+      const y = Math.sin((minOffRouteX - currentLng) * Math.PI / 180) * Math.cos(minOffRouteY * Math.PI / 180);
+      const x = Math.cos(currentLat * Math.PI / 180) * Math.sin(minOffRouteY * Math.PI / 180) -
+                Math.sin(currentLat * Math.PI / 180) * Math.cos(minOffRouteY * Math.PI / 180) * Math.cos((minOffRouteX - currentLng) * Math.PI / 180);
+      const bearingOff = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      
+      const relativeAngle = (bearingOff - deviceHeading + 360) % 360;
+      if (relativeAngle > 45 && relativeAngle <= 135) offRouteDirectionText = 'Right ➔';
+      else if (relativeAngle > 135 && relativeAngle <= 225) offRouteDirectionText = 'Around ⬇';
+      else if (relativeAngle > 225 && relativeAngle <= 315) offRouteDirectionText = 'Left ⬅';
+      else offRouteDirectionText = 'Straight ⬆';
+    }
 
     if (!path || path.length === 0) {
       const dist = getHaversineDistance(currentLat, currentLng, navTarget.latitude, navTarget.longitude);
@@ -212,9 +297,13 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       pathNodes: path,
       targetNodeName,
       waypointLat: nextWaypoint.latitude,
-      waypointLng: nextWaypoint.longitude
+      waypointLng: nextWaypoint.longitude,
+      offRouteDistance,
+      offRouteDirectionText
     };
   }, [navTarget, routeNodes, deviceHeading]);
+
+  const stats = computeNavigationStats(userGps[0], userGps[1]);
 
   const getNavigationStats = useCallback(() => {
     return computeNavigationStats(userGps[0], userGps[1]);
@@ -331,6 +420,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   return (
     <NavigationContext.Provider
       value={{
+        stats,
         navTarget,
         setNavTarget,
         deviceHeading,

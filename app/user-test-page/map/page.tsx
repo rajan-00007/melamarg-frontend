@@ -1,50 +1,42 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUserTest } from '../context/UserTestContext';
-import { Navigation, MapPin } from 'lucide-react';
+import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon } from 'lucide-react';
 import {
   MapWrapper,
   MapCanvas,
-  GlowStatusOverlay,
-  ControlsOverlay,
-  RecenterButton,
-  CoordinatesDisplay,
   GPSLockedPill,
   GPSSearchingPill,
   GPSLostPill,
-  SplitWrapper,
-  DashboardContainer,
-  MapContainer,
-  CentralCard,
-  ArrowAnimationWrapper,
-  ArrowWrapper,
-  DirectionText,
-  NextInstruction,
-  SidePOICard,
-  POITag,
-  POIEmoji,
-  POIName,
-  POIDistance,
-  NoPOIText,
-  QuadrantBadgeContainer,
-  MiniQuadrantBadge,
-  CentralMiniPOI,
-  MiddleColumn,
-  DashboardHeaderRow,
-  DashboardHeaderTitle,
-  DashboardHeaderStats,
-  DashboardColumns,
-  CompassSliderContainer,
-  CompassSliderTrack,
-  CompassLabel,
-  CompassIndicatorLine,
-  CompassTickLine,
-  MapToggleButton,
-  NavigationFooter,
-  FooterStatus,
-  FooterActions,
-  FooterButton
+  
+  // Redesigned explore components
+  FloatingHeaderWrapper,
+  FloatingHeaderPillRow,
+  OfflineActivePill,
+  GpsStrongPill,
+  RouteStatusBanner,
+  RouteStatusIconWrapper,
+  RouteStatusInfo,
+  RouteStatusTitle,
+  RouteStatusSubtitle,
+  FloatingBottomWrapper,
+  FloatingControlsRow,
+  FloatingLocateButton,
+  ExploreBottomCard,
+  ExploreCardTitle,
+  ExploreCardDescription,
+  ExplorePOIInfoRow,
+  ExploreActionsRow,
+  ExploreNavButton,
+  ExploreCloseButton,
+  UnifiedStatusCard,
+  UnifiedStatusHeader,
+  UnifiedStatusBody,
+  FloatingHUDContainer,
+  HUDSection,
+  HUDIndicatorBadge
 } from './page.styled';
 
 // Pure Utility Helpers (defined at module scope to avoid hoisting/initialization errors)
@@ -79,7 +71,168 @@ const getCompassBearing = (lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(bearing);
 };
 
+const getDistanceToSegment = (
+  userLat: number,
+  userLng: number,
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+) => {
+  const x = userLng;
+  const y = userLat;
+  const x1 = lng1;
+  const y1 = lat1;
+  const x2 = lng2;
+  const y2 = lat2;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  if (dx === 0 && dy === 0) {
+    return getHaversineDistance(y, x, y1, x1);
+  }
+
+  let t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+  t = Math.max(0, Math.min(1, t));
+
+  const closestLat = y1 + t * dy;
+  const closestLng = x1 + t * dx;
+
+  return getHaversineDistance(y, x, closestLat, closestLng);
+};
+
+const getClosestPointOnSegment = (
+  userLat: number,
+  userLng: number,
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+) => {
+  const x = userLng;
+  const y = userLat;
+  const x1 = lng1;
+  const y1 = lat1;
+  const x2 = lng2;
+  const y2 = lat2;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  if (dx === 0 && dy === 0) {
+    return { lat: y1, lng: x1 };
+  }
+
+  let t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+  t = Math.max(0, Math.min(1, t));
+
+  return {
+    lat: y1 + t * dy,
+    lng: x1 + t * dx
+  };
+};
+
+const getCategoryEmoji = (cat: string) => {
+  const c = (cat || '').toLowerCase();
+  if (c.includes('toilet') || c.includes('washroom') || c.includes('restroom')) return '🚺';
+  if (c.includes('police') || c.includes('security') || c.includes('guard')) return '👮';
+  if (c.includes('medical') || c.includes('hospital') || c.includes('first aid') || c.includes('camp')) return '🏥';
+  if (c.includes('water') || c.includes('drinking')) return '💧';
+  if (c.includes('food') || c.includes('canteen') || c.includes('dining')) return '🍽️';
+  if (c.includes('temple') || c.includes('gate') || c.includes('darshan')) return '🛕';
+  if (c.includes('help') || c.includes('information')) return 'ℹ️';
+  return '📍';
+};
+
+const DijkstraRouter = {
+  findShortestPath(ns: any[], es: any[], startId: string, endId: string) {
+    if (startId === endId) {
+      const node = ns.find(n => n.id === startId);
+      return node ? [node] : null;
+    }
+
+    const graph: any = {};
+    ns.forEach(node => {
+      graph[node.id] = { node, neighbors: [] };
+    });
+
+    const getDist = (n1: any, n2: any) => {
+      return getHaversineDistance(Number(n1.latitude), Number(n1.longitude), Number(n2.latitude), Number(n2.longitude));
+    };
+
+    es.forEach(edge => {
+      const sId = edge.start_node_id || edge.startNodeId;
+      const eId = edge.end_node_id || edge.endNodeId;
+      if (graph[sId] && graph[eId]) {
+        const dist = getDist(graph[sId].node, graph[eId].node);
+        graph[sId].neighbors.push({ targetId: eId, distance: dist });
+        graph[eId].neighbors.push({ targetId: sId, distance: dist });
+      }
+    });
+
+    const distances: any = {};
+    const previous: any = {};
+    const unvisited = new Set<string>();
+
+    ns.forEach(node => {
+      distances[node.id] = Infinity;
+      previous[node.id] = null;
+      unvisited.add(node.id);
+    });
+
+    distances[startId] = 0;
+
+    while (unvisited.size > 0) {
+      let currentNodeId: string | null = null;
+      let minDistance = Infinity;
+
+      unvisited.forEach(nodeId => {
+        if (distances[nodeId] < minDistance) {
+          minDistance = distances[nodeId];
+          currentNodeId = nodeId;
+        }
+      });
+
+      if (currentNodeId === null || minDistance === Infinity) {
+        break;
+      }
+
+      if (currentNodeId === endId) {
+        break;
+      }
+
+      unvisited.delete(currentNodeId);
+
+      const neighbors = graph[currentNodeId].neighbors;
+      for (const neighbor of neighbors) {
+        if (!unvisited.has(neighbor.targetId)) continue;
+        const alt = distances[currentNodeId] + neighbor.distance;
+        if (alt < distances[neighbor.targetId]) {
+          distances[neighbor.targetId] = alt;
+          previous[neighbor.targetId] = currentNodeId;
+        }
+      }
+    }
+
+    if (distances[endId] === Infinity) return null;
+
+    const pathIds: string[] = [];
+    let curr: string | null = endId;
+    while (curr !== null) {
+      pathIds.push(curr);
+      curr = previous[curr];
+    }
+    pathIds.reverse();
+
+    return pathIds.map(id => graph[id].node);
+  }
+};
+
 export default function EventMapPage() {
+  const router = useRouter();
+  const [selectedPoi, setSelectedPoi] = useState<any | null>(null);
+
   const {
     selectedEvent,
     userGps,
@@ -99,6 +252,13 @@ export default function EventMapPage() {
     computeNavigationStats,
     loadingMapData
   } = useUserTest();
+
+  // Redirect to active navigation page if navTarget is active
+  useEffect(() => {
+    if (navTarget) {
+      router.push('/user-test-page/navigation');
+    }
+  }, [navTarget, router]);
 
   // Determine if the user is outside the selected event boundary box
   const isUserOutsideEvent = useMemo(() => {
@@ -169,6 +329,7 @@ export default function EventMapPage() {
 
   // GPS-derived movement heading
   const [gpsHeading, setGpsHeading] = useState<number>(0);
+  const [mapZoom, setMapZoom] = useState<number>(16);
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
   const lastGpsRef = useRef<[number, number] | null>(null);
 
@@ -218,6 +379,47 @@ export default function EventMapPage() {
       heading = gpsHeading || deviceHeading || 0;
     }
 
+    // Find if user is on any path (closest route edge within 50m)
+    let userPathName: string | null = null;
+    if (routeEdges && routeEdges.length > 0 && routeNodes && routeNodes.length > 0 && userGps) {
+      let nearestEdge: any = null;
+      let minEdgeDist = Infinity;
+      
+      routeEdges.forEach((edge) => {
+        const startNodeId = edge.start_node_id || (edge as any).startNodeId;
+        const endNodeId = edge.end_node_id || (edge as any).endNodeId;
+        const startNode = routeNodes.find((n) => n.id === startNodeId);
+        const endNode = routeNodes.find((n) => n.id === endNodeId);
+        if (!startNode || !endNode) return;
+
+        const dist = getDistanceToSegment(
+          userGps[0],
+          userGps[1],
+          Number(startNode.latitude),
+          Number(startNode.longitude),
+          Number(endNode.latitude),
+          Number(endNode.longitude)
+        );
+
+        if (dist < minEdgeDist) {
+          minEdgeDist = dist;
+          nearestEdge = edge;
+        }
+      });
+
+      const edgePathName = nearestEdge ? (nearestEdge.path_name || (nearestEdge as any).pathName) : null;
+      if (nearestEdge && minEdgeDist <= 20 && edgePathName) {
+        userPathName = edgePathName;
+      }
+    }
+
+    const filteredPoisList = userPathName
+      ? poisList.filter((poi) => {
+          const poiPath = poi.path_name || (poi as any).pathName;
+          return !poiPath || poiPath === userPathName;
+        })
+      : poisList;
+
     let nearestFront: any = null;
     let nearestBack: any = null;
     let nearestLeft: any = null;
@@ -228,7 +430,7 @@ export default function EventMapPage() {
     let minLeftDist = Infinity;
     let minRightDist = Infinity;
 
-    poisList.forEach((poi) => {
+    filteredPoisList.forEach((poi) => {
       // Skip the active navigation target POI to avoid listing it on the sides
       if (navTarget && poi.id === navTarget.id) return;
 
@@ -270,8 +472,8 @@ export default function EventMapPage() {
       }
     });
 
-    return { front: nearestFront, back: nearestBack, left: nearestLeft, right: nearestRight };
-  }, [poisList, userGps, navTarget, gpsHeading, deviceHeading, computeNavigationStats, isUserOutsideEvent]);
+    return { front: nearestFront, back: nearestBack, left: nearestLeft, right: nearestRight, currentPathName: userPathName };
+  }, [poisList, routeNodes, routeEdges, userGps, navTarget, gpsHeading, deviceHeading, computeNavigationStats, isUserOutsideEvent]);
 
   // Helper to map POI category names to emojis/icons
   const getCategoryEmoji = (category: string): string => {
@@ -304,6 +506,7 @@ export default function EventMapPage() {
   const userMarkerRef = useRef<any>(null);
   const userAccuracyCircleRef = useRef<any>(null);
   const entranceGuidanceLineRef = useRef<any>(null);
+  const offPathConnectorLineRef = useRef<any>(null);
   const poisLayerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const activeRouteLayerRef = useRef<any>(null);
@@ -336,89 +539,7 @@ export default function EventMapPage() {
       return { nearestNodeToUser: nearestNode, minUserDist: minGeomDist };
     }
 
-    const DijkstraRouter = {
-      findShortestPath(ns: any[], es: any[], startId: string, endId: string) {
-        if (startId === endId) {
-          const node = ns.find(n => n.id === startId);
-          return node ? [node] : null;
-        }
-
-        const graph: any = {};
-        ns.forEach(node => {
-          graph[node.id] = { node, neighbors: [] };
-        });
-
-        const getDist = (n1: any, n2: any) => {
-          return getHaversineDistance(n1.latitude, n1.longitude, n2.latitude, n2.longitude);
-        };
-
-        es.forEach(edge => {
-          const sId = edge.start_node_id || edge.startNodeId;
-          const eId = edge.end_node_id || edge.endNodeId;
-          if (graph[sId] && graph[eId]) {
-            const dist = getDist(graph[sId].node, graph[eId].node);
-            graph[sId].neighbors.push({ targetId: eId, distance: dist });
-            graph[eId].neighbors.push({ targetId: sId, distance: dist });
-          }
-        });
-
-        const distances: any = {};
-        const previous: any = {};
-        const unvisited = new Set<string>();
-
-        ns.forEach(node => {
-          distances[node.id] = Infinity;
-          previous[node.id] = null;
-          unvisited.add(node.id);
-        });
-
-        distances[startId] = 0;
-
-        while (unvisited.size > 0) {
-          let currentNodeId: string | null = null;
-          let minDistance = Infinity;
-
-          unvisited.forEach(nodeId => {
-            if (distances[nodeId] < minDistance) {
-              minDistance = distances[nodeId];
-              currentNodeId = nodeId;
-            }
-          });
-
-          if (currentNodeId === null || minDistance === Infinity) {
-            break;
-          }
-
-          if (currentNodeId === endId) {
-            break;
-          }
-
-          unvisited.delete(currentNodeId);
-
-          const neighbors = graph[currentNodeId].neighbors;
-          for (const neighbor of neighbors) {
-            if (!unvisited.has(neighbor.targetId)) continue;
-            const alt = distances[currentNodeId] + neighbor.distance;
-            if (alt < distances[neighbor.targetId]) {
-              distances[neighbor.targetId] = alt;
-              previous[neighbor.targetId] = currentNodeId;
-            }
-          }
-        }
-
-        if (distances[endId] === Infinity) return null;
-
-        const pathIds: string[] = [];
-        let curr: string | null = endId;
-        while (curr !== null) {
-          pathIds.push(curr);
-          curr = previous[curr];
-        }
-        pathIds.reverse();
-
-        return pathIds.map(id => graph[id].node);
-      }
-    };
+    // DijkstraRouter is defined globally
 
     let bestEntrance = entranceNodes[0];
     let minTotalDist = Infinity;
@@ -496,6 +617,10 @@ export default function EventMapPage() {
       entranceGuidanceLineRef.current.remove();
       entranceGuidanceLineRef.current = null;
     }
+    if (offPathConnectorLineRef.current) {
+      offPathConnectorLineRef.current.remove();
+      offPathConnectorLineRef.current = null;
+    }
 
     if (isUserOutsideEvent && nearestEntrance) {
       const entLat = Number(nearestEntrance.latitude);
@@ -517,6 +642,54 @@ export default function EventMapPage() {
             direction: 'top',
             className: 'entrance-tooltip'
           });
+      }
+    }
+
+    if (!isUserOutsideEvent && routeEdges.length > 0 && routeNodes.length > 0 && userGps) {
+      let minEdgeDist = Infinity;
+      let nearestPoint: any = null;
+
+      routeEdges.forEach((edge) => {
+        const startNodeId = edge.start_node_id || (edge as any).startNodeId;
+        const endNodeId = edge.end_node_id || (edge as any).endNodeId;
+        const startNode = routeNodes.find((n) => n.id === startNodeId);
+        const endNode = routeNodes.find((n) => n.id === endNodeId);
+        if (!startNode || !endNode) return;
+
+        const dist = getDistanceToSegment(
+          userGps[0],
+          userGps[1],
+          Number(startNode.latitude),
+          Number(startNode.longitude),
+          Number(endNode.latitude),
+          Number(endNode.longitude)
+        );
+
+        if (dist < minEdgeDist) {
+          minEdgeDist = dist;
+          nearestPoint = getClosestPointOnSegment(
+            userGps[0],
+            userGps[1],
+            Number(startNode.latitude),
+            Number(startNode.longitude),
+            Number(endNode.latitude),
+            Number(endNode.longitude)
+          );
+        }
+      });
+
+      if (nearestPoint && minEdgeDist > 20) {
+        offPathConnectorLineRef.current = L.polyline([
+          userGps,
+          [nearestPoint.lat, nearestPoint.lng]
+        ], {
+          color: '#f97316',
+          weight: 4,
+          opacity: 0.9,
+          dashArray: '8, 8',
+          lineJoin: 'round',
+          lineCap: 'round'
+        }).addTo(mapRef.current);
       }
     }
   }, [userGps, gpsAccuracy, gpsStatus, isUserOutsideEvent, nearestEntrance, leafletLoaded]);
@@ -548,8 +721,13 @@ export default function EventMapPage() {
     const map = L.map('standalone-leaflet-map-canvas', {
       zoomControl: false,
       attributionControl: false
-    }).setView(userGps, 16);
+    }).setView(userGps, 19);
     mapRef.current = map;
+
+    setMapZoom(map.getZoom());
+    map.on('zoomend', () => {
+      setMapZoom(map.getZoom());
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
@@ -568,7 +746,7 @@ export default function EventMapPage() {
           fillOpacity: 0.05,
           dashArray: '5, 8'
         }).addTo(map);
-        map.fitBounds(bounds);
+        map.setView(userGps, 19);
       }
     }
 
@@ -666,15 +844,20 @@ export default function EventMapPage() {
         popupAnchor: [6, -28]
       });
 
-      L.marker([lat, lng], { icon: poiIcon })
-        .addTo(poisLayerRef.current)
-        .bindPopup(`
-          <div style="font-family:sans-serif;min-width:140px">
-            <strong style="color:#f4f4f5;font-size:12px">${poi.name_en || 'POI'}</strong>
-            <div style="font-size:10px;color:${color};text-transform:uppercase;margin-top:2px">${poi.category_name || ''}</div>
-            ${poi.description ? `<div style="font-size:10px;color:#a1a1aa;margin-top:4px">${poi.description}</div>` : ''}
-          </div>
-        `);
+      const marker = L.marker([lat, lng], { icon: poiIcon })
+        .addTo(poisLayerRef.current);
+
+      marker.on('click', () => {
+        setSelectedPoi(poi);
+      });
+
+      marker.bindPopup(`
+        <div style="font-family:sans-serif;min-width:140px">
+          <strong style="color:#333;font-size:12px">${poi.name_en || 'POI'}</strong>
+          <div style="font-size:10px;color:${color};text-transform:uppercase;margin-top:2px">${poi.category_name || ''}</div>
+          ${poi.description ? `<div style="font-size:10px;color:#666;margin-top:4px">${poi.description}</div>` : ''}
+        </div>
+      `);
     });
 
     // Draw navTarget alert target
@@ -722,6 +905,19 @@ export default function EventMapPage() {
       const startNode = routeNodes.find((n) => n.id === startId);
       const endNode = routeNodes.find((n) => n.id === endId);
       if (startNode && endNode) {
+        // Shaded corridor representing the 20-meter buffer radius (40m total width)
+        L.polyline([
+          [Number(startNode.latitude), Number(startNode.longitude)],
+          [Number(endNode.latitude), Number(endNode.longitude)]
+        ], {
+          color: '#22d3ee',
+          weight: 40, // Visual corridor thickness
+          opacity: 0.12,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(routeLayerRef.current);
+
+        // Center line
         L.polyline([
           [Number(startNode.latitude), Number(startNode.longitude)],
           [Number(endNode.latitude), Number(endNode.longitude)]
@@ -771,6 +967,9 @@ export default function EventMapPage() {
       if (entranceGuidanceLineRef.current) {
         entranceGuidanceLineRef.current = null;
       }
+      if (offPathConnectorLineRef.current) {
+        offPathConnectorLineRef.current = null;
+      }
     };
   }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent]);
 
@@ -789,13 +988,27 @@ export default function EventMapPage() {
       activeRouteLayerRef.current.clearLayers();
     }
 
-    if (!navTarget || routeNodes.length === 0) return;
+    const targetPoi = navTarget || selectedPoi;
 
-    let destNode = routeNodes.find((n) => n.poi_id === navTarget.id);
+    if (routeLayerRef.current) {
+      if (targetPoi) {
+        if (mapRef.current.hasLayer(routeLayerRef.current)) {
+          mapRef.current.removeLayer(routeLayerRef.current);
+        }
+      } else {
+        if (!mapRef.current.hasLayer(routeLayerRef.current)) {
+          routeLayerRef.current.addTo(mapRef.current);
+        }
+      }
+    }
+
+    if (!targetPoi || routeNodes.length === 0) return;
+
+    let destNode = routeNodes.find((n) => n.poi_id === targetPoi.id);
     if (!destNode) {
       let minPoiDist = Infinity;
       routeNodes.forEach((node) => {
-        const dist = getHaversineDistance(navTarget.latitude, navTarget.longitude, node.latitude, node.longitude);
+        const dist = getHaversineDistance(targetPoi.latitude, targetPoi.longitude, node.latitude, node.longitude);
         if (dist < minPoiDist) {
           minPoiDist = dist;
           destNode = node;
@@ -812,99 +1025,16 @@ export default function EventMapPage() {
       routeEdges
     );
 
-    const DijkstraRouter = {
-      findShortestPath(ns: any[], es: any[], startId: string, endId: string) {
-        if (startId === endId) {
-          const node = ns.find(n => n.id === startId);
-          return node ? [node] : null;
-        }
-
-        const graph: any = {};
-        ns.forEach(node => {
-          graph[node.id] = { node, neighbors: [] };
-        });
-
-        const getDist = (n1: any, n2: any) => {
-          return getHaversineDistance(n1.latitude, n1.longitude, n2.latitude, n2.longitude);
-        };
-
-        es.forEach(edge => {
-          const sId = edge.start_node_id || edge.startNodeId;
-          const eId = edge.end_node_id || edge.endNodeId;
-          if (graph[sId] && graph[eId]) {
-            const dist = getDist(graph[sId].node, graph[eId].node);
-            graph[sId].neighbors.push({ targetId: eId, distance: dist });
-            graph[eId].neighbors.push({ targetId: sId, distance: dist });
-          }
-        });
-
-        const distances: any = {};
-        const previous: any = {};
-        const unvisited = new Set<string>();
-
-        ns.forEach(node => {
-          distances[node.id] = Infinity;
-          previous[node.id] = null;
-          unvisited.add(node.id);
-        });
-
-        distances[startId] = 0;
-
-        while (unvisited.size > 0) {
-          let currentNodeId: string | null = null;
-          let minDistance = Infinity;
-
-          unvisited.forEach(nodeId => {
-            if (distances[nodeId] < minDistance) {
-              minDistance = distances[nodeId];
-              currentNodeId = nodeId;
-            }
-          });
-
-          if (currentNodeId === null || minDistance === Infinity) {
-            break;
-          }
-
-          if (currentNodeId === endId) {
-            break;
-          }
-
-          unvisited.delete(currentNodeId);
-
-          const neighbors = graph[currentNodeId].neighbors;
-          for (const neighbor of neighbors) {
-            if (!unvisited.has(neighbor.targetId)) continue;
-            const alt = distances[currentNodeId] + neighbor.distance;
-            if (alt < distances[neighbor.targetId]) {
-              distances[neighbor.targetId] = alt;
-              previous[neighbor.targetId] = currentNodeId;
-            }
-          }
-        }
-
-        if (distances[endId] === Infinity) return null;
-
-        const pathIds: string[] = [];
-        let curr: string | null = endId;
-        while (curr !== null) {
-          pathIds.push(curr);
-          curr = previous[curr];
-        }
-        pathIds.reverse();
-
-        return pathIds.map(id => graph[id].node);
-      }
-    };
-
     const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
 
     if (path && path.length > 0) {
       const latlngs = path.map((n: any) => [Number(n.latitude), Number(n.longitude)]);
       
+      // Match the static route corridor so the navigable path stays visible.
       L.polyline(latlngs, {
         color: '#10b981',
-        weight: 6,
-        opacity: 0.85,
+        weight: 40,
+        opacity: 0.12,
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(activeRouteLayerRef.current);
@@ -918,7 +1048,7 @@ export default function EventMapPage() {
         lineCap: 'round'
       }).addTo(activeRouteLayerRef.current);
     }
-  }, [navTarget, userGps, leafletLoaded, routeNodes, routeEdges, screenMode]);
+  }, [navTarget, selectedPoi, userGps, leafletLoaded, routeNodes, routeEdges, screenMode]);
 
 
 
@@ -947,390 +1077,394 @@ export default function EventMapPage() {
     }
   };
 
+  const checkIsOffPath = () => {
+    if (routeEdges.length === 0 || routeNodes.length === 0) return { isOff: true, dist: 0, dir: '', pathName: 'Event Area' };
+
+    let pathNodeIds = new Set<string>();
+
+    if (selectedPoi) {
+      let destNode = routeNodes.find((n) => n.poi_id === selectedPoi.id);
+      if (!destNode) {
+        let minPoiDist = Infinity;
+        routeNodes.forEach((node) => {
+          const dist = getHaversineDistance(selectedPoi.latitude, selectedPoi.longitude, node.latitude, node.longitude);
+          if (dist < minPoiDist) {
+            minPoiDist = dist;
+            destNode = node;
+          }
+        });
+      }
+      if (!destNode) destNode = routeNodes[0];
+
+      const { nearestNodeToUser } = findOptimalEntranceNode(
+        userGps[0],
+        userGps[1],
+        destNode,
+        routeNodes,
+        routeEdges
+      );
+
+      const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
+      if (path) {
+        pathNodeIds = new Set(path.map(n => n.id));
+      }
+    }
+
+    let isOff = true;
+    let minOffDist = Infinity;
+    let minOffX = 0;
+    let minOffY = 0;
+    let nearestEdge: any = null;
+
+    const pLat = userGps[0];
+    const pLng = userGps[1];
+    
+    const latFactor = 111320;
+    const lngFactor = 111320 * Math.cos(pLat * Math.PI / 180);
+    
+    for (const edge of routeEdges) {
+      const startId = edge.start_node_id || (edge as any).startNodeId;
+      const endId = edge.end_node_id || (edge as any).endNodeId;
+      
+      if (pathNodeIds.size > 0 && (!pathNodeIds.has(startId) || !pathNodeIds.has(endId))) {
+        continue;
+      }
+
+      const startNode = routeNodes.find((n) => n.id === startId);
+      const endNode = routeNodes.find((n) => n.id === endId);
+      
+      if (startNode && endNode) {
+        const ax = Number(startNode.longitude) * lngFactor;
+        const ay = Number(startNode.latitude) * latFactor;
+        const bx = Number(endNode.longitude) * lngFactor;
+        const by = Number(endNode.latitude) * latFactor;
+        const px = pLng * lngFactor;
+        const py = pLat * latFactor;
+        
+        const l2 = (bx - ax) * (bx - ax) + (by - ay) * (by - ay);
+        let dist = 0;
+        let projX = 0;
+        let projY = 0;
+        
+        if (l2 === 0) {
+          projX = ax;
+          projY = ay;
+          dist = Math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay));
+        } else {
+          let t = ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / l2;
+          t = Math.max(0, Math.min(1, t));
+          projX = ax + t * (bx - ax);
+          projY = ay + t * (by - ay);
+          dist = Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
+        }
+        
+        if (dist < minOffDist) {
+          minOffDist = dist;
+          minOffX = projX / lngFactor;
+          minOffY = projY / latFactor;
+          nearestEdge = edge;
+        }
+      }
+    }
+
+    if (minOffDist <= 15) {
+      isOff = false;
+    }
+
+    let dirText = '';
+    let pathNameStr = 'Path';
+    if (nearestEdge && (nearestEdge as any).path_name) {
+      pathNameStr = (nearestEdge as any).path_name;
+    }
+
+    if (isOff && minOffDist !== Infinity) {
+      const y = Math.sin((minOffX - pLng) * Math.PI / 180) * Math.cos(minOffY * Math.PI / 180);
+      const x = Math.cos(pLat * Math.PI / 180) * Math.sin(minOffY * Math.PI / 180) -
+                Math.sin(pLat * Math.PI / 180) * Math.cos(minOffY * Math.PI / 180) * Math.cos((minOffX - pLng) * Math.PI / 180);
+      const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      
+      const relativeAngle = (bearing - deviceHeading + 360) % 360;
+      if (relativeAngle > 45 && relativeAngle <= 135) dirText = 'Right ➔';
+      else if (relativeAngle > 135 && relativeAngle <= 225) dirText = 'Around ⬇';
+      else if (relativeAngle > 225 && relativeAngle <= 315) dirText = 'Left ⬅';
+      else dirText = 'Straight ⬆';
+    }
+
+    return { isOff, dist: Math.round(minOffDist), dir: dirText, pathName: pathNameStr };
+  };
+  
+  const explorePathStatus = checkIsOffPath();
+
+  const getFloatingPois = () => {
+    if (mapZoom < 18 || !explorePathStatus || explorePathStatus.isOff) return [];
+    if (!explorePathStatus.pathName || explorePathStatus.pathName === 'Path') return [];
+    
+    const currentPathNodeIds = new Set<string>();
+    routeEdges.forEach(e => {
+       if ((e as any).path_name === explorePathStatus.pathName) {
+         currentPathNodeIds.add(e.start_node_id || (e as any).startNodeId);
+         currentPathNodeIds.add(e.end_node_id || (e as any).endNodeId);
+       }
+    });
+    
+    const poiIdsOnPath = new Set<string>();
+    routeNodes.forEach(n => {
+       if (currentPathNodeIds.has(n.id) && n.poi_id) {
+         poiIdsOnPath.add(n.poi_id);
+       }
+    });
+    
+    const floatingPoisList = poisList.filter(p => poiIdsOnPath.has(p.id));
+    
+    return floatingPoisList.map(poi => {
+      const b = getCompassBearing(userGps[0], userGps[1], Number(poi.latitude), Number(poi.longitude));
+      const rel = (b - deviceHeading + 360) % 360;
+      let dir = '';
+      if (rel > 315 || rel <= 45) dir = 'front';
+      else if (rel > 45 && rel <= 135) dir = 'right';
+      else if (rel > 135 && rel <= 225) dir = 'back';
+      else dir = 'left';
+      return { ...poi, relDir: dir, dist: Math.round(getHaversineDistance(userGps[0], userGps[1], Number(poi.latitude), Number(poi.longitude))) };
+    });
+  };
+  
+  const floatingPois = getFloatingPois();
+
   return (
-    <SplitWrapper>
-      {/* Top compact header or full navigation dashboard */}
-      <DashboardContainer $isExpanded={isMapExpanded}>
-        {isMapExpanded ? (
-          /* Sleek single-row floating header banner when map is expanded */
-          <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', height: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-              <DashboardHeaderTitle style={{ fontSize: '0.625rem', marginBottom: 0 }}>
-                {navTarget ? 'Navigating to:' : 'Explore Mode'}
-                {navTarget && <span className="target">{navTarget.name_en}</span>}
-              </DashboardHeaderTitle>
-              {navTarget && (() => {
-                const stats = computeNavigationStats(userGps[0], userGps[1]);
-                return (
-                  <DashboardHeaderStats style={{ fontSize: '0.95rem', marginTop: '0.1rem' }}>
-                    {stats?.distance || 0}m <span className="time">~{stats?.time || 0}s</span>
-                  </DashboardHeaderStats>
-                );
-              })()}
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {renderGpsStatusPill()}
-              <button 
-                onClick={() => setIsMapExpanded(false)}
-                style={{
-                  background: 'rgba(34, 211, 238, 0.1)',
-                  border: '1px solid rgba(34, 211, 238, 0.3)',
-                  borderRadius: '0.5rem',
-                  color: '#22d3ee',
-                  fontSize: '9px',
-                  fontWeight: '800',
-                  padding: '0.35rem 0.65rem',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase'
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', flexGrow: 1 }}>
+      <MapCanvas id="standalone-leaflet-map-canvas" />
+
+      {/* Loading overlay */}
+      {poisList.length === 0 && loadingMapData && (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(22, 22, 34, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          color: '#a1a1aa'
+        }}>
+          <style>{`
+            @keyframes map-spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div style={{
+            width: '2.5rem',
+            height: '2.5rem',
+            border: '3px solid rgba(34, 211, 238, 0.1)',
+            borderTopColor: '#22d3ee',
+            borderRadius: '50%',
+            animation: 'map-spin 1s linear infinite'
+          }} />
+          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fafafa' }}>Loading map elements...</div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a' }}>Fetching latest points of interest and routing segments</div>
+        </div>
+      )}
+
+      {/* Top Floating Header Controls */}
+      <FloatingHeaderWrapper>
+        <FloatingHeaderPillRow>
+          <OfflineActivePill>
+            <span className="dot"></span>
+            <span>Offline Navigation Active</span>
+          </OfflineActivePill>
+          
+          {gpsStatus === 'locked' ? (
+            <GpsStrongPill>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0288d1' }} />
+              <span>GPS Strong</span>
+            </GpsStrongPill>
+          ) : gpsStatus === 'searching' ? (
+            <GpsStrongPill style={{ background: '#FCF2E7', color: '#B7791F' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#B7791F', animation: 'ping 1s infinite' }} />
+              <span>Searching GPS...</span>
+            </GpsStrongPill>
+          ) : (
+            <GpsStrongPill style={{ background: '#FEE2E2', color: '#EF4444' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444' }} />
+              <span>No GPS Signal</span>
+            </GpsStrongPill>
+          )}
+        </FloatingHeaderPillRow>
+
+        <UnifiedStatusCard>
+          <UnifiedStatusHeader $isOffPath={explorePathStatus.isOff}>
+            {explorePathStatus.isOff ? `OFF PATH: ${explorePathStatus.pathName}` : `ON PATH: ${explorePathStatus.pathName}`}
+          </UnifiedStatusHeader>
+          <UnifiedStatusBody>
+            <MapIcon style={{ width: '1.25rem', height: '1.25rem', color: explorePathStatus.isOff ? '#dc2626' : '#1e293b', flexShrink: 0 }} />
+            <span>
+              {explorePathStatus.isOff 
+                ? `Move ${explorePathStatus.dist}m ${explorePathStatus.dir} to join ${explorePathStatus.pathName}.` 
+                : 'Offline Map Ready. Tap any marker to navigate.'}
+            </span>
+          </UnifiedStatusBody>
+        </UnifiedStatusCard>
+      </FloatingHeaderWrapper>
+
+      {/* Floating Relative POI indicators when zoomed in */}
+      {mapZoom >= 18 && floatingPois.length > 0 && (
+        <FloatingHUDContainer>
+          {/* Front */}
+          <HUDSection $position="front">
+            {floatingPois.filter(p => p.relDir === 'front').map(p => (
+              <HUDIndicatorBadge 
+                key={p.id} 
+                $direction="front"
+                onClick={() => {
+                  setSelectedPoi(p);
+                  if (mapRef.current) {
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                  }
                 }}
               >
-                Minimize Map
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Full premium mockup panels when map is preview/collapsed */
-          <>
-            {/* Header row containing target details and GPS */}
-            <DashboardHeaderRow>
-              <div>
-                <DashboardHeaderTitle>
-                  {navTarget ? 'Navigating to:' : 'Explore Mode'}
-                  {navTarget && <span className="target">{navTarget.name_en}</span>}
-                </DashboardHeaderTitle>
-                {navTarget ? (() => {
-                  const stats = computeNavigationStats(userGps[0], userGps[1]);
-                  return (
-                    <DashboardHeaderStats>
-                      {stats?.distance || 0}m <span className="time">~{stats?.time || 0}s</span>
-                    </DashboardHeaderStats>
-                  );
-                })() : (
-                  <DashboardHeaderStats style={{ fontSize: '1.05rem', color: '#06b6d4' }}>
-                    Active Walk Preview
-                  </DashboardHeaderStats>
-                )}
-              </div>
-              <div>
-                {renderGpsStatusPill()}
-              </div>
-            </DashboardHeaderRow>
+                <span className="arrow">▲</span>
+                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
+                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="dist">({p.dist}m)</span>
+              </HUDIndicatorBadge>
+            ))}
+          </HUDSection>
 
-            {/* Middle columns wrapper (Left POI, Center, Right POI) */}
-            <DashboardColumns>
-              {/* Left POI Card */}
-              {nearestQuadrantPOIs.left ? (
-                <SidePOICard 
-                  $side="left" 
-                  $hasPoi={true}
-                  onClick={() => setNavTarget(nearestQuadrantPOIs.left)}
-                >
-                  <POITag $side="left">
-                    <span>← LEFT</span>
-                  </POITag>
-                  <POIEmoji>{getCategoryEmoji(nearestQuadrantPOIs.left.category_name)}</POIEmoji>
-                  <POIName>{nearestQuadrantPOIs.left.name_en}</POIName>
-                  <POIDistance>{nearestQuadrantPOIs.left.distance}m</POIDistance>
-                </SidePOICard>
-              ) : (
-                <SidePOICard $side="left" $hasPoi={false}>
-                  <POITag $side="left">
-                    <span>← LEFT</span>
-                  </POITag>
-                  <NoPOIText>{isUserOutsideEvent ? 'Outside Event' : 'No POI near'}</NoPOIText>
-                </SidePOICard>
-              )}
-
-              {/* Central Navigation Instruction Card */}
-              {(() => {
-                const stats = navTarget ? computeNavigationStats(userGps[0], userGps[1]) : null;
-                const dirColor = isUserOutsideEvent
-                  ? '#fbbf24' // Amber/warning color for outside-to-inside guidance
-                  : (navTarget && stats 
-                      ? ((stats.directionText.includes('AROUND') || stats.directionText.includes('BACK')) ? '#f59e0b' : '#10b981')
-                      : '#06b6d4'); // Explore mode cyan glow
-                
-                const rotationAngle = isUserOutsideEvent
-                  ? (entranceBearing - deviceHeading + 360) % 360
-                  : (navTarget && stats ? (stats.bearing - deviceHeading + 360) % 360 : 0);
-
-                return (
-                  <MiddleColumn>
-                    {/* Top Quadrant: Front POI */}
-                    {nearestQuadrantPOIs.front ? (
-                      <CentralMiniPOI $side="front" onClick={() => setNavTarget(nearestQuadrantPOIs.front)}>
-                        <span className="indicator">▲</span>
-                        <span className="emoji">{getCategoryEmoji(nearestQuadrantPOIs.front.category_name)}</span>
-                        <span className="name">{nearestQuadrantPOIs.front.name_en}</span>
-                        <span className="dist">{nearestQuadrantPOIs.front.distance}m</span>
-                      </CentralMiniPOI>
-                    ) : (
-                      <CentralMiniPOI $side="front" style={{ opacity: 0.35, pointerEvents: 'none', background: 'rgba(9, 9, 11, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <span className="indicator">▲</span> <span className="name" style={{ color: '#71717a' }}>{isUserOutsideEvent ? 'OUTSIDE AREA' : 'FRONT'}</span>
-                      </CentralMiniPOI>
-                    )}
-
-                    {/* Middle Arrow Card Block */}
-                    <CentralCard>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <ArrowAnimationWrapper>
-                          <ArrowWrapper 
-                            style={{ 
-                              color: dirColor, 
-                              filter: `drop-shadow(0 0 12px ${dirColor}66)`,
-                              transform: `rotate(${rotationAngle}deg)`
-                            }}
-                          >
-                            <svg
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              style={{ width: '1.45rem', height: '1.45rem', display: 'block' }}
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                          </ArrowWrapper>
-                        </ArrowAnimationWrapper>
-                        <DirectionText style={{ color: dirColor, fontSize: '0.65rem' }}>
-                          {isUserOutsideEvent ? 'ENTER EVENT' : (navTarget ? (stats?.directionText || 'STRAIGHT') : 'EXPLORE')}
-                        </DirectionText>
-                        <NextInstruction style={{ fontSize: '0.5rem' }}>
-                          {isUserOutsideEvent ? (
-                            nearestEntrance ? (
-                              <>
-                                <div>Enter in the event by entrance point:</div>
-                                <div style={{ color: '#fbbf24', marginTop: '2px', fontWeight: 'bold' }}>
-                                  {nearestEntrance.name} ({nearestEntrance.distance}m)
-                                </div>
-                              </>
-                            ) : (
-                              'Enter in the event by entrance point'
-                            )
-                          ) : (
-                            navTarget ? (
-                              `to ${stats?.targetNodeName || navTarget.name_en} in ${stats?.distance || 0}m`
-                            ) : (
-                              'Move to explore'
-                            )
-                          )}
-                        </NextInstruction>
-                      </div>
-                    </CentralCard>
-
-                    {/* Bottom Quadrant: Back POI */}
-                    {nearestQuadrantPOIs.back ? (
-                      <CentralMiniPOI $side="back" onClick={() => setNavTarget(nearestQuadrantPOIs.back)}>
-                        <span className="indicator">▼</span>
-                        <span className="emoji">{getCategoryEmoji(nearestQuadrantPOIs.back.category_name)}</span>
-                        <span className="name">{nearestQuadrantPOIs.back.name_en}</span>
-                        <span className="dist">{nearestQuadrantPOIs.back.distance}m</span>
-                      </CentralMiniPOI>
-                    ) : (
-                      <CentralMiniPOI $side="back" style={{ opacity: 0.35, pointerEvents: 'none', background: 'rgba(9, 9, 11, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <span className="indicator">▼</span> <span className="name" style={{ color: '#71717a' }}>{isUserOutsideEvent ? 'OUTSIDE AREA' : 'BACK'}</span>
-                      </CentralMiniPOI>
-                    )}
-                  </MiddleColumn>
-                );
-              })()}
-
-              {/* Right POI Card */}
-              {nearestQuadrantPOIs.right ? (
-                <SidePOICard 
-                  $side="right" 
-                  $hasPoi={true}
-                  onClick={() => setNavTarget(nearestQuadrantPOIs.right)}
-                >
-                  <POITag $side="right">
-                    <span>RIGHT →</span>
-                  </POITag>
-                  <POIEmoji>{getCategoryEmoji(nearestQuadrantPOIs.right.category_name)}</POIEmoji>
-                  <POIName>{nearestQuadrantPOIs.right.name_en}</POIName>
-                  <POIDistance>{nearestQuadrantPOIs.right.distance}m</POIDistance>
-                </SidePOICard>
-              ) : (
-                <SidePOICard $side="right" $hasPoi={false}>
-                  <POITag $side="right">
-                    <span>RIGHT →</span>
-                  </POITag>
-                  <NoPOIText>{isUserOutsideEvent ? 'Outside Event' : 'No POI near'}</NoPOIText>
-                </SidePOICard>
-              )}
-            </DashboardColumns>
-
-            {/* Sleek horizontal Compass Strip slider */}
-            {(() => {
-              const stats = navTarget ? computeNavigationStats(userGps[0], userGps[1]) : null;
-              const bearing = stats ? stats.bearing : 0;
-              // Heading offset calculations
-              let diff = (bearing - deviceHeading + 360) % 360;
-              if (diff > 180) diff -= 360;
-              const maxPx = 45; // bounds
-              const offsetPx = (diff / 180) * maxPx;
-
-              return (
-                <CompassSliderContainer>
-                  <CompassLabel>W</CompassLabel>
-                  <CompassSliderTrack>
-                    <CompassTickLine $offset={-40} $isMajor={true} />
-                    <CompassTickLine $offset={-30} />
-                    <CompassTickLine $offset={-20} $isMajor={true} />
-                    <CompassTickLine $offset={-10} />
-                    <CompassTickLine $offset={0} $isMajor={true} />
-                    <CompassTickLine $offset={10} />
-                    <CompassTickLine $offset={20} $isMajor={true} />
-                    <CompassTickLine $offset={30} />
-                    <CompassTickLine $offset={40} $isMajor={true} />
-                    <CompassIndicatorLine $headingOffset={Math.round(offsetPx)} />
-                  </CompassSliderTrack>
-                  <CompassLabel>E</CompassLabel>
-                </CompassSliderContainer>
-              );
-            })()}
-          </>
-        )}
-      </DashboardContainer>
-
-      {/* Bottom Collapsible Interactive Map panel */}
-      <MapContainer 
-        $isExpanded={isMapExpanded}
-        onClick={() => !isMapExpanded && setIsMapExpanded(true)}
-      >
-        <MapWrapper style={{ minHeight: 'unset', height: '100%' }}>
-          <MapCanvas id="standalone-leaflet-map-canvas" />
-
-          {/* Floating Expand/Collapse Toggle Button (Top Left of Map Panel) */}
-          <MapToggleButton
-            onClick={(e) => {
-              e.stopPropagation(); // prevent bubbling click events to MapContainer
-              setIsMapExpanded(!isMapExpanded);
-            }}
-            title={isMapExpanded ? "Minimize map view" : "Maximize map view"}
-          >
-            {isMapExpanded ? (
-              /* Minimize / Collapse SVG Icon */
-              <svg
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                style={{ width: '1.1rem', height: '1.1rem', display: 'block' }}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M4 10h6m0 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7" />
-              </svg>
-            ) : (
-              /* Maximize / Expand SVG Icon */
-              <svg
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                style={{ width: '1.1rem', height: '1.1rem', display: 'block' }}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4" />
-              </svg>
-            )}
-          </MapToggleButton>
-
-          {poisList.length === 0 && loadingMapData && (
-            <div style={{
-              position: 'absolute',
-              top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(22, 22, 34, 0.85)',
-              backdropFilter: 'blur(8px)',
-              zIndex: 9999,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1rem',
-              color: '#a1a1aa'
-            }}>
-              <style>{`
-                @keyframes map-spin {
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
-              <div style={{
-                width: '2.5rem',
-                height: '2.5rem',
-                border: '3px solid rgba(34, 211, 238, 0.1)',
-                borderTopColor: '#22d3ee',
-                borderRadius: '50%',
-                animation: 'map-spin 1s linear infinite'
-              }} />
-              <div style={{ fontSize: '14px', fontWeight: '800', color: '#fafafa' }}>Loading map elements...</div>
-              <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a' }}>Fetching latest points of interest and routing segments</div>
-            </div>
-          )}
-
-          {/* GPS Status Pill Top Left (shifted right of MapToggleButton) */}
-          <GlowStatusOverlay style={{ left: '3.5rem' }}>
-            {renderGpsStatusPill()}
-          </GlowStatusOverlay>
-
-          {/* Recenter & Tracking Controls */}
-          <ControlsOverlay>
-            <RecenterButton
-              onClick={async (e) => {
-                e.stopPropagation(); // Prevent container click toggle when clicking button
-                
-                try {
-                  const DeviceOrientationEventAny = (window as any).DeviceOrientationEvent;
-                  if (DeviceOrientationEventAny && typeof DeviceOrientationEventAny.requestPermission === 'function') {
-                    await DeviceOrientationEventAny.requestPermission();
+          {/* Back */}
+          <HUDSection $position="back">
+            {floatingPois.filter(p => p.relDir === 'back').map(p => (
+              <HUDIndicatorBadge 
+                key={p.id} 
+                $direction="back"
+                onClick={() => {
+                  setSelectedPoi(p);
+                  if (mapRef.current) {
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
                   }
-                } catch (err) {
-                  console.warn('Failed compass trigger on click:', err);
-                }
+                }}
+              >
+                <span className="arrow">▼</span>
+                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
+                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="dist">({p.dist}m)</span>
+              </HUDIndicatorBadge>
+            ))}
+          </HUDSection>
 
-                const pos = await getRealGps();
-                if (pos) {
-                  setUserGps(pos);
-                  if (mapRef.current) mapRef.current.setView(pos, 17);
-                } else if (mapRef.current) {
-                  mapRef.current.setView(userGps, 17);
-                }
-              }}
-              title="Go to my real GPS location"
-            >
-              <Navigation className="w-4 h-4 rotate-45 text-cyan-400" />
-            </RecenterButton>
-          </ControlsOverlay>
+          {/* Left */}
+          <HUDSection $position="left">
+            {floatingPois.filter(p => p.relDir === 'left').map(p => (
+              <HUDIndicatorBadge 
+                key={p.id} 
+                $direction="left"
+                onClick={() => {
+                  setSelectedPoi(p);
+                  if (mapRef.current) {
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                  }
+                }}
+              >
+                <span className="arrow">◀</span>
+                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
+                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="dist">({p.dist}m)</span>
+              </HUDIndicatorBadge>
+            ))}
+          </HUDSection>
 
-          {/* GPS coordinates text display at bottom */}
-          <CoordinatesDisplay>
-            <MapPin className="w-3 h-3 text-cyan-400" />
-            <span>
-              {userGps[0].toFixed(6)}, {userGps[1].toFixed(6)}
-              {gpsAccuracy !== null && ` • Accuracy: ${Math.round(gpsAccuracy)}m`}
-              {gpsStatus !== 'locked' && ' (Searching for strong GPS lock)'}
-            </span>
-          </CoordinatesDisplay>
-        </MapWrapper>
-      </MapContainer>
-
-      {/* Navigation active status footer bar */}
-      {navTarget && (
-        <NavigationFooter>
-          <FooterStatus>
-            <span className="dot"></span>
-            <span>On route</span>
-          </FooterStatus>
-          <FooterActions>
-            <FooterButton onClick={() => alert("Navigation alerts muted.")}>Mute</FooterButton>
-            <FooterButton 
-              $variant="stop" 
-              onClick={() => {
-                if (confirm("Are you sure you want to stop navigation?")) {
-                  setNavTarget(null);
-                }
-              }}
-            >
-              Stop
-            </FooterButton>
-          </FooterActions>
-        </NavigationFooter>
+          {/* Right */}
+          <HUDSection $position="right">
+            {floatingPois.filter(p => p.relDir === 'right').map(p => (
+              <HUDIndicatorBadge 
+                key={p.id} 
+                $direction="right"
+                onClick={() => {
+                  setSelectedPoi(p);
+                  if (mapRef.current) {
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                  }
+                }}
+              >
+                <span className="name">{p.name_en || p.category_name}</span>
+                <span className="dist">({p.dist}m)</span>
+                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
+                <span className="arrow">▶</span>
+              </HUDIndicatorBadge>
+            ))}
+          </HUDSection>
+        </FloatingHUDContainer>
       )}
-    </SplitWrapper>
+
+      {/* Bottom Floating Card & Secondary Actions */}
+      <FloatingBottomWrapper>
+        <FloatingControlsRow>
+          <FloatingLocateButton
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                const DeviceOrientationEventAny = (window as any).DeviceOrientationEvent;
+                if (DeviceOrientationEventAny && typeof DeviceOrientationEventAny.requestPermission === 'function') {
+                  await DeviceOrientationEventAny.requestPermission();
+                }
+              } catch (err) {
+                console.warn('Failed compass permission request:', err);
+              }
+
+              const pos = await getRealGps();
+              if (pos) {
+                setUserGps(pos);
+                if (mapRef.current) mapRef.current.setView(pos, 17);
+              } else if (mapRef.current) {
+                mapRef.current.setView(userGps, 17);
+              }
+            }}
+            title="Recenter on my location"
+          >
+            <Navigation style={{ width: '1.2rem', height: '1.2rem', transform: 'rotate(45deg)' }} />
+          </FloatingLocateButton>
+        </FloatingControlsRow>
+
+        {selectedPoi ? (
+          <ExploreBottomCard>
+            <ExploreCardTitle>{selectedPoi.name_en}</ExploreCardTitle>
+            <ExplorePOIInfoRow>
+              <span className="badge">{selectedPoi.category_name}</span>
+              <span>•</span>
+              <span>
+                {(() => {
+                  const dist = getHaversineDistance(userGps[0], userGps[1], selectedPoi.latitude, selectedPoi.longitude);
+                  return dist < 1000 ? `${Math.round(dist)} m away` : `${(dist / 1000).toFixed(2)} km away`;
+                })()}
+              </span>
+            </ExplorePOIInfoRow>
+            {selectedPoi.description && (
+              <ExploreCardDescription>{selectedPoi.description}</ExploreCardDescription>
+            )}
+            <ExploreActionsRow>
+              <ExploreNavButton
+                onClick={() => {
+                  setNavTarget(selectedPoi);
+                }}
+              >
+                <Navigation style={{ width: '1.1rem', height: '1.1rem', transform: 'rotate(45deg)' }} />
+                <span>Start Navigation</span>
+              </ExploreNavButton>
+              <ExploreCloseButton onClick={() => setSelectedPoi(null)}>
+                <span>Cancel</span>
+              </ExploreCloseButton>
+            </ExploreActionsRow>
+          </ExploreBottomCard>
+        ) : (
+          <ExploreBottomCard>
+            <ExploreCardTitle>{selectedEvent?.name || 'Event Map'}</ExploreCardTitle>
+            <ExploreCardDescription>
+              Tapping on any service icon (toilets, drinking water, police booths, medical camps) will show its distance and navigate you safely offline.
+            </ExploreCardDescription>
+          </ExploreBottomCard>
+        )}
+      </FloatingBottomWrapper>
+    </div>
   );
 }

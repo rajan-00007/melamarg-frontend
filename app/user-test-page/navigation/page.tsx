@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '../context/UserTestContext';
-import { Navigation, MapPin } from 'lucide-react';
+import { Navigation, MapPin, Volume2, VolumeX, LogOut, Compass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
 import {
   NavContainer,
   Overlay,
@@ -13,56 +13,50 @@ import {
   OverlayTitle,
   OverlayText,
   OverlayPillWrapper,
-  OverlayButtons,
   BypassButton,
   StopButton,
   ArrivalOverlay,
   ArrivalTitle,
   ArrivalText,
   ArrivalButton,
-  BackButton,
-  SplitWrapper,
-  DashboardContainer,
-  MapContainer,
   MapCanvas,
-  CentralCard,
-  ArrowAnimationWrapper,
-  ArrowWrapper,
-  DirectionText,
-  NextInstruction,
-  SidePOICard,
-  POITag,
-  POIEmoji,
-  POIName,
-  POIDistance,
-  NoPOIText,
-  MiddleColumn,
-  DashboardHeaderRow,
-  DashboardHeaderTitle,
-  DashboardHeaderStats,
-  DashboardColumns,
-  CompassSliderContainer,
-  CompassSliderTrack,
-  CompassLabel,
-  CompassIndicatorLine,
-  CompassTickLine,
-  MapToggleButton,
-  NavigationFooter,
-  FooterStatus,
-  FooterActions,
-  FooterButton,
   GPSLockedPill,
   GPSSearchingPill,
   GPSLostPill,
   StyledCompassIcon,
   StyledPartyPopper,
-  StyledArrowLeft,
-  StyledNavigation,
-  StyledMapPin,
-  GlowStatusOverlay,
-  ControlsOverlay,
-  RecenterButton,
-  CoordinatesDisplay
+  
+  // Redesigned UI components
+  FloatingHeaderWrapper,
+  FloatingHeaderPillRow,
+  OfflineActivePill,
+  GpsStrongPill,
+  RouteStatusBanner,
+  RouteStatusIconWrapper,
+  RouteStatusInfo,
+  RouteStatusTitle,
+  RouteStatusSubtitle,
+  FloatingBottomWrapper,
+  FloatingControlsRow,
+  FloatingLocateButton,
+  FloatingSimulateButton,
+  PremiumBottomCard,
+  BottomCardProgressHeader,
+  BottomCardDestinationText,
+  BottomCardPercentageText,
+  BottomProgressBarContainer,
+  BottomProgressBarFill,
+  BottomMetricsRow,
+  BottomMetricCol,
+  BottomMetricLabel,
+  BottomMetricValue,
+  BottomActionsRow,
+  BottomVoiceButton,
+  BottomExitButton,
+  NextInstructionPill,
+  UnifiedStatusCard,
+  UnifiedStatusHeader,
+  UnifiedStatusBody
 } from './page.styled';
 
 // Pure Utility Helpers
@@ -97,6 +91,37 @@ const getCompassBearing = (lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(bearing);
 };
 
+const getClosestPointOnSegment = (
+  userLat: number,
+  userLng: number,
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+) => {
+  const x = userLng;
+  const y = userLat;
+  const x1 = lng1;
+  const y1 = lat1;
+  const x2 = lng2;
+  const y2 = lat2;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  if (dx === 0 && dy === 0) {
+    return { lat: y1, lng: x1 };
+  }
+
+  let t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+  t = Math.max(0, Math.min(1, t));
+
+  return {
+    lat: y1 + t * dy,
+    lng: x1 + t * dx
+  };
+};
+
 export default function CompassNavigationPage() {
   const router = useRouter();
   const {
@@ -124,17 +149,106 @@ export default function CompassNavigationPage() {
   } = useUserTest();
 
   const mapRef = useRef<any>(null);
+
+  const getArrowIcon = (dirText?: string) => {
+    const iconStyle = { width: '1.25rem', height: '1.25rem', color: '#1e293b', flexShrink: 0 };
+    if (!dirText) return <ArrowUp style={iconStyle} />;
+    const d = dirText.toUpperCase();
+    if (d.includes('LEFT')) return <ArrowLeft style={iconStyle} />;
+    if (d.includes('RIGHT')) return <ArrowRight style={iconStyle} />;
+    if (d.includes('AROUND') || d.includes('BACK')) return <ArrowDown style={iconStyle} />;
+    return <ArrowUp style={iconStyle} />;
+  };
   const userMarkerRef = useRef<any>(null);
   const userAccuracyCircleRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const activeRouteLayerRef = useRef<any>(null);
+  const offRouteConnectorRef = useRef<any>(null);
+  const poiMarkersLayerRef = useRef<any>(null);
   const LRef = useRef<any>(null);
 
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
   const [gpsHeading, setGpsHeading] = useState<number>(0);
+  const [mapZoom, setMapZoom] = useState<number>(17);
+  const [voiceOn, setVoiceOn] = useState<boolean>(true);
+  const [initialDistance, setInitialDistance] = useState<number | null>(null);
+
   const lastGpsRef = useRef<[number, number] | null>(null);
 
   const stats = navTarget ? getNavigationStats() : null;
+
+  // Manage initial distance tracking
+  useEffect(() => {
+    if (stats && stats.distance && initialDistance === null) {
+      setInitialDistance(stats.distance);
+    }
+    if (!navTarget) {
+      setInitialDistance(null);
+    }
+  }, [navTarget, stats?.distance, initialDistance]);
+
+  const progressPercent = useMemo(() => {
+    if (!stats || !initialDistance) return 0;
+    if (stats.distance >= initialDistance) return 0;
+    const pct = Math.round(((initialDistance - stats.distance) / initialDistance) * 100);
+    return Math.max(0, Math.min(99, pct));
+  }, [stats?.distance, initialDistance]);
+
+  const categoryColor = (catName: string): string => {
+    const c = (catName || '').toLowerCase();
+    if (c.includes('toilet') || c.includes('washroom') || c.includes('restroom')) return '#f59e0b';
+    if (c.includes('police') || c.includes('security')) return '#3b82f6';
+    if (c.includes('medical') || c.includes('hospital')) return '#ef4444';
+    if (c.includes('water') || c.includes('drink')) return '#06b6d4';
+    if (c.includes('exit') || c.includes('gate')) return '#10b981';
+    if (c.includes('parking')) return '#6366f1';
+    if (c.includes('food') || c.includes('eat')) return '#f97316';
+    return '#ef4444';
+  };
+
+  const categoryIconSvg = (catName: string, size: number = 10): string => {
+    const c = (catName || '').toLowerCase();
+    if (c.includes('toilet') || c.includes('washroom')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 22V10h-3V6a5 5 0 0 0-10 0v4H2v12"></path><path d="M6 10V6a3 3 0 0 1 6 0v4"></path></svg>`;
+    }
+    if (c.includes('police') || c.includes('security')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+    }
+    if (c.includes('medical') || c.includes('hospital')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 5v14M5 12h14"></path></svg>`;
+    }
+    if (c.includes('water') || c.includes('drink')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-13-7-13S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
+    }
+    if (c.includes('exit') || c.includes('gate')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path></svg>`;
+    }
+    if (c.includes('parking')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M9 17V5h5a4 4 0 0 1 0 8H9"></path></svg>`;
+    }
+    if (c.includes('food') || c.includes('eat')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 8A6 6 0 0 0 6 8c0 7 6 13 6 13s6-6 6-13z"></path><path d="M12 2v6M12 11h.01"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><circle cx="12" cy="12" r="10"></circle></svg>`;
+  };
+
+  // Helper to determine if a POI is along the active route path
+  const isPoiOnPath = (poi: any, path: any[]) => {
+    if (!path || path.length === 0) return false;
+    const lat = Number(poi.latitude);
+    const lng = Number(poi.longitude);
+    if (isNaN(lat) || isNaN(lng)) return false;
+
+    // Find the minimum distance to any path node
+    let minDist = Infinity;
+    for (const node of path) {
+      const dist = getHaversineDistance(lat, lng, Number(node.latitude), Number(node.longitude));
+      if (dist < minDist) {
+        minDist = dist;
+      }
+    }
+    return minDist < 30; // 30 meters threshold
+  };
 
   // Track user movements to derive walking bearing
   useEffect(() => {
@@ -237,6 +351,9 @@ export default function CompassNavigationPage() {
     const distanceVal = stats.distance;
 
     if (stats.isOffRoute) {
+      if (stats.offRouteDistance && stats.offRouteDirectionText) {
+        return `Move ${stats.offRouteDistance}m ${stats.offRouteDirectionText} to join nearest path.`;
+      }
       return `Walk ${distanceVal}m to join route at [${stats.targetNodeName}]`;
     }
 
@@ -279,6 +396,8 @@ export default function CompassNavigationPage() {
       userMarkerRef.current = null;
       userAccuracyCircleRef.current = null;
       activeRouteLayerRef.current = null;
+      offRouteConnectorRef.current = null;
+      poiMarkersLayerRef.current = null;
     }
 
     const map = L.map('navigation-split-map-canvas', {
@@ -286,6 +405,11 @@ export default function CompassNavigationPage() {
       attributionControl: false
     }).setView(userGps, 17);
     mapRef.current = map;
+
+    // Listen to zoom level changes
+    map.on('zoomend', () => {
+      setMapZoom(map.getZoom());
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
@@ -337,24 +461,7 @@ export default function CompassNavigationPage() {
     const networkLayer = L.layerGroup().addTo(map);
     routeLayerRef.current = networkLayer;
 
-    // Draw full waypoint grid network reference lines
-    routeEdges.forEach((edge) => {
-      const startId = edge.start_node_id || (edge as any).startNodeId;
-      const endId = edge.end_node_id || (edge as any).endNodeId;
-      const startNode = routeNodes.find((n) => n.id === startId);
-      const endNode = routeNodes.find((n) => n.id === endId);
-      if (startNode && endNode) {
-        L.polyline([
-          [Number(startNode.latitude), Number(startNode.longitude)],
-          [Number(endNode.latitude), Number(endNode.longitude)]
-        ], {
-          color: '#22d3ee',
-          weight: 2,
-          opacity: 0.3,
-          dashArray: '4, 4'
-        }).addTo(networkLayer);
-      }
-    });
+    // Draw full waypoint grid network reference lines removed to keep active navigation view clean without low opacity blue lines
 
     routeNodes.forEach((node) => {
       const lat = Number(node.latitude);
@@ -379,45 +486,6 @@ export default function CompassNavigationPage() {
         }).addTo(networkLayer);
       }
     });
-
-    // Draw active target POI marker
-    const categoryColor = (catName: string): string => {
-      const c = (catName || '').toLowerCase();
-      if (c.includes('toilet') || c.includes('washroom') || c.includes('restroom')) return '#f59e0b';
-      if (c.includes('police') || c.includes('security')) return '#3b82f6';
-      if (c.includes('medical') || c.includes('hospital')) return '#ef4444';
-      if (c.includes('water') || c.includes('drink')) return '#06b6d4';
-      if (c.includes('exit') || c.includes('gate')) return '#10b981';
-      if (c.includes('parking')) return '#6366f1';
-      if (c.includes('food') || c.includes('eat')) return '#f97316';
-      return '#ef4444';
-    };
-
-    const categoryIconSvg = (catName: string): string => {
-      const c = (catName || '').toLowerCase();
-      if (c.includes('toilet') || c.includes('washroom')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 22V10h-3V6a5 5 0 0 0-10 0v4H2v12"></path><path d="M6 10V6a3 3 0 0 1 6 0v4"></path></svg>`;
-      }
-      if (c.includes('police') || c.includes('security')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
-      }
-      if (c.includes('medical') || c.includes('hospital')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 5v14M5 12h14"></path></svg>`;
-      }
-      if (c.includes('water') || c.includes('drink')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-13-7-13S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
-      }
-      if (c.includes('exit') || c.includes('gate')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path></svg>`;
-      }
-      if (c.includes('parking')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M9 17V5h5a4 4 0 0 1 0 8H9"></path></svg>`;
-      }
-      if (c.includes('food') || c.includes('eat')) {
-        return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 8A6 6 0 0 0 6 8c0 7 6 13 6 13s6-6 6-13z"></path><path d="M12 2v6M12 11h.01"></path></svg>`;
-      }
-      return `<svg viewBox="0 0 24 24" width="10" height="10" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><circle cx="12" cy="12" r="10"></circle></svg>`;
-    };
 
     const destLat = Number(navTarget.latitude);
     const destLng = Number(navTarget.longitude);
@@ -447,6 +515,7 @@ export default function CompassNavigationPage() {
     }
 
     activeRouteLayerRef.current = L.layerGroup().addTo(map);
+    poiMarkersLayerRef.current = L.layerGroup().addTo(map);
 
     // Initial path drawing
     if (stats && stats.pathNodes) {
@@ -467,9 +536,71 @@ export default function CompassNavigationPage() {
         userMarkerRef.current = null;
         userAccuracyCircleRef.current = null;
         activeRouteLayerRef.current = null;
+        offRouteConnectorRef.current = null;
+        poiMarkersLayerRef.current = null;
       }
     };
   }, [leafletLoaded, selectedEvent, navTarget]);
+
+  // Render and update secondary POI markers based on zoom and path proximity
+  useEffect(() => {
+    const L = LRef.current || (window as any).L;
+    if (!L || !mapRef.current || !poiMarkersLayerRef.current) return;
+
+    const poiMarkersLayer = poiMarkersLayerRef.current;
+    poiMarkersLayer.clearLayers();
+
+    if (!poisList) return;
+
+    const path = stats?.pathNodes || [];
+
+    poisList.forEach((poi: any) => {
+      // Skip the active navigation target POI
+      if (navTarget && poi.id === navTarget.id) return;
+
+      const lat = Number(poi.latitude);
+      const lng = Number(poi.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const onPath = isPoiOnPath(poi, path);
+      // Zoom out (<16) shows all POIs. Zoom in (>=16) shows only POIs on path.
+      const shouldShow = mapZoom < 16 || onPath;
+
+      if (shouldShow) {
+        const color = categoryColor(poi.category_name);
+        const iconSize = onPath ? 22 : 18;
+        const iconAnchor = onPath ? 11 : 9;
+        
+        const poiIcon = L.divIcon({
+          html: `
+            <div style="
+              background: ${color};
+              width: ${iconSize}px; height: ${iconSize}px; border-radius: 50%;
+              border: 2px solid white;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+              display: flex; align-items: center; justify-content: center;
+              opacity: ${onPath ? 1 : 0.75};
+              transition: all 0.2s;
+            ">
+              ${categoryIconSvg(poi.category_name, onPath ? 10 : 8)}
+            </div>
+          `,
+          className: '',
+          iconSize: [iconSize, iconSize],
+          iconAnchor: [iconAnchor, iconAnchor]
+        });
+
+        L.marker([lat, lng], { icon: poiIcon })
+          .addTo(poiMarkersLayer)
+          .bindPopup(`
+            <div style="font-family: sans-serif; font-size: 12px; color: #333; padding: 2px;">
+              <strong>${poi.name_en}</strong>
+              ${onPath ? '<div style="color: #16a34a; font-weight: bold; margin-top: 4px; font-size: 10px;">On your path</div>' : ''}
+            </div>
+          `);
+      }
+    });
+  }, [poisList, stats?.pathNodes, mapZoom, navTarget]);
 
   // Recenter map on active updates
   useEffect(() => {
@@ -489,6 +620,52 @@ export default function CompassNavigationPage() {
 
     mapRef.current.panTo(userGps);
   }, [userGps, gpsAccuracy, gpsStatus]);
+
+  useEffect(() => {
+    const L = LRef.current || (window as any).L;
+    if (!L || !mapRef.current) return;
+
+    if (offRouteConnectorRef.current) {
+      offRouteConnectorRef.current.remove();
+      offRouteConnectorRef.current = null;
+    }
+
+    if (!stats || !stats.isOffRoute || !stats.pathNodes || stats.pathNodes.length < 2) return;
+
+    let minDist = Infinity;
+    let nearestPoint: { lat: number; lng: number } | null = null;
+
+    for (let i = 0; i < stats.pathNodes.length - 1; i++) {
+      const start = stats.pathNodes[i];
+      const end = stats.pathNodes[i + 1];
+      const startLat = Number(start.latitude);
+      const startLng = Number(start.longitude);
+      const endLat = Number(end.latitude);
+      const endLng = Number(end.longitude);
+      if (isNaN(startLat) || isNaN(startLng) || isNaN(endLat) || isNaN(endLng)) continue;
+
+      const point = getClosestPointOnSegment(userGps[0], userGps[1], startLat, startLng, endLat, endLng);
+      const dist = getHaversineDistance(userGps[0], userGps[1], point.lat, point.lng);
+      if (dist < minDist) {
+        minDist = dist;
+        nearestPoint = point;
+      }
+    }
+
+    if (!nearestPoint || minDist <= 20) return;
+
+    offRouteConnectorRef.current = L.polyline([
+      userGps,
+      [nearestPoint.lat, nearestPoint.lng]
+    ], {
+      color: '#f97316',
+      weight: 4,
+      opacity: 0.9,
+      dashArray: '8, 8',
+      lineJoin: 'round',
+      lineCap: 'round'
+    }).addTo(mapRef.current);
+  }, [stats?.isOffRoute, stats?.pathNodes, userGps, leafletLoaded]);
 
   // Force map size checks on expand/collapse size change
   useEffect(() => {
@@ -515,11 +692,11 @@ export default function CompassNavigationPage() {
     if (path && path.length > 0) {
       const latlngs = path.map((n: any) => [Number(n.latitude), Number(n.longitude)]);
       
-      // Thick green outline
+      // Keep the active route as a visible 20m corridor, not just a thin line.
       L.polyline(latlngs, {
         color: '#10b981',
-        weight: 6,
-        opacity: 0.85,
+        weight: 40,
+        opacity: 0.12,
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(activeRouteLayerRef.current);
@@ -535,6 +712,15 @@ export default function CompassNavigationPage() {
       }).addTo(activeRouteLayerRef.current);
     }
   };
+
+  const arrivalTimeStr = useMemo(() => {
+    if (!stats) return '--:--';
+    const now = new Date();
+    now.setSeconds(now.getSeconds() + stats.time);
+    const hrs = now.getHours().toString().padStart(2, '0');
+    const mins = now.getMinutes().toString().padStart(2, '0');
+    return `${hrs}:${mins}`;
+  }, [stats?.time]);
 
   if (!navTarget || !stats) return null;
 
@@ -582,7 +768,7 @@ export default function CompassNavigationPage() {
             <OverlayPillWrapper>
               {renderGpsStatusPill()}
             </OverlayPillWrapper>
-            <OverlayButtons>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: '0.5rem' }}>
               <BypassButton 
                 onClick={() => handleGpsUpdate({
                   coords: { latitude: userGps[0], longitude: userGps[1], accuracy: 12 },
@@ -601,259 +787,84 @@ export default function CompassNavigationPage() {
               >
                 Stop Navigation
               </StopButton>
-            </OverlayButtons>
+            </div>
           </OverlayBox>
         </Overlay>
       )}
 
-      <SplitWrapper>
-        {/* Top Premium Mockup Dashboard container */}
-        <DashboardContainer $isExpanded={isMapExpanded}>
-          {isMapExpanded ? (
-            /* Single-row floating header banner when map is maximized */
-            <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', height: '100%' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                <DashboardHeaderTitle style={{ fontSize: '0.625rem', marginBottom: 0 }}>
-                  Navigating to: <span className="target">{navTarget.name_en}</span>
-                </DashboardHeaderTitle>
-                <DashboardHeaderStats style={{ fontSize: '0.95rem', marginTop: '0.1rem' }}>
-                  {stats.distance}m <span className="time">~{stats.time}s</span>
-                </DashboardHeaderStats>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {renderGpsStatusPill()}
-                <button 
-                  onClick={() => setIsMapExpanded(false)}
-                  style={{
-                    background: 'rgba(34, 211, 238, 0.1)',
-                    border: '1px solid rgba(34, 211, 238, 0.3)',
-                    borderRadius: '0.5rem',
-                    color: '#22d3ee',
-                    fontSize: '9px',
-                    fontWeight: '800',
-                    padding: '0.35rem 0.65rem',
-                    cursor: 'pointer',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  Minimize Map
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Premium active route dashboard mockup when map is collapsed preview */
-            <>
-              {arrivalNotify && (
-                <ArrivalOverlay>
-                  <StyledPartyPopper />
-                  <ArrivalTitle>Destination Reached!</ArrivalTitle>
-                  <ArrivalText>You have arrived safely at {navTarget.name_en}.</ArrivalText>
-                  <ArrivalButton
-                    onClick={() => {
-                      setNavTarget(null);
-                      setScreenMode('pois');
-                      setIsWalking(false);
-                      setArrivalNotify(false);
-                      router.push('/user-test-page/pois');
-                    }}
-                  >
-                    Return to POI List
-                  </ArrivalButton>
-                </ArrivalOverlay>
-              )}
-
-              {/* Title Header with Back navigators */}
-              <DashboardHeaderRow>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <BackButton
-                    onClick={() => {
-                      setNavTarget(null);
-                      setScreenMode('pois');
-                      setIsWalking(false);
-                      router.push('/user-test-page/pois');
-                    }}
-                    style={{ marginBottom: '0.35rem' }}
-                  >
-                    <StyledArrowLeft />
-                    <span>Back</span>
-                  </BackButton>
-                  <DashboardHeaderTitle>
-                    Navigating to: <span className="target">{navTarget.name_en}</span>
-                  </DashboardHeaderTitle>
-                  <DashboardHeaderStats>
-                    {stats.distance}m <span className="time">~{stats.time}s</span>
-                  </DashboardHeaderStats>
-                </div>
-                <div>
-                  {renderGpsStatusPill()}
-                </div>
-              </DashboardHeaderRow>
-
-              {/* Three-column Dashboard panel */}
-              <DashboardColumns>
-                {/* Left POI card */}
-                {nearestQuadrantPOIs.left ? (
-                  <SidePOICard 
-                    $side="left" 
-                    $hasPoi={true}
-                    onClick={() => {
-                      if (confirm(`Change route target to ${nearestQuadrantPOIs.left.name_en}?`)) {
-                        setNavTarget(nearestQuadrantPOIs.left);
-                      }
-                    }}
-                  >
-                    <POITag $side="left">
-                      <span>← LEFT</span>
-                    </POITag>
-                    <POIEmoji>{getCategoryEmoji(nearestQuadrantPOIs.left.category_name)}</POIEmoji>
-                    <POIName>{nearestQuadrantPOIs.left.name_en}</POIName>
-                    <POIDistance>{nearestQuadrantPOIs.left.distance}m</POIDistance>
-                  </SidePOICard>
-                ) : (
-                  <SidePOICard $side="left" $hasPoi={false}>
-                    <POITag $side="left">
-                      <span>← LEFT</span>
-                    </POITag>
-                    <NoPOIText>No POI near</NoPOIText>
-                  </SidePOICard>
-                )}
-
-                {/* High-focus Central active instructions card (taking full middle height) */}
-                {(() => {
-                  const dirColor = (stats.directionText.includes('AROUND') || stats.directionText.includes('BACK')) ? '#f59e0b' : '#10b981';
-                  const rotationAngle = (stats.bearing - deviceHeading + 360) % 360;
-
-                  return (
-                    <MiddleColumn>
-                      <CentralCard>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'center' }}>
-                          <ArrowAnimationWrapper>
-                            <ArrowWrapper 
-                              style={{ 
-                                color: dirColor, 
-                                filter: `drop-shadow(0 0 12px ${dirColor}66)`,
-                                transform: `rotate(${rotationAngle}deg)`
-                              }}
-                            >
-                              <svg
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                style={{ width: '1.85rem', height: '1.85rem', display: 'block' }}
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                              </svg>
-                            </ArrowWrapper>
-                          </ArrowAnimationWrapper>
-                          <DirectionText style={{ color: dirColor }}>
-                            {stats.directionText || 'STRAIGHT'}
-                          </DirectionText>
-                          <NextInstruction>
-                            {getDetailedInstruction()}
-                          </NextInstruction>
-                        </div>
-                      </CentralCard>
-                    </MiddleColumn>
-                  );
-                })()}
-
-                {/* Right POI card */}
-                {nearestQuadrantPOIs.right ? (
-                  <SidePOICard 
-                    $side="right" 
-                    $hasPoi={true}
-                    onClick={() => {
-                      if (confirm(`Change route target to ${nearestQuadrantPOIs.right.name_en}?`)) {
-                        setNavTarget(nearestQuadrantPOIs.right);
-                      }
-                    }}
-                  >
-                    <POITag $side="right">
-                      <span>RIGHT →</span>
-                    </POITag>
-                    <POIEmoji>{getCategoryEmoji(nearestQuadrantPOIs.right.category_name)}</POIEmoji>
-                    <POIName>{nearestQuadrantPOIs.right.name_en}</POIName>
-                    <POIDistance>{nearestQuadrantPOIs.right.distance}m</POIDistance>
-                  </SidePOICard>
-                ) : (
-                  <SidePOICard $side="right" $hasPoi={false}>
-                    <POITag $side="right">
-                      <span>RIGHT →</span>
-                    </POITag>
-                    <NoPOIText>No POI near</NoPOIText>
-                  </SidePOICard>
-                )}
-              </DashboardColumns>
-
-              {/* West-East Compass Slider indicator strip */}
-              {(() => {
-                const bearing = stats.bearing;
-                let diff = (bearing - deviceHeading + 360) % 360;
-                if (diff > 180) diff -= 360;
-                const maxPx = 45; // limits
-                const offsetPx = (diff / 180) * maxPx;
-
-                return (
-                  <CompassSliderContainer>
-                    <CompassLabel>W</CompassLabel>
-                    <CompassSliderTrack>
-                      <CompassTickLine $offset={-40} $isMajor={true} />
-                      <CompassTickLine $offset={-30} />
-                      <CompassTickLine $offset={-20} $isMajor={true} />
-                      <CompassTickLine $offset={-10} />
-                      <CompassTickLine $offset={0} $isMajor={true} />
-                      <CompassTickLine $offset={10} />
-                      <CompassTickLine $offset={20} $isMajor={true} />
-                      <CompassTickLine $offset={30} />
-                      <CompassTickLine $offset={40} $isMajor={true} />
-                      <CompassIndicatorLine $headingOffset={Math.round(offsetPx)} />
-                    </CompassSliderTrack>
-                    <CompassLabel>E</CompassLabel>
-                  </CompassSliderContainer>
-                );
-              })()}
-            </>
-          )}
-        </DashboardContainer>
-
-        {/* Bottom Collapsible Interactive Map Panel */}
-        <MapContainer 
-          $isExpanded={isMapExpanded}
-          onClick={() => !isMapExpanded && setIsMapExpanded(true)}
-        >
-          <MapCanvas id="navigation-split-map-canvas" />
-
-          {/* Floating Minimize/Maximize button top left */}
-          <MapToggleButton
-            onClick={(e) => {
-              e.stopPropagation(); // prevent map expand toggle
-              setIsMapExpanded(!isMapExpanded);
+      {arrivalNotify && (
+        <ArrivalOverlay>
+          <StyledPartyPopper />
+          <ArrivalTitle>Destination Reached!</ArrivalTitle>
+          <ArrivalText>You have arrived safely at {navTarget.name_en}.</ArrivalText>
+          <ArrivalButton
+            onClick={() => {
+              setNavTarget(null);
+              setScreenMode('pois');
+              setIsWalking(false);
+              setArrivalNotify(false);
+              router.push('/user-test-page/pois');
             }}
-            title={isMapExpanded ? "Minimize map panel" : "Maximize map panel"}
           >
-            {isMapExpanded ? (
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1.1rem', height: '1.1rem', display: 'block' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M4 10h6m0 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7" />
-              </svg>
+            Return to POI List
+          </ArrivalButton>
+        </ArrivalOverlay>
+      )}
+
+      {/* Main Map & Floating Redesigned UI */}
+      <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', flexGrow: 1 }}>
+        <MapCanvas id="navigation-split-map-canvas" />
+
+        {/* Top Floating Header Controls */}
+        <FloatingHeaderWrapper>
+          <FloatingHeaderPillRow>
+            <OfflineActivePill>
+              <span className="dot"></span>
+              <span>Offline Navigation Active</span>
+            </OfflineActivePill>
+            
+            {gpsStatus === 'locked' ? (
+              <GpsStrongPill>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0288d1' }} />
+                <span>GPS Strong</span>
+              </GpsStrongPill>
+            ) : gpsStatus === 'searching' ? (
+              <GpsStrongPill style={{ background: '#FCF2E7', color: '#B7791F' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#B7791F', animation: 'ping 1s infinite' }} />
+                <span>Searching GPS...</span>
+              </GpsStrongPill>
             ) : (
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1.1rem', height: '1.1rem', display: 'block' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4" />
-              </svg>
+              <GpsStrongPill style={{ background: '#FEE2E2', color: '#EF4444' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444' }} />
+                <span>No GPS Signal</span>
+              </GpsStrongPill>
             )}
-          </MapToggleButton>
+          </FloatingHeaderPillRow>
 
-          {/* GPS Locked badge overlay top left (shifted right of MapToggleButton) */}
-          <GlowStatusOverlay>
-            {renderGpsStatusPill()}
-          </GlowStatusOverlay>
+          <UnifiedStatusCard>
+            <UnifiedStatusHeader $isOffPath={stats.isOffRoute}>
+              {stats.isOffRoute ? 'OFF PATH' : 'ON PATH'}
+            </UnifiedStatusHeader>
+            <UnifiedStatusBody>
+              {getArrowIcon(stats.directionText)}
+              <span>{getDetailedInstruction()}</span>
+            </UnifiedStatusBody>
+          </UnifiedStatusCard>
+        </FloatingHeaderWrapper>
 
-          {/* Recenter & Magnetometer compass permission trigger */}
-          <ControlsOverlay>
-            <RecenterButton
+        {/* Bottom Floating Card & Secondary Actions */}
+        <FloatingBottomWrapper>
+          <FloatingControlsRow>
+            <FloatingSimulateButton
+              onClick={handleSimulateWalking}
+              disabled={isWalking || arrivalNotify}
+            >
+              {isWalking ? 'Walking...' : 'Simulate Walk'}
+            </FloatingSimulateButton>
+            
+            <FloatingLocateButton
               onClick={async (e) => {
-                e.stopPropagation(); // prevent map expand click bubbling
-
+                e.stopPropagation();
                 try {
                   const DeviceOrientationEventAny = (window as any).DeviceOrientationEvent;
                   if (DeviceOrientationEventAny && typeof DeviceOrientationEventAny.requestPermission === 'function') {
@@ -871,52 +882,71 @@ export default function CompassNavigationPage() {
                   mapRef.current.setView(userGps, 17);
                 }
               }}
-              title="Go to my real GPS location"
+              title="Recenter on my location"
             >
-              <Navigation className="w-4 h-4 rotate-45 text-cyan-400" />
-            </RecenterButton>
-          </ControlsOverlay>
+              <Navigation style={{ width: '1.2rem', height: '1.2rem', transform: 'rotate(45deg)' }} />
+            </FloatingLocateButton>
+          </FloatingControlsRow>
 
-          {/* GPS Coordinates text displays at bottom */}
-          <CoordinatesDisplay>
-            <MapPin className="w-3 h-3 text-cyan-400" />
-            <span>
-              {userGps[0].toFixed(6)}, {userGps[1].toFixed(6)}
-              {gpsAccuracy !== null && ` • Accuracy: ${Math.round(gpsAccuracy)}m`}
-            </span>
-          </CoordinatesDisplay>
-        </MapContainer>
+          <PremiumBottomCard>
+            <BottomCardProgressHeader>
+              <BottomCardDestinationText>{navTarget.name_en}</BottomCardDestinationText>
+              <BottomCardPercentageText>{progressPercent}% Complete</BottomCardPercentageText>
+            </BottomCardProgressHeader>
 
-        {/* Bottom Sticky Active Status Footer Bar */}
-        <NavigationFooter>
-          <FooterStatus>
-            <span className="dot"></span>
-            <span>{stats.isOffRoute ? 'Off route' : 'On route'}</span>
-          </FooterStatus>
-          <FooterActions>
-            <FooterButton 
-              $variant="simulate" 
-              onClick={handleSimulateWalking}
-              disabled={isWalking || arrivalNotify}
-            >
-              {isWalking ? 'Walking...' : 'Simulate Walk'}
-            </FooterButton>
-            <FooterButton 
-              $variant="stop" 
-              onClick={() => {
-                if (confirm("Are you sure you want to stop navigation?")) {
-                  setNavTarget(null);
-                  setScreenMode('pois');
-                  setIsWalking(false);
-                  router.push('/user-test-page/pois');
-                }
-              }}
-            >
-              Stop
-            </FooterButton>
-          </FooterActions>
-        </NavigationFooter>
-      </SplitWrapper>
+            <BottomProgressBarContainer>
+              <BottomProgressBarFill $percent={progressPercent} />
+            </BottomProgressBarContainer>
+
+            <BottomMetricsRow>
+              <BottomMetricCol>
+                <BottomMetricLabel>Arrival</BottomMetricLabel>
+                <BottomMetricValue className="arrival-time">{arrivalTimeStr}</BottomMetricValue>
+              </BottomMetricCol>
+
+              <BottomMetricCol>
+                <BottomMetricLabel>Time</BottomMetricLabel>
+                <BottomMetricValue>
+                  {stats.time < 60 ? `${stats.time} sec` : `${Math.ceil(stats.time / 60)} min`}
+                </BottomMetricValue>
+              </BottomMetricCol>
+
+              <BottomMetricCol>
+                <BottomMetricLabel>Distance</BottomMetricLabel>
+                <BottomMetricValue>
+                  {stats.distance < 1000 ? `${stats.distance} m` : `${(stats.distance / 1000).toFixed(2)} km`}
+                </BottomMetricValue>
+              </BottomMetricCol>
+            </BottomMetricsRow>
+
+            <BottomActionsRow>
+              <BottomVoiceButton $active={voiceOn} onClick={() => setVoiceOn(!voiceOn)}>
+                {voiceOn ? (
+                  <Volume2 style={{ width: '1.1rem', height: '1.1rem' }} />
+                ) : (
+                  <VolumeX style={{ width: '1.1rem', height: '1.1rem' }} />
+                )}
+                <span>Voice {voiceOn ? 'On' : 'Off'}</span>
+              </BottomVoiceButton>
+
+              <BottomExitButton
+                onClick={() => {
+                  if (confirm("Are you sure you want to stop navigation?")) {
+                    setNavTarget(null);
+                    setScreenMode('pois');
+                    setIsWalking(false);
+                    router.push('/user-test-page/pois');
+                  }
+                }}
+              >
+                <LogOut style={{ width: '1rem', height: '1rem' }} />
+                <span>Exit</span>
+              </BottomExitButton>
+            </BottomActionsRow>
+          </PremiumBottomCard>
+        </FloatingBottomWrapper>
+
+      </div>
     </NavContainer>
   );
 }

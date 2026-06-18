@@ -9,7 +9,7 @@
 // export const BASE_URL = 'http://192.168.1.100:5000/api/';
 
 // OPTION 4: WEB BROWSER DEV
-// export const BASE_URL = 'http://localhost:5000/api/';
+export const BASE_URL = 'http://localhost:5000/api/';
 
 // ACTIVE: reads from localStorage at runtime so it's configurable in-app without rebuilding
 export const getBaseUrl = (): string => {
@@ -19,5 +19,5 @@ export const getBaseUrl = (): string => {
   }
   return process.env.NEXT_PUBLIC_API_URL
     ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') + '/api/'
-    : 'https://api-wp-events.infoviz.co/api/';
+    : 'http://localhost:5000/api/';
 };

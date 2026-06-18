@@ -1,57 +1,245 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { 
+  AlertTriangle,
+  AlertCircle,
+  Bell, 
+  Compass, 
+  Users, 
+  Droplet, 
+  Plus, 
+  Shield, 
+  Utensils, 
+  Brush, 
+  LayoutGrid, 
+  ChevronRight, 
+  Car,
+  Heart,
+  MapPin,
+  Settings,
+  CheckCircle,
+  Navigation
+} from 'lucide-react';
 import { useUserTest } from '../context/UserTestContext';
+import { useLanguage } from '../context/LanguageContext';
+import { colors } from '@/components/style/colors';
+import Text from '@/components/style/text/Text';
+import { getHaversineDistance } from '../context/types';
+
+// Static Image Imports for offline asset resolution
+import rathyatraBanner1 from '@/public/rathyatra_banner.png';
+import rathyatraBanner2 from '@/public/rathyatra_banner2.png';
+import rathyatraBanner3 from '@/public/rathyatra_banner3.png';
+
+import baliyatraBanner1 from '@/public/baliyatra_banner.png';
+import baliyatraBanner2 from '@/public/baliyatra_banner2.png';
+import baliyatraBanner3 from '@/public/baliyatra_banner3.png';
+
+import kumbhmelaBanner1 from '@/public/kumbhmela_banner.png';
+import kumbhmelaBanner2 from '@/public/kumbhmela_banner2.png';
+import kumbhmelaBanner3 from '@/public/kumbhmela_banner3.png';
+
+// Styled Components
 import {
   HomeContainer,
-  EventHeaderCard,
-  EventSub,
-  EventTitle,
-  EventMeta,
-  StatusBox,
-  StatusInfo,
-  StatusTitle,
-  StatusText,
-  StatusBadge,
-  CategoriesGrid,
-  CategoryCard,
-  EmojiIcon,
-  CategoryTextWrapper,
-  CategoryLabel,
-  CategoryCount,
-  BannerAlert,
-  BannerText,
-  BannerIndicator,
-  BannerBell
+  SliderWrapper,
+  SliderContainer,
+  SlideItem,
+  SlideImage,
+  SlideOverlay,
+  SlideInfo,
+  SlideBadge,
+  DotIndicators,
+  Dot,
+  HomeBody,
+  UrgentAlertCard,
+  AlertContent,
+  AlertText,
+  AlertLink,
+  NearestHelpCard,
+  HelpBadgeWrapper,
+  HelpBadgeDot,
+  HelpBadgeText,
+  HelpCardRow,
+  HelpCardButton,
+  ActionGrid,
+  SosButton,
+  SosIconBox,
+  GridItemCard,
+  GridIconBox,
+  ViewAllButton,
+  SafetySection,
+  SectionTitle,
+  SafetyGrid,
+  SafetyCard,
+  SafetyIconBox,
+  LiveParkingRow,
+  ParkingIconBox,
+  HomeHeader,
+  HeaderLeft,
+  HeaderRight,
+  LocationBadge,
+  LiveBadge,
+  LangButton
 } from './page.styled';
 
-export default function EventHomePage() {
+const EVENT_SLIDES_MAP = {
+  rathyatra: [
+    {
+      image: rathyatraBanner1.src,
+      title: 'Rath Yatra Puri',
+      badge: 'Featured',
+      badgeColor: '#E65100'
+    },
+    {
+      image: rathyatraBanner2.src,
+      title: 'Temple Heritage',
+      badge: 'Art & Culture',
+      badgeColor: '#00695C'
+    },
+    {
+      image: rathyatraBanner3.src,
+      title: 'Grand Procession',
+      badge: 'Live Event',
+      badgeColor: '#4C616C'
+    }
+  ],
+  baliyatra: [
+    {
+      image: baliyatraBanner1.src,
+      title: 'Bali Yatra Festival',
+      badge: 'Featured',
+      badgeColor: '#E65100'
+    },
+    {
+      image: baliyatraBanner2.src,
+      title: 'Grand Boita Bandana',
+      badge: 'Art & Culture',
+      badgeColor: '#00695C'
+    },
+    {
+      image: baliyatraBanner3.src,
+      title: 'Cuttack Cultural Stage',
+      badge: 'Live Event',
+      badgeColor: '#4C616C'
+    }
+  ],
+  kumbhmela: [
+    {
+      image: kumbhmelaBanner1.src,
+      title: 'Maha Kumbh Mela',
+      badge: 'Featured',
+      badgeColor: '#E65100'
+    },
+    {
+      image: kumbhmelaBanner2.src,
+      title: 'Sangam Confluence',
+      badge: 'Art & Culture',
+      badgeColor: '#00695C'
+    },
+    {
+      image: kumbhmelaBanner3.src,
+      title: 'Twilight Diya Ceremony',
+      badge: 'Live Event',
+      badgeColor: '#4C616C'
+    }
+  ]
+};
+
+export default function RedesignedEventHomePage() {
   const router = useRouter();
-  const {
-    selectedEvent,
-    poisList,
-    getCategoryStats,
-    setActiveCategory,
-    loadingMapData
+  const { 
+    selectedEvent, 
+    poisList, 
+    notifications, 
+    triggerToast, 
+    setActiveCategory, 
+    setNavTarget,
+    loadingMapData,
+    gpsStatus,
+    offlineMode,
+    backendUrl,
+    userGps
   } = useUserTest();
+  const { language, t } = useLanguage();
+  
+  const [activeSlide, setActiveSlide] = useState(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  const getEventSlides = () => {
+    if (!selectedEvent) return EVENT_SLIDES_MAP.rathyatra;
+    const name = selectedEvent.name.toLowerCase();
+    const id = selectedEvent.id.toLowerCase();
+    
+    let baseSlides = EVENT_SLIDES_MAP.rathyatra;
+    if (name.includes('bali') || id.includes('bali')) baseSlides = EVENT_SLIDES_MAP.baliyatra;
+    else if (name.includes('kumbh') || id.includes('kumbh')) baseSlides = EVENT_SLIDES_MAP.kumbhmela;
+
+    // Resolve absolute banner image path if it's served from the backend relative path
+    let eventBanner = selectedEvent.banner_url;
+    if (eventBanner && eventBanner.startsWith('/') && backendUrl) {
+      eventBanner = `${backendUrl.replace(/\/+$/, '')}${eventBanner}`;
+    }
+
+    return baseSlides.map((slide, idx) => {
+      if (idx === 0) {
+        return {
+          ...slide,
+          title: selectedEvent.name, // Display actual event name on the banner
+          image: eventBanner || slide.image // Display actual event image if available, otherwise fallback to local
+        };
+      }
+      return slide;
+    });
+  };
+
+  const slides = getEventSlides();
+
+  // Handle slide dots on scroll
+  const handleSliderScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container) {
+      const scrollPercent = container.scrollLeft / (container.scrollWidth - container.clientWidth);
+      const index = Math.round(scrollPercent * 2); // 3 slides total (0, 1, 2)
+      if (!isNaN(index) && index >= 0 && index <= 2) {
+        setActiveSlide(index);
+      }
+    }
+  };
+
+  // Autoplay Slideshow
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
+    const interval = setInterval(() => {
+      if (sliderRef.current) {
+        const container = sliderRef.current;
+        const nextIndex = (activeSlide + 1) % slides.length;
+        const slideWidth = container.clientWidth;
+        
+        container.scrollTo({
+          left: nextIndex * slideWidth,
+          behavior: 'smooth'
+        });
+      }
+    }, 4500); // Auto scroll every 4.5 seconds
+
+    return () => clearInterval(interval);
+  }, [activeSlide, slides.length]);
 
   if (!selectedEvent) return null;
-
-  // Format event title to RATH YATRA 2025 · PURI
-  const formattedEventSub = selectedEvent.name
-    ? selectedEvent.name.toUpperCase().replace(' - ', ' · ')
-    : 'RATH YATRA 2025 · PURI';
 
   if (poisList.length === 0 && loadingMapData) {
     return (
       <HomeContainer style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#a1a1aa', textAlign: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#6b7280', textAlign: 'center' }}>
           <div style={{
             width: '2.5rem',
             height: '2.5rem',
-            border: '3px solid rgba(34, 211, 238, 0.1)',
-            borderTopColor: '#22d3ee',
+            border: '3px solid rgba(230, 81, 0, 0.1)',
+            borderTopColor: '#E65100',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
           }} />
@@ -59,129 +247,304 @@ export default function EventHomePage() {
             @keyframes spin {
               to { transform: rotate(360deg); }
             }
-            @keyframes pulse {
-              0%, 100% { opacity: 0.4; }
-              50% { opacity: 1; }
-            }
           `}</style>
-          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fafafa' }}>Syncing map assets...</div>
-          <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a' }}>Downloading points of interest and routing sectors</div>
+          <Text variant="bodySecondary" weight={700} color={colors.neutral[900]}>Syncing map assets...</Text>
+          <Text variant="bodyTiny" weight={600} color={colors.neutral[700]}>Downloading points of interest and routing sectors</Text>
         </div>
       </HomeContainer>
     );
   }
 
+  // Find Nearest Medical POI dynamically from dataset if loaded
+  const medicalPois = poisList.filter(p => 
+    p.category_name.toLowerCase().includes('medical') || 
+    p.category_name.toLowerCase().includes('firstaid') || 
+    p.category_name.toLowerCase().includes('camp')
+  );
+  
+  const nearestMedical = medicalPois.length > 0 
+    ? [...medicalPois].sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))[0] 
+    : null;
+
+  const nearestMedicalName = nearestMedical ? nearestMedical.name_en : 'Medical Camp';
+  const nearestMedicalDistance = nearestMedical ? `${Math.round(nearestMedical.distance || 200)}m` : '200m';
+  const nearestMedicalDesc = nearestMedical ? nearestMedical.description || 'Nearest first aid sector' : 'South Gate (Ashwa Dwara) area';
+
+  // Navigate to Nearest Medical POI
+  const handleNavigateNearestMedical = () => {
+    if (nearestMedical) {
+      setNavTarget(nearestMedical);
+      router.push('/user-test-page/map');
+    } else {
+      // Mock navigation target if database empty
+      const mockMedical = {
+        id: 'mock-nearest-med',
+        name_en: 'Medical Camp - South Gate',
+        latitude: 19.8055,
+        longitude: 85.8208,
+        category_name: 'medical',
+        description: 'First aid post setup'
+      };
+      setNavTarget(mockMedical);
+      router.push('/user-test-page/map');
+    }
+  };
+
+  // Trigger SOS Call Card
+  const handleSosTrigger = () => {
+    triggerToast({
+      id: `sos-${Date.now()}`,
+      title: 'SOS Emergency Broadcasted',
+      message: 'SOS Signal transmitted offline. Emergency dispatch notified of your last GPS coordinates.',
+      is_emergency: true
+    });
+    if (typeof window !== 'undefined') {
+      window.location.href = 'tel:112'; // Dial emergency helpline
+    }
+  };
+
+  // Get Latest Notification dynamically or show default alert
+  const latestAlert = notifications && notifications.length > 0 
+    ? notifications[0] 
+    : { message: 'CROWD ALERT: Heavy congestion at Grand Road', title: 'CROWD ALERT', is_emergency: false };
+
+  const getAlertCategory = (alert: any): 'CRITICAL' | 'WARNING' | 'INFO' => {
+    if (!alert) return 'INFO';
+    const isEmergency = !!(alert.is_emergency || alert.isEmergency);
+    const textToSearch = `${alert.title || ''} ${alert.message || ''}`.toUpperCase();
+    const isAdvisory = textToSearch.includes('ADVISORY') || 
+                       textToSearch.includes('CROWD') || 
+                       textToSearch.includes('WARNING');
+    if (isEmergency) return 'CRITICAL';
+    if (isAdvisory) return 'WARNING';
+    return 'INFO';
+  };
+
+  const alertCategory = getAlertCategory(latestAlert);
+
+  let AlertIcon = Bell;
+  if (alertCategory === 'CRITICAL') AlertIcon = AlertTriangle;
+  else if (alertCategory === 'WARNING') AlertIcon = AlertCircle;
+
+  // Categories helper mapping icons and colors
+  const services = [
+    { id: 'toilet', label: 'Restrooms', icon: Users, bg: 'rgba(76, 97, 108, 0.08)', color: '#4C616C' },
+    { id: 'water', label: 'Drinking Water', icon: Droplet, bg: 'rgba(0, 105, 92, 0.08)', color: '#00695C' },
+    { id: 'medical', label: 'Medical', icon: Plus, bg: 'rgba(230, 81, 0, 0.08)', color: '#E65100' },
+    { id: 'police', label: 'Police', icon: Shield, bg: 'rgba(76, 97, 108, 0.08)', color: '#4C616C' },
+    { id: 'food', label: 'Food Camps', icon: Utensils, bg: 'rgba(230, 81, 0, 0.08)', color: '#E65100' },
+    { id: 'sanitation', label: 'Sanitation', icon: Brush, bg: 'rgba(0, 105, 92, 0.08)', color: '#00695C' }
+  ];
+
+  const eventLocation = selectedEvent.name.split(' - ')[1] || 'Puri';
+  const isGpsActive = gpsStatus === 'locked' && !offlineMode;
+
   return (
     <HomeContainer>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
-        }
-      `}</style>
-      
-      {/* Event Header Card (Full-bleed dark brown) */}
-      <EventHeaderCard>
-        <EventSub>
-          {formattedEventSub}
-        </EventSub>
-        <EventTitle>
-          Choose a destination
-        </EventTitle>
-        <EventMeta>
-          <span>Map downloaded · Last updated 2h ago</span>
-        </EventMeta>
-      </EventHeaderCard>
+      {/* Redesigned Top Header Overlay */}
+      <HomeHeader>
+        <HeaderLeft onClick={() => router.push('/user-test-page')}>
+          <Settings />
+        </HeaderLeft>
+        <HeaderRight>
+          <LocationBadge>
+            <CheckCircle />
+            <span>{eventLocation}</span>
+          </LocationBadge>
+          <LiveBadge style={{ backgroundColor: isGpsActive ? '#84d5c5' : '#E5EAF0', color: isGpsActive ? '#00201b' : '#475569' }}>
+            <Compass style={{ opacity: isGpsActive ? 1 : 0.4 }} />
+            <span>{isGpsActive ? 'Live' : 'Offline'}</span>
+          </LiveBadge>
+          <LangButton onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/home`)}>
+            {language.toUpperCase()}
+          </LangButton>
+        </HeaderRight>
+      </HomeHeader>
 
-      {/* Offline Map Status Header Box */}
-      {loadingMapData ? (
-        <StatusBox style={{ borderColor: 'rgba(34, 211, 238, 0.2)' }}>
-          <StatusInfo>
-            <StatusTitle style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{
-                display: 'inline-block',
-                width: '0.5rem',
-                height: '0.5rem',
-                backgroundColor: '#22d3ee',
-                borderRadius: '50%',
-                animation: 'pulse 1.5s infinite'
-              }} />
-              <span>Checking for updates...</span>
-            </StatusTitle>
-            <StatusText style={{ paddingLeft: '1rem' }}>{poisList.length} POIs active · Updating...</StatusText>
-          </StatusInfo>
-          <StatusBadge style={{ backgroundColor: 'rgba(34, 211, 238, 0.1)', color: '#22d3ee', borderColor: 'rgba(34, 211, 238, 0.2)' }}>
-            <span style={{
-              display: 'inline-block',
-              width: '12px',
-              height: '12px',
-              border: '2px solid rgba(34, 211, 238, 0.2)',
-              borderTopColor: '#22d3ee',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
-            }} />
-          </StatusBadge>
-        </StatusBox>
-      ) : (
-        <StatusBox>
-          <StatusInfo>
-            <StatusTitle>Offline map ready</StatusTitle>
-            <StatusText>{poisList.length} POIs loaded</StatusText>
-          </StatusInfo>
-          <StatusBadge>
-            <span>OFFLINE</span>
-            <span className="checkmark">✓</span>
-          </StatusBadge>
-        </StatusBox>
-      )}
+      {/* 1. Event Highlights Slider */}
+      <SliderWrapper>
+        <SliderContainer ref={sliderRef} onScroll={handleSliderScroll}>
+          {slides.map((slide, idx) => (
+            <SlideItem key={idx}>
+              <SlideImage src={slide.image} alt={slide.title} />
+              <SlideOverlay />
+              <SlideInfo>
+                <SlideBadge $bgColor={slide.badgeColor}>{slide.badge}</SlideBadge>
+                <Text variant="sectionTitle" weight={800} color="#FFFFFF" style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '20px', margin: 0 }}>
+                  {slide.title}
+                </Text>
+              </SlideInfo>
+            </SlideItem>
+          ))}
+        </SliderContainer>
 
+        <DotIndicators>
+          {slides.map((_, idx) => (
+            <Dot key={idx} $active={activeSlide === idx} />
+          ))}
+        </DotIndicators>
+      </SliderWrapper>
 
-   
-      {/* Grid 3x3 of POI categories */}
-      <CategoriesGrid>
-        {[
-          { id: 'toilet', label: 'Toilets', count: getCategoryStats('toilet'), emoji: '🚻', desc: 'nearby' },
-          { id: 'police', label: 'Police', count: getCategoryStats('police'), emoji: '👮', desc: 'nearby' },
-          { id: 'medical', label: 'Medical', count: getCategoryStats('medical'), emoji: '🏥', desc: 'nearby' },
-          { id: 'lost', label: 'Lost & Found', count: getCategoryStats('lost'), emoji: '🔍', desc: 'nearby' },
-          { id: 'water', label: 'Water', count: getCategoryStats('water'), emoji: '💧', desc: 'nearby' },
-          { id: 'exit', label: 'Exit Gates', count: getCategoryStats('exit'), emoji: '🚪', desc: 'nearby' },
-          { id: 'food', label: 'Food', count: getCategoryStats('food'), emoji: '🍽️', desc: 'nearby' },
-          { id: 'parking', label: 'Parking', count: getCategoryStats('parking'), emoji: '🅿️', desc: 'nearby' },
-          { id: 'emergency', label: 'Emergency', count: 1, emoji: '⚠️', isEmergency: true, desc: 'Assembly' }
-        ].map((cat) => {
-          return (
-            <CategoryCard
-              key={cat.id}
-              $isEmergency={cat.isEmergency}
-              onClick={() => {
-                setActiveCategory(cat.id);
-                router.push('/user-test-page/pois');
-              }}
-            >
-              <EmojiIcon className="emoji">{cat.emoji}</EmojiIcon>
-              <CategoryTextWrapper>
-                <CategoryLabel>{cat.label}</CategoryLabel>
-                <CategoryCount>
-                  {cat.id === 'emergency' ? cat.desc : `${cat.count} ${cat.desc}`}
-                </CategoryCount>
-              </CategoryTextWrapper>
-            </CategoryCard>
-          );
-        })}
-      </CategoriesGrid>
+      {/* Main Body Contents */}
+      <HomeBody>
+        {/* 2. Condensed Urgent Alert */}
+        <UrgentAlertCard $type={alertCategory}>
+          <AlertContent>
+            <AlertIcon size={44} />
+            <AlertText>{latestAlert.message}</AlertText>
+          </AlertContent>
+          <AlertLink onClick={() => router.push('/user-test-page/alerts')}>VIEW ALL</AlertLink>
+        </UrgentAlertCard>
 
-      {/* Banner Alert details */}
-      <BannerAlert>
-        <BannerIndicator />
-        <BannerBell />
-        <BannerText>
-          Procession route change — Bada Danda Sector 3 closed. Tap to see alternate.
-        </BannerText>
-      </BannerAlert>
+        {/* 4. Refined Nearest Help Card */}
+        <NearestHelpCard>
+          <HelpBadgeWrapper>
+            <HelpBadgeDot />
+            <HelpBadgeText>Nearest Help</HelpBadgeText>
+          </HelpBadgeWrapper>
+
+          <HelpCardRow>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+              <Text variant="sectionTitle" weight={700} color="#FFFFFF" style={{margin: 0, letterSpacing: '-0.01em' }}>
+                {nearestMedicalName} ({nearestMedicalDistance})
+              </Text>
+              <Text variant="bodySecondary" weight={600} color="rgba(255, 255, 255, 0.8)" style={{ margin: 0 }}>
+                {nearestMedicalDesc}
+              </Text>
+            </div>
+            <HelpCardButton onClick={handleNavigateNearestMedical}>
+              <Navigation fill="currentColor" />
+            </HelpCardButton>
+          </HelpCardRow>
+        </NearestHelpCard>
+
+        {/* 5. Quick Action Grid */}
+        <ActionGrid>
+          {/* Emergency SOS Help */}
+          <SosButton onClick={handleSosTrigger}>
+            <SosIconBox>
+              <AlertTriangle fill="currentColor" />
+            </SosIconBox>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <Text variant="bodyPrimary" weight={700} color="#93000a" style={{  margin: 0 }}>
+                SOS Help
+              </Text>
+              <Text variant="bodySecondary" weight={600} color="rgba(147, 0, 10, 0.8)" style={{  margin: 0 }}>
+                Tap for emergency assistance
+              </Text>
+            </div>
+          </SosButton>
+
+          {/* Quick Service Category Items */}
+          {services.map((item) => {
+            const Icon = item.icon;
+            
+            // Calculate dynamic counts
+            let count = 0;
+            const query = item.id.toLowerCase();
+            if (query === 'toilet') {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes('toilet')).length;
+            } else if (query === 'water') {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes('water') || p.category_name.toLowerCase().includes('drinking')).length;
+            } else if (query === 'medical') {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes('medical') || p.category_name.toLowerCase().includes('firstaid')).length;
+            } else if (query === 'police') {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes('police') || p.category_name.toLowerCase().includes('post')).length;
+            } else if (query === 'food') {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes('food') || p.category_name.toLowerCase().includes('camp') || p.category_name.toLowerCase().includes('langar')).length;
+            } else if (query === 'sanitation') {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes('sanitation') || p.category_name.toLowerCase().includes('waste')).length;
+            } else {
+              count = poisList.filter(p => p.category_name.toLowerCase().includes(query)).length;
+            }
+
+            const getSuffix = (id: string, val: number) => {
+              const plural = val !== 1;
+              if (id === 'toilet') return plural ? 'Restrooms' : 'Restroom';
+              if (id === 'water') return plural ? 'Points' : 'Point';
+              if (id === 'medical') return plural ? 'Camps' : 'Camp';
+              if (id === 'police') return plural ? 'Posts' : 'Post';
+              if (id === 'food') return plural ? 'Camps' : 'Camp';
+              if (id === 'sanitation') return plural ? 'Points' : 'Point';
+              return plural ? 'Units' : 'Unit';
+            };
+
+            const suffix = getSuffix(item.id, count);
+
+            return (
+              <GridItemCard 
+                key={item.id} 
+                onClick={() => {
+                  setActiveCategory(item.id);
+                  router.push('/user-test-page/pois');
+                }}
+              >
+                <GridIconBox $bgColor={item.bg} $color={item.color}>
+                  <Icon />
+                </GridIconBox>
+                <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0 }}>
+                  {item.label}
+                </Text>
+                <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11px', margin: 0, marginTop: '2px' }}>
+                  {count} {suffix}
+                </Text>
+              </GridItemCard>
+            );
+          })}
+        </ActionGrid>
+
+        {/* View All Categories Button */}
+        <ViewAllButton onClick={() => {
+          setActiveCategory('all');
+          router.push('/user-test-page/pois');
+        }}>
+          <LayoutGrid />
+          <span>View All Categories</span>
+        </ViewAllButton>
+
+        {/* Safety & Planning Section */}
+        <SafetySection>
+          <SectionTitle>Safety & Planning</SectionTitle>
+          <SafetyGrid>
+            <SafetyCard onClick={() => router.push('/user-test-page/saved')}>
+              <SafetyIconBox $bgColor="rgba(76, 97, 108, 0.08)" $color="#4C616C">
+                <Users />
+              </SafetyIconBox>
+              <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0, textAlign: 'left' }}>
+                Family Meetup
+              </Text>
+            </SafetyCard>
+
+            <SafetyCard onClick={() => router.push('/user-test-page/saved')}>
+              <SafetyIconBox $bgColor="rgba(0, 105, 92, 0.08)" $color="#00695C">
+                <MapPin />
+              </SafetyIconBox>
+              <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0, textAlign: 'left' }}>
+                Save My Spot
+              </Text>
+            </SafetyCard>
+
+            {/* Live Parking Card */}
+            <LiveParkingRow onClick={() => {
+              setActiveCategory('parking');
+              router.push('/user-test-page/pois');
+            }}>
+              <ParkingIconBox>
+                <Car />
+              </ParkingIconBox>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <Text variant="bodySecondary" weight={600} color={colors.neutral[900]} style={{  margin: 0 }}>
+                  Live Parking
+                </Text>
+                <Text variant="caption" weight={600} color="#E65100" style={{ margin: 0 }}>
+                  Bus Stand: 20 spots
+                </Text>
+              </div>
+              <ChevronRight color="#B5B7BD" size={18} />
+            </LiveParkingRow>
+          </SafetyGrid>
+        </SafetySection>
+      </HomeBody>
     </HomeContainer>
   );
 }

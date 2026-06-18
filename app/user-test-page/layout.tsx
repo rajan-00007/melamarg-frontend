@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { UserTestProvider, useUserTest } from './context/UserTestContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { 
   Bell, 
   MapPin, 
@@ -19,7 +20,10 @@ import {
   RefreshCw,
   Plane,
   Wifi,
-  Usb
+  Usb,
+  Home,
+  Store,
+  MessageSquare
 } from 'lucide-react';
 
 import {
@@ -50,9 +54,11 @@ import {
   NavButton,
   NavBadge,
   NavButtonText,
+  NavIconWrapper,
   GPSLockedPill,
   GPSSearchingPill,
-  GPSLostPill
+  GPSLostPill,
+  FloatingExploreButton
 } from './layout.styled';
 
 function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
@@ -86,13 +92,26 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
     getOfflineEvents,
     clearDownloadedCache,
     screenMode,
-    setScreenMode
+    setScreenMode,
+    triggerToast
   } = useUserTest();
+
+  // First visit check: redirect to language selection page if no language chosen yet
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedLang = localStorage.getItem('mm_language');
+      const isLanguageRoute = pathname === '/user-test-page/language';
+      if (!savedLang && !isLanguageRoute) {
+        router.push(`/user-test-page/language?returnUrl=${pathname}`);
+      }
+    }
+  }, [pathname, router]);
 
   // If no event is selected and we try to access sub-routes, redirect to the selector
   useEffect(() => {
     const isSetupRoute = pathname === '/user-test-page';
-    if (!selectedEvent && !isSetupRoute) {
+    const isLanguageRoute = pathname === '/user-test-page/language';
+    if (!selectedEvent && !isSetupRoute && !isLanguageRoute) {
       router.push('/user-test-page');
     }
   }, [selectedEvent, pathname, router]);
@@ -130,11 +149,14 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   }, [selectedEvent, pathname, router, setNavTarget]);
 
   // Determine active tab based on pathname
-  let currentTab: 'home' | 'map' | 'alerts' | 'help' | null = null;
+  let currentTab: 'home' | 'map' | 'shops' | 'alerts' | 'help' | 'ideas' | 'all-pois' | null = null;
   if (pathname.endsWith('/home')) currentTab = 'home';
   else if (pathname.endsWith('/map')) currentTab = 'map';
   else if (pathname.endsWith('/alerts')) currentTab = 'alerts';
   else if (pathname.endsWith('/help')) currentTab = 'help';
+  else if (pathname.endsWith('/shops')) currentTab = 'shops';
+  else if (pathname.endsWith('/all-pois')) currentTab = 'all-pois';
+  else if (pathname.endsWith('/ideas')) currentTab = 'ideas';
 
   const isSetupRoute = pathname === '/user-test-page';
   const isNavigatingRoute = pathname.endsWith('/navigation');
@@ -212,8 +234,8 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             >
               <ToastContent>
                 <ToastHeader>
-                  <LeftIcon className={`w-3.5 h-3.5 ${iconColor}`} />
-                  <ToastTitle $color={alertColorTheme}>
+                  <LeftIcon className="w-3.5 h-3.5" style={{ color: leftBorderColor }} />
+                  <ToastTitle>
                     {toast.title}
                   </ToastTitle>
                 </ToastHeader>
@@ -257,57 +279,99 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </ContentArea>
 
+      {/* Fixed Explore Map button on Home Page - outside animated scope to prevent movement */}
+      {currentTab === 'home' && (
+        <FloatingExploreButton onClick={() => router.push('/user-test-page/map')}>
+          <Compass style={{ transform: 'rotate(0deg)' }} />
+          <span>Explore Map</span>
+        </FloatingExploreButton>
+      )}
+
       {/* BOTTOM TAB NAVIGATION BAR */}
       {showNav && (
         <BottomNav>
           <NavButton
             $isActive={currentTab === 'home'}
-            $activeColor="#d97706"
+            $activeColor="#1d4ed8"
             onClick={() => {
               setScreenMode('home');
               router.push('/user-test-page/home');
             }}
           >
-            <LayoutGrid className="w-5 h-5" />
-            <NavButtonText>Home</NavButtonText>
+            <NavIconWrapper $isActive={currentTab === 'home'}>
+              <Home />
+            </NavIconWrapper>
+            <NavButtonText $isActive={currentTab === 'home'}>Home</NavButtonText>
           </NavButton>
 
           <NavButton
             $isActive={currentTab === 'map'}
-            $activeColor="#22d3ee"
+            $activeColor="#1d4ed8"
             onClick={() => {
               router.push('/user-test-page/map');
             }}
           >
-            <Map className="w-5 h-5" />
-            <NavButtonText>Map</NavButtonText>
+            <NavIconWrapper $isActive={currentTab === 'map'}>
+              <Map />
+            </NavIconWrapper>
+            <NavButtonText $isActive={currentTab === 'map'}>Map</NavButtonText>
+          </NavButton>
+
+          <NavButton
+            $isActive={currentTab === 'all-pois'}
+            $activeColor="#1d4ed8"
+            onClick={() => {
+              router.push('/user-test-page/all-pois');
+            }}
+          >
+            <NavIconWrapper $isActive={currentTab === 'all-pois'}>
+              <LayoutGrid />
+            </NavIconWrapper>
+            <NavButtonText $isActive={currentTab === 'all-pois'}>Categories</NavButtonText>
           </NavButton>
 
           <NavButton
             $isActive={currentTab === 'alerts'}
-            $activeColor="#ef4444"
+            $activeColor="#1d4ed8"
             onClick={() => {
               router.push('/user-test-page/alerts');
             }}
           >
-            <Megaphone className="w-5 h-5" />
-            <NavButtonText>Alerts</NavButtonText>
+            <NavIconWrapper $isActive={currentTab === 'alerts'}>
+              <Bell />
+            </NavIconWrapper>
             {notifications.filter(n => !dismissedNotificationIds.includes(n.id)).length > 0 && (
               <NavBadge>
                 {notifications.filter(n => !dismissedNotificationIds.includes(n.id)).length}
               </NavBadge>
             )}
+            <NavButtonText $isActive={currentTab === 'alerts'}>Alerts</NavButtonText>
           </NavButton>
 
           <NavButton
             $isActive={currentTab === 'help'}
-            $activeColor="#fafafa"
+            $activeColor="#1d4ed8"
             onClick={() => {
               router.push('/user-test-page/help');
             }}
           >
-            <HelpCircle className="w-5 h-5" />
-            <NavButtonText>Help</NavButtonText>
+            <NavIconWrapper $isActive={currentTab === 'help'}>
+              <HelpCircle />
+            </NavIconWrapper>
+            <NavButtonText $isActive={currentTab === 'help'}>Support</NavButtonText>
+          </NavButton>
+
+          <NavButton
+            $isActive={currentTab === 'ideas'}
+            $activeColor="#1d4ed8"
+            onClick={() => {
+              router.push('/user-test-page/ideas');
+            }}
+          >
+            <NavIconWrapper $isActive={currentTab === 'ideas'}>
+              <MessageSquare />
+            </NavIconWrapper>
+            <NavButtonText $isActive={currentTab === 'ideas'}>Ideas</NavButtonText>
           </NavButton>
         </BottomNav>
       )}
@@ -318,7 +382,9 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 export default function UserTestLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserTestProvider>
-      <UserTestLayoutContent>{children}</UserTestLayoutContent>
+      <LanguageProvider>
+        <UserTestLayoutContent>{children}</UserTestLayoutContent>
+      </LanguageProvider>
     </UserTestProvider>
   );
 }

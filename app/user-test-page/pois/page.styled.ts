@@ -27,140 +27,159 @@ const fadeIn = keyframes`
 `;
 
 export const PoisContainer = styled.div`
-  padding: 1.25rem; /* p-5 */
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem; /* space-y-5 */
+  gap: 1.25rem;
   animation: ${fadeIn} 0.4s ease-out forwards;
+  box-sizing: border-box;
+  width: 100%;
 `;
 
 export const BrandHeader = styled.div`
   text-align: center;
-  padding-top: 0.5rem; /* pt-2 */
-  padding-bottom: 0.25rem; /* pb-1 */
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
 `;
 
 export const BrandTitle = styled.h1`
-  font-size: 1.5rem; /* text-2xl */
-  font-weight: 900;
-  letter-spacing: 0.05em; /* tracking-wider */
-  color: #f4f4f5; /* text-zinc-100 */
+  font-size: 1.25rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  color: #1f2937;
   margin: 0;
+  text-transform: uppercase;
 `;
 
 export const BrandSubtitle = styled.p`
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.1em; /* tracking-widest */
-  color: #71717a; /* text-zinc-500 */
+  letter-spacing: 0.08em;
+  color: #9ca3af;
   font-weight: 700;
   margin: 0;
+  margin-top: 0.125rem;
 `;
 
 export const HeaderBar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #18181b; /* border-zinc-900 */
-  padding-bottom: 0.75rem; /* pb-3 */
-  margin-top: 1rem; /* mt-4 */
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.875rem;
+  margin-top: 0.5rem;
 `;
 
 export const BackButton = styled.button`
   display: flex;
   align-items: center;
-  color: #a1a1aa; /* text-zinc-400 */
-  background: transparent;
-  border: 0;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.75rem;
+  background-color: #ffffff;
+  border: none;
+  border-radius: 0.75rem;
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
   cursor: pointer;
-  font-weight: 700;
-  font-size: 0.75rem; /* text-xs */
-  gap: 0.25rem; /* gap-1 */
-  padding: 0;
-  transition: color 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: #ffffff;
+    background-color: #f9fafb;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 export const CategoryTitle = styled.h3`
-  font-size: 0.75rem; /* text-xs */
-  font-weight: 900;
-  color: #fafafa; /* text-zinc-50 */
+  font-size: 13px;
+  font-weight: 850;
+  color: #1f2937;
   display: flex;
   align-items: center;
   text-transform: uppercase;
-  letter-spacing: 0.05em; /* tracking-wider */
-  gap: 0.375rem; /* gap-1.5 */
+  letter-spacing: 0.02em;
+  gap: 0.375rem;
   margin: 0;
 `;
 
 export const CountBadge = styled.span`
-  font-size: 9px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; /* font-mono */
-  padding: 0.125rem 0.625rem; /* px-2.5 py-0.5 */
-  background-color: #121217;
-  border-radius: 0.25rem;
-  border: 1px solid #27272a; /* border-zinc-800 */
-  color: #a1a1aa; /* text-zinc-400 */
-  font-weight: 700;
+  font-size: 10px;
+  padding: 0.25rem 0.75rem;
+  background-color: #eff6ff;
+  border-radius: 9999px;
+  border: 1px solid rgba(191, 219, 254, 0.4);
+  color: #3b2eb6;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 `;
 
 export const ListSubtitle = styled.p`
   font-size: 10px;
-  color: #71717a; /* text-zinc-500 */
+  color: #6b7280;
   font-style: italic;
-  padding-left: 0.25rem; /* px-1 */
+  padding-left: 0.25rem;
   margin: 0;
+  margin-top: -0.25rem;
 `;
 
 export const CardsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.875rem; /* space-y-3.5 */
+  gap: 0.875rem;
 `;
 
 export const EmptyState = styled.div`
-  padding: 2rem; /* p-8 */
-  border: 1px dashed #27272a; /* border-zinc-800 */
-  background-color: rgba(24, 24, 27, 0.2); /* bg-zinc-900/20 */
-  border-radius: 1rem; /* rounded-2xl */
+  padding: 2.5rem 2rem;
+  border: 1px dashed #d1d5db;
+  background-color: #ffffff;
+  border-radius: 1.5rem;
   text-align: center;
-  font-size: 0.75rem; /* text-xs */
-  color: #52525b; /* text-zinc-600 */
+  font-size: 11px;
+  color: #6b7280;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
 `;
 
 export const PoiCard = styled.div`
-  padding: 1rem; /* p-4 */
-  border-radius: 1rem; /* rounded-2xl */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  background-color: rgba(18, 18, 23, 0.5); /* bg-[#121217]/50 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.02);
+  background-color: #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem; /* space-x-4 */
+  gap: 1rem;
   position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+  }
 `;
 
 export const PoiInfoWrapper = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.875rem; /* space-x-3.5 */
+  gap: 0.875rem;
   min-width: 0;
 `;
 
 export const IndexCircle = styled.div`
-  font-size: 0.875rem; /* text-sm */
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; /* font-mono */
+  font-size: 11px;
   font-weight: 900;
-  color: #d97706;
-  background-color: #09090b; /* bg-zinc-900 */
-  border: 1px solid #27272a; /* border-zinc-850 */
-  height: 1.625rem; /* h-6.5 */
-  width: 1.625rem; /* w-6.5 */
-  border-radius: 9999px;
+  color: #3b2eb6;
+  background-color: #eff6ff;
+  border: none;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -170,14 +189,14 @@ export const IndexCircle = styled.div`
 export const PoiDetails = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.125rem; /* space-y-0.5 */
+  gap: 0.125rem;
   min-width: 0;
 `;
 
 export const PoiTitle = styled.h4`
-  font-weight: 800;
-  font-size: 0.75rem; /* text-xs */
-  color: #f4f4f5; /* text-zinc-100 */
+  font-weight: 850;
+  font-size: 13px;
+  color: #1f2937;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -186,45 +205,53 @@ export const PoiTitle = styled.h4`
 
 export const PoiStats = styled.div`
   font-size: 10px;
-  color: #22d3ee; /* text-cyan-400 */
-  font-weight: 700;
+  color: #3b2eb6;
+  font-weight: 800;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
 `;
 
 export const DotSeparator = styled.span`
-  margin: 0 0.375rem; /* mx-1.5 */
-  color: #3f3f46; /* text-zinc-650 */
+  margin: 0 0.375rem;
+  color: #d1d5db;
 `;
 
 export const WalkText = styled.span`
-  color: #a1a1aa; /* text-zinc-400 */
-  font-weight: 500;
+  color: #6b7280;
+  font-weight: 600;
 `;
 
 export const StatusText = styled.span`
-  color: #34d399; /* text-emerald-400 */
+  color: #10b981;
   font-weight: 900;
 `;
 
 export const GoButton = styled.button`
-  padding: 0.375rem 1rem; /* py-1.5 px-4 */
-  border-radius: 0.75rem; /* rounded-xl */
-  background-color: #09090b; /* bg-zinc-900 */
-  color: #fafafa; /* text-zinc-100 */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  font-weight: 900;
+  padding: 0.5rem 1.15rem;
+  border-radius: 9999px;
+  background-color: #1c1917; /* Dark black like Ideas */
+  color: #ffffff;
+  border: none;
+  font-weight: 800;
   font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   transition: all 0.2s;
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(28, 25, 23, 0.15);
 
   &:hover {
-    background-color: #121217;
-    color: #ffffff;
+    background-color: #292524;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   svg {
@@ -237,81 +264,91 @@ export const GoButton = styled.button`
 `;
 
 export const TipBox = styled.div`
-  padding: 0.75rem; /* p-3 */
-  background-color: rgba(24, 24, 27, 0.5); /* bg-zinc-900/50 */
-  border: 1px solid #27272a; /* border-zinc-800 */
-  border-radius: 1rem; /* rounded-2xl */
-  font-size: 9px;
-  line-height: 1.625;
-  color: #d97706;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; /* font-mono */
+  padding: 0.875rem 1rem;
+  background-color: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 1.25rem;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #b45309;
+  font-weight: 750;
   text-align: center;
 `;
 
 // Styled icons
 export const StyledChevronLeft = styled(ChevronLeft)`
-  width: 1rem;
-  height: 1rem;
-  color: #a1a1aa;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: #1f2937;
+  stroke-width: 3;
 `;
 
 export const StyledArrowRight = styled(ArrowRight)`
-  width: 0.75rem;
-  height: 0.75rem;
-  margin-left: 0.25rem;
-  color: #a1a1aa;
+  width: 0.8rem;
+  height: 0.8rem;
+  color: #ffffff;
+  stroke-width: 3;
 `;
 
 export const StyledCompass = styled(Compass)`
-  width: 1rem;
-  height: 1rem;
-  color: #22d3ee; /* text-cyan-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #3b2eb6;
+  stroke-width: 2.5;
 `;
 
 export const StyledShield = styled(Shield)`
-  width: 1rem;
-  height: 1rem;
-  color: #818cf8; /* text-indigo-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #3b2eb6;
+  stroke-width: 2.5;
 `;
 
 export const StyledHeartPulse = styled(HeartPulse)`
-  width: 1rem;
-  height: 1rem;
-  color: #fb7185; /* text-rose-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #de2c2c;
+  stroke-width: 2.5;
 `;
 
 export const StyledSearch = styled(Search)`
-  width: 1rem;
-  height: 1rem;
-  color: #fbbf24; /* text-amber-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #ca8a04;
+  stroke-width: 2.5;
 `;
 
 export const StyledDroplets = styled(Droplets)`
-  width: 1rem;
-  height: 1rem;
-  color: #60a5fa; /* text-blue-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #2563eb;
+  stroke-width: 2.5;
 `;
 
 export const StyledLogOut = styled(LogOut)`
-  width: 1rem;
-  height: 1rem;
-  color: #34d399; /* text-emerald-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #10b981;
+  stroke-width: 2.5;
 `;
 
 export const StyledUtensils = styled(Utensils)`
-  width: 1rem;
-  height: 1rem;
-  color: #f97316; /* text-orange-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #f97316;
+  stroke-width: 2.5;
 `;
 
 export const StyledCar = styled(Car)`
-  width: 1rem;
-  height: 1rem;
-  color: #a1a1aa; /* text-zinc-400 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #6b7280;
+  stroke-width: 2.5;
 `;
 
 export const StyledAlertTriangle = styled(AlertTriangle)`
-  width: 1rem;
-  height: 1rem;
-  color: #ef4444; /* text-rose-500 */
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #de2c2c;
+  stroke-width: 2.5;
 `;

@@ -33,6 +33,7 @@ export interface POIItem {
   description?: string;
   distance?: number;
   time?: number;
+  path_name?: string | null;
 }
 
 export interface NodeItem {
@@ -49,6 +50,7 @@ export interface EdgeItem {
   id?: string;
   start_node_id: string;
   end_node_id: string;
+  path_name?: string | null;
 }
 
 // Dijkstra Shortest Path Router for route graph pathfinding

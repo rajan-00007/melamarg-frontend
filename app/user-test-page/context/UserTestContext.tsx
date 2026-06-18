@@ -134,6 +134,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
   } = useMapData();
 
   const {
+    stats,
     navTarget,
     setNavTarget,
     deviceHeading,
@@ -538,6 +539,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
         getSortedPois,
 
         // Navigation context fields
+        stats,
         navTarget,
         setNavTarget,
         deviceHeading,

@@ -55,11 +55,7 @@ export default function CategoryPoisPage() {
   return (
     <PoisContainer>
       
-      {/* Sleek Branding Header */}
-      <BrandHeader>
-        <BrandTitle>MelaMarg</BrandTitle>
-        <BrandSubtitle>Tentative UI - Offline Mass Gathering Navigation</BrandSubtitle>
-      </BrandHeader>
+
 
       {/* Category list header */}
       <HeaderBar>

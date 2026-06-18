@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import StyledComponentsRegistry from "../lib/registry";
 import { GlobalStyle } from "./layout.styled";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
@@ -31,8 +35,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <StyledComponentsRegistry>
           <GlobalStyle />
           {children}
@@ -52,5 +56,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-

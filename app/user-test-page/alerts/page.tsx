@@ -3,37 +3,95 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest, POIItem } from '../context/UserTestContext';
-import {
-  AlertTriangle,
-  Info,
-  Bell
+import { useLanguage } from '../context/LanguageContext';
+import { colors } from '@/components/style/colors';
+import Text from '@/components/style/text/Text';
+import { 
+  Bell, 
+  Shield, 
+  Plus, 
+  Baby, 
+  HelpCircle, 
+  RefreshCw, 
+  Volume2, 
+  Compass, 
+  PhoneCall, 
+  ChevronRight 
 } from 'lucide-react';
+
+// Subcomponents
+import AlertHeader from './AlertHeader';
+import AlertFeedCard from './AlertFeedCard';
+
+// Styled Components
 import {
   AlertsContainer,
-  HeaderRow,
-  IconTextRow,
-  HeaderTitle,
-  CountBadge,
-  VerifiedBadge,
-  BadgeText,
   AlertsFeed,
   EmptyFeed,
   EmptyTitle,
   EmptySubtitle,
-  AlertCard,
-  AlertBody,
-  AlertCategory,
-  AlertMessage,
-  AlertTime,
-  AlertFooter,
-  NavigateButton,
-  DismissButton,
-  StyledBellHeader,
-  StyledAwardBadge,
-  StyledBellEmpty,
-  StyledCompassNav,
-  StyledArrowRightNav
+  EmergencyCard,
+  EmergencyGrid,
+  EmergencyButton,
+  EmergencyIconBox,
+  LocationCard,
+  CoordsRow,
+  CoordBlock,
+  CoordLabel,
+  CoordValue,
+  ShareButton,
+  BoothCard,
+  BoothOverlayImage,
+  BoothCardContent,
+  BoothHeader,
+  BoothBadge,
+  BoothActionBtn,
+  HelplinesCard,
+  HelplinesList,
+  HelplineItem,
+  HelplineLeft,
+  HelplineIconBox,
+  HelplineNumberPill
 } from './page.styled';
+
+const MOCK_PAGE_ALERTS = [
+  {
+    id: 'mock-alert-1',
+    title: 'Emergency: Medical Post Alpha',
+    message: 'A new medical assistance point is now live near Sector 4 (Mahanadi Gadi).',
+    created_at: new Date(Date.now() - 2 * 60000).toISOString(),
+    is_emergency: true,
+    category: 'CRITICAL' as const,
+    timeLabel: '2M AGO',
+    latitude: 19.805,
+    longitude: 85.825,
+    actionText: 'NAVIGATE TO MEDICAL POST'
+  },
+  {
+    id: 'mock-alert-2',
+    title: 'Crowd Advisory: Main Stage',
+    message: 'High density reported near the cultural stage. Please use alternate paths through the handicraft zone.',
+    created_at: new Date(Date.now() - 15 * 60000).toISOString(),
+    is_emergency: false,
+    category: 'WARNING' as const,
+    timeLabel: '15M AGO',
+    latitude: 19.806,
+    longitude: 85.826,
+    actionText: 'AVOID AREA / FIND ALTERNATE'
+  },
+  {
+    id: 'mock-alert-3',
+    title: 'Weather Update',
+    message: 'Clear skies expected for the evening. Perfect time for the laser show at 7:00 PM.',
+    created_at: new Date(Date.now() - 60 * 60000).toISOString(),
+    is_emergency: false,
+    category: 'INFO' as const,
+    timeLabel: '1H AGO',
+    latitude: 19.807,
+    longitude: 85.827,
+    actionText: 'NAVIGATE TO LASER SHOW'
+  }
+];
 
 export default function EventAlertsPage() {
   const router = useRouter();
@@ -41,165 +99,173 @@ export default function EventAlertsPage() {
     selectedEvent,
     notifications,
     dismissedNotificationIds,
-    setDismissedNotificationIds,
+    userGps,
+    getRealGps,
+    setUserGps,
     setNavTarget,
+    setScreenMode,
     setArrivalNotify,
     logNavigationInstructions,
-    setScreenMode
+    triggerToast
   } = useUserTest();
+
+  const { t } = useLanguage();
 
   if (!selectedEvent) return null;
 
-  const activeAlerts = notifications.filter(n => !dismissedNotificationIds.includes(n.id));
+  const activeAlerts = notifications ? notifications.filter(n => !dismissedNotificationIds.includes(n.id)) : [];
 
   const getRelativeTime = (dateStr: string) => {
-    if (!dateStr) return '';
+    if (!dateStr) return 'JUST NOW';
     const diffMs = new Date().getTime() - new Date(dateStr).getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffMins < 1) return 'JUST NOW';
+    if (diffMins < 60) return `${diffMins}M AGO`;
     const diffHrs = Math.floor(diffMins / 60);
-    if (diffHrs < 24) return `${diffHrs} hr ago`;
-    return new Date(dateStr).toLocaleDateString();
+    if (diffHrs < 24) return `${diffHrs}H AGO`;
+    return new Date(dateStr).toLocaleDateString().toUpperCase();
   };
+
+  // Map active live notifications or load mock notifications matching screenshot
+  const displayAlerts = activeAlerts.length > 0 ? activeAlerts.map(alert => {
+    const isEmergency = alert.is_emergency;
+    const isAdvisory = alert.title.toUpperCase().includes('ADVISORY') || 
+                       alert.title.toUpperCase().includes('CROWD') || 
+                       alert.title.toUpperCase().includes('WARNING');
+    
+    let category: 'CRITICAL' | 'WARNING' | 'INFO' = 'INFO';
+    if (isEmergency) category = 'CRITICAL';
+    else if (isAdvisory) category = 'WARNING';
+
+    let actionText = 'NAVIGATE TO LOCATION';
+    if (alert.title.toUpperCase().includes('MEDICAL')) {
+      actionText = 'NAVIGATE TO MEDICAL POST';
+    } else if (alert.title.toUpperCase().includes('ROUTE')) {
+      actionText = 'NAVIGATE ALTERNATE';
+    }
+
+    return {
+      id: alert.id,
+      title: alert.title,
+      message: alert.message,
+      created_at: alert.created_at,
+      is_emergency: isEmergency,
+      category,
+      timeLabel: getRelativeTime(alert.created_at),
+      latitude: alert.latitude,
+      longitude: alert.longitude,
+      actionText
+    };
+  }) : MOCK_PAGE_ALERTS;
+
+  // Handles coordinate updates
+  const handleUpdateLocation = async () => {
+    try {
+      const pos = await getRealGps();
+      if (pos) {
+        setUserGps(pos);
+        triggerToast({
+          id: `gps-upd-${Date.now()}`,
+          title: 'Location Updated',
+          message: 'Precise GPS coordinates refreshed successfully.',
+          is_emergency: false
+        });
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  // Handles speaking coordinates verbally
+  const handleShareVerbally = () => {
+    const lat = userGps ? userGps[0].toFixed(6) : '19.805000';
+    const lng = userGps ? userGps[1].toFixed(6) : '85.825000';
+    const text = `Latitude ${lat}, Longitude ${lng}`;
+    
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    
+    triggerToast({
+      id: `share-coord-${Date.now()}`,
+      title: 'Coordinates Copied',
+      message: 'Location coordinates copied to clipboard.',
+      is_emergency: false
+    });
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(`Latitude ${lat}, Longitude ${lng}`);
+      utterance.rate = 0.85; // Speak clearly
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  // Handles requesting help
+  const handleEmergencyRequest = (category: string) => {
+    triggerToast({
+      id: `help-req-${category}-${Date.now()}`,
+      title: `Emergency: ${category}`,
+      message: `Help request transmitted offline for ${category}. Responders notified of your GPS coordinates.`,
+      is_emergency: true
+    });
+  };
+
+  // Handles navigation to nearest support booth
+  const handleNavigateNearestBooth = () => {
+    const boothPoi = {
+      id: 'mock-booth-4',
+      name_en: 'Grand Road Booth #04',
+      latitude: 19.8048,
+      longitude: 85.8245,
+      category_name: 'booth',
+      description: 'Grand Road (Bada Danda) emergency sector booth'
+    };
+    setNavTarget(boothPoi);
+    setScreenMode('navigation');
+    setArrivalNotify(false);
+    logNavigationInstructions(boothPoi);
+    router.push('/user-test-page/map');
+  };
+
+  const currentLat = userGps ? userGps[0].toFixed(6) : '19.805000';
+  const currentLng = userGps ? userGps[1].toFixed(6) : '85.825000';
+
+  const helplines = [
+    { name: 'Police Control Room', number: '100' },
+    { name: 'Ambulance Services', number: '108' },
+    { name: 'National Emergency Line', number: '112' },
+    { name: 'Child Help Line', number: '1098' }
+  ];
 
   return (
     <AlertsContainer>
       
-      {/* Header: Official Alerts & Count */}
-      <HeaderRow>
-        <IconTextRow>
-          <StyledBellHeader />
-          <HeaderTitle>Official Alerts</HeaderTitle>
-        </IconTextRow>
-        {activeAlerts.length > 0 && (
-          <CountBadge>{activeAlerts.length}</CountBadge>
-        )}
-      </HeaderRow>
+      {/* Redesigned Alert Page Header (extracted section) */}
+      <AlertHeader />
 
-      {/* Verified Administration Badge */}
-      <VerifiedBadge>
-        <StyledAwardBadge />
-        <BadgeText>
-          {selectedEvent.name} 
-        </BadgeText>
-      </VerifiedBadge>
 
-      {/* Alerts Feed items */}
-      <AlertsFeed>
-        {activeAlerts.length === 0 ? (
-          <EmptyFeed>
-            <StyledBellEmpty />
-            <div style={{ textAlign: 'center' }}>
+
+      {/* 5. Feed of Alerts */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <Text variant="subSectionTitle" weight={800} color={colors.neutral[700]} style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', paddingLeft: '0.25rem', margin: 0 }}>
+          {t('priorityLines')}
+        </Text>
+        
+        <AlertsFeed>
+          {displayAlerts.length === 0 ? (
+            <EmptyFeed>
+              <Bell size={32} />
               <EmptyTitle>All clear in this sector</EmptyTitle>
               <EmptySubtitle>No administrative safety broadcast alerts currently active.</EmptySubtitle>
-            </div>
-          </EmptyFeed>
-        ) : (
-          activeAlerts.map((alert) => {
-            const isEmergency = alert.is_emergency;
-            const isService = alert.title.toUpperCase().includes('SERVICE');
-            const isAdvisory = alert.title.toUpperCase().includes('ADVISORY') || alert.title.toUpperCase().includes('CROWD');
+            </EmptyFeed>
+          ) : (
+            displayAlerts.map((alert) => (
+              <AlertFeedCard key={alert.id} alert={alert} />
+            ))
+          )}
+        </AlertsFeed>
+      </div>
 
-            let leftBorderColor = '#ef4444';
-            let TitleIcon = AlertTriangle;
-            let alertColorTheme = '#f43f5e';
-            let bgOverlay = 'rgba(239, 68, 68, 0.05)';
-            let iconColor = '#ef4444';
-
-            if (isService) {
-              leftBorderColor = '#22c55e';
-              TitleIcon = Info;
-              alertColorTheme = '#34d399';
-              bgOverlay = 'rgba(34, 197, 94, 0.05)';
-              iconColor = '#22c55e';
-            } else if (isAdvisory) {
-              leftBorderColor = '#eab308';
-              TitleIcon = AlertTriangle;
-              alertColorTheme = '#fbbf24';
-              bgOverlay = 'rgba(234, 179, 8, 0.05)';
-              iconColor = '#eab308';
-            } else if (!isEmergency) {
-              leftBorderColor = '#6366f1';
-              TitleIcon = Bell;
-              alertColorTheme = '#818cf8';
-              bgOverlay = 'rgba(99, 102, 241, 0.05)';
-              iconColor = '#6366f1';
-            }
-
-            let actionText = 'Navigate route';
-            if (alert.title.toUpperCase().includes('ROUTE')) {
-              actionText = 'Navigate alternate';
-            } else if (alert.title.toUpperCase().includes('WATER') || isService) {
-              actionText = 'Find water nearby';
-            } else if (alert.title.toUpperCase().includes('CROWD') || alert.title.toUpperCase().includes('GATE')) {
-              actionText = 'East gate route';
-            }
-
-            return (
-              <AlertCard
-                key={alert.id}
-                $leftBorderColor={leftBorderColor}
-                $bgOverlay={bgOverlay}
-              >
-                <AlertBody>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    <TitleIcon style={{ width: '0.875rem', height: '0.875rem', flexShrink: 0, color: iconColor }} />
-                    <AlertCategory $color={alertColorTheme}>
-                      {alert.title}
-                    </AlertCategory>
-                  </div>
-                  
-                  <AlertMessage>
-                    {alert.message}
-                  </AlertMessage>
-                  
-                  <AlertTime>
-                    {getRelativeTime(alert.created_at)}
-                  </AlertTime>
-                </AlertBody>
-
-                <AlertFooter>
-                  {alert.latitude && alert.longitude ? (
-                    <NavigateButton
-                      onClick={() => {
-                        const targetPoi: POIItem = {
-                          id: `alert-poi-${alert.id}`,
-                          name_en: alert.title,
-                          latitude: Number(alert.latitude),
-                          longitude: Number(alert.longitude),
-                          category_name: 'Alert Target',
-                          description: alert.message
-                        };
-
-                        setNavTarget(targetPoi);
-                        setScreenMode('navigation');
-                        setArrivalNotify(false);
-                        logNavigationInstructions(targetPoi);
-                        router.push('/user-test-page/map');
-                      }}
-                    >
-                      <StyledCompassNav />
-                      <span>{actionText}</span>
-                      <StyledArrowRightNav className="arrow-right" />
-                    </NavigateButton>
-                  ) : (
-                    <div />
-                  )}
-
-                  <DismissButton
-                    onClick={() => {
-                      setDismissedNotificationIds(prev => [...prev, alert.id]);
-                    }}
-                  >
-                    Dismiss
-                  </DismissButton>
-                </AlertFooter>
-              </AlertCard>
-            );
-          })
-        )}
-      </AlertsFeed>
     </AlertsContainer>
   );
 }

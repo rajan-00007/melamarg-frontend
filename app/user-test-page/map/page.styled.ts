@@ -678,6 +678,399 @@ export const FooterButton = styled.button<{ $variant?: 'mute' | 'stop' }>`
   `}
 `;
 
+// --- REDESIGNED EXPLORE FLOATING UI STYLED COMPONENTS ---
+
+export const FloatingHeaderWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+`;
+
+export const FloatingHeaderPillRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  pointer-events: auto;
+`;
+
+export const OfflineActivePill = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 10px;
+  font-weight: 700;
+  color: #00695c;
+  
+  span.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    display: inline-block;
+  }
+`;
+
+export const GpsStrongPill = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  background: #e1f5fe;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 10px;
+  font-weight: 700;
+  color: #0288d1;
+`;
+
+export const RouteStatusBanner = styled.div<{ $isOffPath?: boolean }>`
+  pointer-events: auto;
+  width: 100%;
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: ${props => props.$isOffPath ? '#dc2626' : '#16a34a'};
+  transition: background-color 0.3s;
+`;
+
+export const RouteStatusIconWrapper = styled.div`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+export const RouteStatusInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+`;
+
+export const RouteStatusTitle = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+`;
+
+export const RouteStatusSubtitle = styled.div`
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const FloatingBottomWrapper = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem;
+  box-sizing: border-box;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+`;
+
+export const FloatingControlsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: auto;
+`;
+
+export const FloatingLocateButton = styled.button`
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  color: #e65100;
+  transition: transform 0.2s;
+  padding: 0;
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+export const ExploreBottomCard = styled.div`
+  pointer-events: auto;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+export const ExploreCardTitle = styled.div`
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+`;
+
+export const ExploreCardDescription = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+`;
+
+export const ExplorePOIInfoRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  
+  span.badge {
+    background: #f1f5f9;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    color: #e65100;
+  }
+`;
+
+export const ExploreActionsRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.25rem;
+`;
+
+export const ExploreNavButton = styled.button`
+  flex: 1.5;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  background: #e65100;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #bf360c;
+  }
+`;
+
+export const ExploreCloseButton = styled.button`
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+`;
+
+// --- UNIFIED ON/OFF PATH STATUS CARD COMPONENTS ---
+
+export const UnifiedStatusCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+`;
+
+export const UnifiedStatusHeader = styled.div<{ $isOffPath: boolean }>`
+  background-color: ${props => props.$isOffPath ? '#dc2626' : '#16a34a'};
+  color: #ffffff;
+  padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+`;
+
+export const UnifiedStatusBody = styled.div`
+  background-color: #ffffff;
+  color: #1e293b;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 13px;
+  font-weight: 700;
+`;
+
+export const FloatingHUDContainer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 999;
+`;
+
+export const HUDSection = styled.div<{ $position: 'front' | 'back' | 'left' | 'right' }>`
+  position: absolute;
+  display: flex;
+  gap: 0.5rem;
+  pointer-events: none;
+  
+  ${props => props.$position === 'front' && `
+    top: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 90%;
+  `}
+  
+  ${props => props.$position === 'back' && `
+    bottom: 270px;
+    left: 50%;
+    transform: translateX(-50%);
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 90%;
+  `}
+  
+  ${props => props.$position === 'left' && `
+    top: 45%;
+    left: 12px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    align-items: flex-start;
+  `}
+  
+  ${props => props.$position === 'right' && `
+    top: 45%;
+    right: 12px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    align-items: flex-end;
+  `}
+`;
+
+export const HUDIndicatorBadge = styled.div<{ $direction: 'front' | 'back' | 'left' | 'right' }>`
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 4px solid ${props => 
+    props.$direction === 'front' ? '#3b82f6' : 
+    props.$direction === 'right' ? '#10b981' : 
+    props.$direction === 'back' ? '#ef4444' : 
+    '#8b5cf6'
+  };
+
+  &:hover {
+    transform: scale(1.05);
+    background: rgba(15, 23, 42, 0.95);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .arrow {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    color: ${props => 
+      props.$direction === 'front' ? '#3b82f6' : 
+      props.$direction === 'right' ? '#10b981' : 
+      props.$direction === 'back' ? '#ef4444' : 
+      '#8b5cf6'
+    };
+  }
+
+  .icon {
+    font-size: 12px;
+  }
+
+  .name {
+    max-width: 110px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dist {
+    opacity: 0.6;
+    font-size: 9px;
+    font-weight: 500;
+  }
+`;
+
+
+
 
 
 
