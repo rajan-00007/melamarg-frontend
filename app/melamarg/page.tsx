@@ -97,7 +97,7 @@ export default function UserTestPage() {
   // Redirect to home if setup is fully complete
   useEffect(() => {
     if (selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission === true) {
-      router.push('/user-test-page/home');
+      router.push('/melamarg/home');
     }
   }, [selectedEvent, downloadedEventIds, locationPermission, router]);
 

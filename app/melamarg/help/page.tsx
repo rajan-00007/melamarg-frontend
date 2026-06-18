@@ -145,7 +145,7 @@ export default function EventHelpPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(boothPoi);
-    router.push('/user-test-page/map');
+    router.push('/melamarg/map');
   };
 
   const currentLat = userGps ? `${userGps[0].toFixed(4)}° N` : '19.8134° N';

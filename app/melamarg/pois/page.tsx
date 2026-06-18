@@ -58,7 +58,7 @@ export default function CategoryPoisPage() {
     <PoisContainer>
       {/* Category list header */}
       <HeaderBar>
-        <BackButton onClick={() => router.push('/user-test-page/home')}>
+        <BackButton onClick={() => router.push('/melamarg/home')}>
           <StyledChevronLeft />
           <span>{t('back')}</span>
         </BackButton>
@@ -163,7 +163,7 @@ export default function CategoryPoisPage() {
                   setScreenMode('navigation');
                   setArrivalNotify(false);
                   logNavigationInstructions(poi);
-                  router.push('/user-test-page/navigation');
+                  router.push('/melamarg/navigation');
                 }}
               >
                 <span>{t('go')}</span>

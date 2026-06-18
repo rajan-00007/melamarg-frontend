@@ -46,14 +46,14 @@ export default function IdeasPage() {
     
     // Smooth redirect back to home route
     setTimeout(() => {
-      router.push('/user-test-page/home');
+      router.push('/melamarg/home');
     }, 1500);
   };
 
   return (
     <IdeasContainer>
       <IdeasHeader>
-        <BackButton onClick={() => router.push('/user-test-page/home')}>
+        <BackButton onClick={() => router.push('/melamarg/home')}>
           <ChevronLeft size={20} strokeWidth={2.5} />
         </BackButton>
         <HeaderTitles>

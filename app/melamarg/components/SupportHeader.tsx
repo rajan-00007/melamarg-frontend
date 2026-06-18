@@ -148,7 +148,7 @@ export default function SupportHeader() {
           </Text>
         </StatusPill>
 
-        <LangBadge onClick={() => router.push(`/user-test-page/language?returnUrl=${pathname}`)}>
+        <LangBadge onClick={() => router.push(`/melamarg/language?returnUrl=${pathname}`)}>
           <Text variant="bodyTiny" weight={800} color="inherit" style={{ fontSize: '9px', margin: 0 }}>
             {language}
           </Text>

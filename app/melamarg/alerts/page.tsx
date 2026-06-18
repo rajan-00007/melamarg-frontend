@@ -224,7 +224,7 @@ export default function EventAlertsPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(boothPoi);
-    router.push('/user-test-page/map');
+    router.push('/melamarg/map');
   };
 
   const currentLat = userGps ? userGps[0].toFixed(6) : '19.805000';

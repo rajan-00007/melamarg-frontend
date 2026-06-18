@@ -19,7 +19,7 @@ export default function AlertHeader() {
 
   return (
     <AlertPageHeader>
-      <BackButton onClick={() => router.push('/user-test-page/home')}>
+      <BackButton onClick={() => router.push('/melamarg/home')}>
         <ChevronLeft />
       </BackButton>
       <TitleContainer>

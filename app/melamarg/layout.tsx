@@ -102,19 +102,19 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLang = localStorage.getItem('mm_language');
-      const isLanguageRoute = pathname === '/user-test-page/language';
+      const isLanguageRoute = pathname === '/melamarg/language';
       if (!savedLang && !isLanguageRoute) {
-        router.push(`/user-test-page/language?returnUrl=${pathname}`);
+        router.push(`/melamarg/language?returnUrl=${pathname}`);
       }
     }
   }, [pathname, router]);
 
   // If no event is selected and we try to access sub-routes, redirect to the selector
   useEffect(() => {
-    const isSetupRoute = pathname === '/user-test-page';
-    const isLanguageRoute = pathname === '/user-test-page/language';
+    const isSetupRoute = pathname === '/melamarg';
+    const isLanguageRoute = pathname === '/melamarg/language';
     if (!selectedEvent && !isSetupRoute && !isLanguageRoute) {
-      router.push('/user-test-page');
+      router.push('/melamarg');
     }
   }, [selectedEvent, pathname, router]);
 
@@ -144,7 +144,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
           window.history.replaceState({}, document.title, newUrl);
 
           setNavTarget(targetPoi);
-          router.push('/user-test-page/map');
+          router.push('/melamarg/map');
         }
       }
     }
@@ -160,7 +160,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   else if (pathname.endsWith('/all-pois')) currentTab = 'all-pois';
   else if (pathname.endsWith('/ideas')) currentTab = 'ideas';
 
-  const isSetupRoute = pathname === '/user-test-page';
+  const isSetupRoute = pathname === '/melamarg';
   const isNavigatingRoute = pathname.endsWith('/navigation');
   const showNav = selectedEvent && !isSetupRoute && !isNavigatingRoute;
 
@@ -258,7 +258,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
                       setNavTarget(targetPoi);
                       setArrivalNotify(false);
                       dismissToast(toast.id);
-                      router.push('/user-test-page/navigation');
+                      router.push('/melamarg/navigation');
                     }}
                   >
                     <Compass className="w-3.5 h-3.5" />
@@ -283,7 +283,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Fixed Explore Map button on Home Page - outside animated scope to prevent movement */}
       {currentTab === 'home' && (
-        <FloatingExploreButton onClick={() => router.push('/user-test-page/map')}>
+        <FloatingExploreButton onClick={() => router.push('/melamarg/map')}>
           <Compass style={{ transform: 'rotate(0deg)' }} />
           <span>{t('exploreLiveMap')}</span>
         </FloatingExploreButton>
@@ -297,7 +297,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             $activeColor="#1d4ed8"
             onClick={() => {
               setScreenMode('home');
-              router.push('/user-test-page/home');
+              router.push('/melamarg/home');
             }}
           >
             <NavIconWrapper $isActive={currentTab === 'home'}>
@@ -310,7 +310,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             $isActive={currentTab === 'map'}
             $activeColor="#1d4ed8"
             onClick={() => {
-              router.push('/user-test-page/map');
+              router.push('/melamarg/map');
             }}
           >
             <NavIconWrapper $isActive={currentTab === 'map'}>
@@ -323,7 +323,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             $isActive={currentTab === 'all-pois'}
             $activeColor="#1d4ed8"
             onClick={() => {
-              router.push('/user-test-page/all-pois');
+              router.push('/melamarg/all-pois');
             }}
           >
             <NavIconWrapper $isActive={currentTab === 'all-pois'}>
@@ -336,7 +336,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             $isActive={currentTab === 'alerts'}
             $activeColor="#1d4ed8"
             onClick={() => {
-              router.push('/user-test-page/alerts');
+              router.push('/melamarg/alerts');
             }}
           >
             <NavIconWrapper $isActive={currentTab === 'alerts'}>
@@ -354,7 +354,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             $isActive={currentTab === 'help'}
             $activeColor="#1d4ed8"
             onClick={() => {
-              router.push('/user-test-page/help');
+              router.push('/melamarg/help');
             }}
           >
             <NavIconWrapper $isActive={currentTab === 'help'}>
@@ -367,7 +367,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
             $isActive={currentTab === 'ideas'}
             $activeColor="#1d4ed8"
             onClick={() => {
-              router.push('/user-test-page/ideas');
+              router.push('/melamarg/ideas');
             }}
           >
             <NavIconWrapper $isActive={currentTab === 'ideas'}>

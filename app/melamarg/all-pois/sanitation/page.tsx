@@ -43,7 +43,7 @@ export default function SanitationDetailsPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(toiletPoi);
-    router.push('/user-test-page/map');
+    router.push('/melamarg/map');
   };
 
   return (
@@ -58,7 +58,7 @@ export default function SanitationDetailsPage() {
             {t('sanitation')}
           </Text>
         </HeaderLeft>
-        <LangBadge onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/all-pois/sanitation`)}>
+        <LangBadge onClick={() => router.push(`/melamarg/language?returnUrl=/melamarg/all-pois/sanitation`)}>
           {language.toUpperCase()}
         </LangBadge>
       </HeaderRow>

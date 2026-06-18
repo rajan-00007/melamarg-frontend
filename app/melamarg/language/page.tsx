@@ -26,7 +26,7 @@ import {
 function LanguageSelectorPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/user-test-page';
+  const returnUrl = searchParams.get('returnUrl') || '/melamarg';
 
   const { selectedEvent } = useUserTest();
   const { language, setLanguage } = useLanguage();

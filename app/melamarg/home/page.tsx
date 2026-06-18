@@ -273,7 +273,7 @@ export default function RedesignedEventHomePage() {
   const handleNavigateNearestMedical = () => {
     if (nearestMedical) {
       setNavTarget(nearestMedical);
-      router.push('/user-test-page/map');
+      router.push('/melamarg/map');
     } else {
       // Mock navigation target if database empty
       const mockMedical = {
@@ -285,7 +285,7 @@ export default function RedesignedEventHomePage() {
         description: 'First aid post setup'
       };
       setNavTarget(mockMedical);
-      router.push('/user-test-page/map');
+      router.push('/melamarg/map');
     }
   };
 
@@ -342,7 +342,7 @@ export default function RedesignedEventHomePage() {
     <HomeContainer>
       {/* Redesigned Top Header Overlay */}
       <HomeHeader>
-        <HeaderLeft onClick={() => router.push('/user-test-page')}>
+        <HeaderLeft onClick={() => router.push('/melamarg')}>
           <img src="/favicon.ico" alt="logo" />
         </HeaderLeft>
         <HeaderRight>
@@ -354,7 +354,7 @@ export default function RedesignedEventHomePage() {
             <Compass style={{ opacity: isGpsActive ? 1 : 0.4 }} />
             <span>{isGpsActive ? t('gpsLive') : t('offline')}</span>
           </LiveBadge>
-          <LangButton onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/home`)}>
+          <LangButton onClick={() => router.push(`/melamarg/language?returnUrl=/melamarg/home`)}>
             {language.toUpperCase()}
           </LangButton>
         </HeaderRight>
@@ -402,7 +402,7 @@ export default function RedesignedEventHomePage() {
             <AlertIcon size={44} />
             <AlertText>{latestAlert.message}</AlertText>
           </AlertContent>
-          <AlertLink onClick={() => router.push('/user-test-page/alerts')}>VIEW ALL</AlertLink>
+          <AlertLink onClick={() => router.push('/melamarg/alerts')}>VIEW ALL</AlertLink>
         </UrgentAlertCard>
 
         {/* 4. Refined Nearest Help Card */}
@@ -492,7 +492,7 @@ export default function RedesignedEventHomePage() {
                 key={item.id} 
                 onClick={() => {
                   setActiveCategory(item.id);
-                  router.push('/user-test-page/pois');
+                  router.push('/melamarg/pois');
                 }}
               >
                 <GridIconBox $bgColor={item.bg} $color={item.color}>
@@ -512,7 +512,7 @@ export default function RedesignedEventHomePage() {
         {/* View All Categories Button */}
         <ViewAllButton onClick={() => {
           setActiveCategory('all');
-          router.push('/user-test-page/pois');
+          router.push('/melamarg/pois');
         }}>
           <LayoutGrid />
           <span>{t('viewAllCategories')}</span>
@@ -522,7 +522,7 @@ export default function RedesignedEventHomePage() {
         <SafetySection>
           <SectionTitle>{t('safetyPlanning')}</SectionTitle>
           <SafetyGrid>
-            <SafetyCard onClick={() => router.push('/user-test-page/saved')}>
+            <SafetyCard onClick={() => router.push('/melamarg/saved')}>
               <SafetyIconBox $bgColor="rgba(76, 97, 108, 0.08)" $color="#4C616C">
                 <Users />
               </SafetyIconBox>
@@ -531,7 +531,7 @@ export default function RedesignedEventHomePage() {
               </Text>
             </SafetyCard>
 
-            <SafetyCard onClick={() => router.push('/user-test-page/saved')}>
+            <SafetyCard onClick={() => router.push('/melamarg/saved')}>
               <SafetyIconBox $bgColor="rgba(0, 105, 92, 0.08)" $color="#00695C">
                 <MapPin />
               </SafetyIconBox>
@@ -543,7 +543,7 @@ export default function RedesignedEventHomePage() {
             {/* Live Parking Card */}
             <LiveParkingRow onClick={() => {
               setActiveCategory('parking');
-              router.push('/user-test-page/pois');
+              router.push('/melamarg/pois');
             }}>
               <ParkingIconBox>
                 <Car />

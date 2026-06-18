@@ -78,10 +78,10 @@ export default function AllPoisPage() {
 
   const handleCategoryTap = (id: string) => {
     if (id === 'medical') {
-      router.push('/user-test-page/all-pois/medical-help');
+      router.push('/melamarg/all-pois/medical-help');
     } else {
       setActiveCategory(id);
-      router.push('/user-test-page/pois');
+      router.push('/melamarg/pois');
     }
   };
 
@@ -91,7 +91,7 @@ export default function AllPoisPage() {
 
   const handleFacilityTap = (id: string, label: string) => {
     if (id === 'sanitation') {
-      router.push('/user-test-page/all-pois/sanitation');
+      router.push('/melamarg/all-pois/sanitation');
     } else {
       handleComingSoon(label);
     }

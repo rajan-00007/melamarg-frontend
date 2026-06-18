@@ -207,7 +207,7 @@ export default function NavigatorHeader({ onToggleDevBanner }: NavigatorHeaderPr
             <span>{isLive ? t('gpsLive') : t('offline')}</span>
           </StatusPill>
 
-          <LangBadge onClick={() => router.push(`/user-test-page/language?returnUrl=${pathname}`)}>
+          <LangBadge onClick={() => router.push(`/melamarg/language?returnUrl=${pathname}`)}>
             {language}
           </LangBadge>
 

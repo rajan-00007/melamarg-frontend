@@ -75,7 +75,7 @@ export default function MedicalHelpDetailsPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(targetPoi);
-    router.push('/user-test-page/map');
+    router.push('/melamarg/map');
   };
 
   return (
@@ -90,7 +90,7 @@ export default function MedicalHelpDetailsPage() {
             {t('medicalHelp')}
           </Text>
         </HeaderLeft>
-        <LangBadge onClick={() => router.push(`/user-test-page/language?returnUrl=/user-test-page/all-pois/medical-help`)}>
+        <LangBadge onClick={() => router.push(`/melamarg/language?returnUrl=/melamarg/all-pois/medical-help`)}>
           {language.toUpperCase()}
         </LangBadge>
       </HeaderRow>

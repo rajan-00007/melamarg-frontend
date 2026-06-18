@@ -272,7 +272,7 @@ export default function EventMapPage() {
   // Redirect to active navigation page if navTarget is active
   useEffect(() => {
     if (navTarget) {
-      router.push('/user-test-page/navigation');
+      router.push('/melamarg/navigation');
     }
   }, [navTarget, router]);
 

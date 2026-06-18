@@ -806,7 +806,7 @@ export default function CompassNavigationPage() {
                   setNavTarget(null);
                   setScreenMode('pois');
                   setIsWalking(false);
-                  router.push('/user-test-page/pois');
+                  router.push('/melamarg/pois');
                 }}
               >
                 {t('stopNavigation')}
@@ -827,7 +827,7 @@ export default function CompassNavigationPage() {
               setScreenMode('pois');
               setIsWalking(false);
               setArrivalNotify(false);
-              router.push('/user-test-page/pois');
+              router.push('/melamarg/pois');
             }}
           >
             {t('returnToPoiList')}
@@ -963,7 +963,7 @@ export default function CompassNavigationPage() {
                     setNavTarget(null);
                     setScreenMode('pois');
                     setIsWalking(false);
-                    router.push('/user-test-page/pois');
+                    router.push('/melamarg/pois');
                   }
                 }}
               >

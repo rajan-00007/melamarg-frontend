@@ -112,7 +112,7 @@ export default function AlertFeedCard({ alert }: AlertFeedCardProps) {
             setScreenMode('navigation');
             setArrivalNotify(false);
             logNavigationInstructions(targetPoi);
-            router.push('/user-test-page/map');
+            router.push('/melamarg/map');
           }}
         >
           <Compass size={14} />
