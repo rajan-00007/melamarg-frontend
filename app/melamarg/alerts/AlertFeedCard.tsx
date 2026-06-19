@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest, POIItem } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest, POIItem } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   AlertTriangle,
   AlertCircle,

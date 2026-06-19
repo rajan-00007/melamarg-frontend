@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest } from '../context/UserTestContext';
+import { useUserTest } from '@/context/UserTestContext';
 import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   MapWrapper,
   MapCanvas,

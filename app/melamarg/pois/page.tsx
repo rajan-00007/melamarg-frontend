@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   PoisContainer,
   BrandHeader,

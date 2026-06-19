@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Heart, Check } from 'lucide-react';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   IdeasContainer,
   IdeasHeader,

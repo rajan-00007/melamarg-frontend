@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Signal, Settings, Globe } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 

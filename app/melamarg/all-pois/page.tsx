@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
-import SupportHeader from '../components/SupportHeader';
+import SupportHeader from '@/components/SupportHeader';
 import {
   Search, ArrowLeft, ChevronRight as ChevronRightIcon, Wifi,
   Droplets, ShieldCheck, Utensils, RefreshCw, DoorOpen, HandHeart, Info
@@ -15,7 +15,7 @@ import { FaBriefcaseMedical, FaToilet, FaHandsWash, FaShoePrints } from 'react-i
 import { MdLuggage, MdTempleBuddhist, MdInfoOutline } from 'react-icons/md';
 import { GiCampfire, GiPrayer } from 'react-icons/gi';
 import { BiBed } from 'react-icons/bi';
-import { getHaversineDistance } from '../context/types';
+import { getHaversineDistance } from '@/context/types';
 
 import {
   PageContainer, ScrollArea, SearchBar, SearchInput, TitleRow, SectionLabel,

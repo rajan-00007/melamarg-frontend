@@ -3,9 +3,9 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
-import { useUserTest } from '../context/UserTestContext';
-import { getEventNavigatorName } from '../components/NavigatorHeader';
+import { useLanguage } from '@/context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { getEventNavigatorName } from '@/components/NavigatorHeader';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 

@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest } from '../context/UserTestContext';
+import { useUserTest } from '@/context/UserTestContext';
 import { Navigation, MapPin, Volume2, VolumeX, LogOut, Compass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   NavContainer,
   Overlay,

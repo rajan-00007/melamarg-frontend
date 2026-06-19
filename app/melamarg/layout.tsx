@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { UserTestProvider, useUserTest } from './context/UserTestContext';
-import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { UserTestProvider, useUserTest } from '@/context/UserTestContext';
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
 import { 
   Bell, 
   MapPin, 

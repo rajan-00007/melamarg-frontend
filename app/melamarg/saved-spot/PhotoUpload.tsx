@@ -5,7 +5,7 @@ import { Camera, Plus, Trash2 } from 'lucide-react';
 import styled from 'styled-components';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const UploadCard = styled.div`
   width: 100%;

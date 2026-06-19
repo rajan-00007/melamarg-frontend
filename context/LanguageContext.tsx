@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { translations, LanguageType } from '@/lib/translations';
-import { useLanguageStore } from '../stores/languageStore';
+import { useLanguageStore } from '@/app/melamarg/stores/languageStore';
 
 interface LanguageContextType {
   language: LanguageType;

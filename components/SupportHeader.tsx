@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { getEventNavigatorName } from './NavigatorHeader';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';

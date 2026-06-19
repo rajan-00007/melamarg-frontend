@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest } from '../../context/UserTestContext';
-import { useLanguage } from '../../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 import { StyledButton } from '@/components/style/button/Button.Styled';

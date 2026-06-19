@@ -21,11 +21,11 @@ import {
   CheckCircle,
   Navigation
 } from 'lucide-react';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
-import { getHaversineDistance } from '../context/types';
+import { getHaversineDistance } from '@/context/types';
 
 // Static Image Imports for offline asset resolution
 import rathyatraBanner1 from '@/public/rathyatra_banner.png';

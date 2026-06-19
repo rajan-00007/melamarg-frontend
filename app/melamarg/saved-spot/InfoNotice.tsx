@@ -5,7 +5,7 @@ import { Info } from 'lucide-react';
 import styled from 'styled-components';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const NoticeContainer = styled.div`
   display: flex;

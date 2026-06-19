@@ -2,12 +2,12 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserTest } from './context/UserTestContext';
+import { useUserTest } from '@/context/UserTestContext';
 import { Signal } from 'lucide-react';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
-import { getEventNavigatorName } from './components/NavigatorHeader';
-import { useLanguage } from './context/LanguageContext';
+import { getEventNavigatorName } from '@/components/NavigatorHeader';
+import { useLanguage } from '@/context/LanguageContext';
 
 import {
   Wrapper,

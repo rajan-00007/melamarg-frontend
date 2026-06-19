@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Trash2, MapPin, Navigation, ArrowLeft } from 'lucide-react';
-import { useUserTest } from '../context/UserTestContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 import { StyledButton } from '@/components/style/button/Button.Styled';
-import SupportHeader from '../components/SupportHeader';
+import SupportHeader from '@/components/SupportHeader';
 import PhotoUpload from './PhotoUpload';
 import InfoNotice from './InfoNotice';
 import { useSavedSpotStore, SavedSpotData } from '../stores/savedSpotStore';
