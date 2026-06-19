@@ -100,7 +100,15 @@ export default function UserTestPage() {
   useEffect(() => {
     setSelectedEvent(null);
     setScreenMode('selector');
-  }, [setSelectedEvent, setScreenMode]);
+
+    // Prefetch all main sub-routes so their JS chunks are cached offline
+    router.prefetch('/melamarg/home');
+    router.prefetch('/melamarg/map');
+    router.prefetch('/melamarg/all-pois');
+    router.prefetch('/melamarg/alerts');
+    router.prefetch('/melamarg/help');
+    router.prefetch('/melamarg/ideas');
+  }, [setSelectedEvent, setScreenMode, router]);
 
   // Redirect to home or returnUrl if setup is fully complete
   useEffect(() => {
