@@ -104,6 +104,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     downloadProgress,
     setDownloadProgress,
     getOfflineEvents,
+    isInitialized,
   } = useEvents();
 
   const {
@@ -168,6 +169,15 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     setLoadingEvents(true);
     setApiError(false);
     console.log('[fetchEventsCatalog] Fetching events via axiosClient...');
+
+    // Fast-path: if offline, bypass the network call completely and show downloaded list instantly
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      console.log('[fetchEventsCatalog] Browser offline. Instantly loading cached downloaded maps.');
+      setEvents(getOfflineEvents(downloadedEventIds));
+      setLoadingEvents(false);
+      return;
+    }
+
     try {
       let url = API_ENDPOINTS.events.base;
       
@@ -387,10 +397,19 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (savedUrl) {
+      const isStaleLocalhost = savedUrl && (
+        savedUrl.includes('localhost:5000') ||
+        savedUrl.includes('127.0.0.1:5000')
+      );
+
+      if (savedUrl && !isStaleLocalhost) {
         setBackendUrl(savedUrl);
-      } else if (process.env.NEXT_PUBLIC_API_URL) {
-        setBackendUrl(process.env.NEXT_PUBLIC_API_URL);
+      } else {
+        const defaultUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api-wp-events.infoviz.co/api/';
+        setBackendUrl(defaultUrl);
+        if (isStaleLocalhost) {
+          localStorage.removeItem('mm_test_backend_url');
+        }
       }
 
       urlReady.current = true;
@@ -485,91 +504,175 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     };
   }, [locationPermission, screenMode, startGpsWatch, stopGpsWatch]);
 
+  // Auto-load POIs and Graph if selectedEvent is restored but map data is empty
+  useEffect(() => {
+    if (selectedEvent && poisList.length === 0 && !loadingMapData) {
+      console.log(`[AutoLoad] Selected event found but poisList empty. Loading map data for ${selectedEvent.id}...`);
+      const autoLoad = async () => {
+        if (locationPermission === true) {
+          await initializeUserGps(selectedEvent);
+        }
+        await loadEventPoisAndGraph(selectedEvent);
+      };
+      autoLoad();
+    }
+  }, [selectedEvent, poisList.length, loadingMapData, locationPermission, initializeUserGps, loadEventPoisAndGraph]);
+
+  const value = React.useMemo(() => ({
+    // Config context fields
+    backendUrl,
+    setBackendUrl,
+    detectedIpPreset,
+    usbTetheringPreset,
+    offlineMode,
+    setOfflineMode,
+    platformName,
+    apiError,
+    setApiError,
+
+    // Events context fields
+    events,
+    setEvents,
+    loadingEvents,
+    downloadedEventIds,
+    setDownloadedEventIds,
+    selectedEvent,
+    setSelectedEvent,
+    screenMode,
+    setScreenMode,
+    downloadProgress,
+    setDownloadProgress,
+    getOfflineEvents,
+    isInitialized,
+
+    // GPS context fields
+    locationPermission,
+    setLocationPermission,
+    userGps,
+    setUserGps,
+    gpsAccuracy,
+    gpsStatus,
+    getRealGps,
+    handleGpsUpdate,
+    startGpsWatch,
+    stopGpsWatch,
+
+    // Map Data context fields
+    poisList,
+    routeNodes,
+    routeEdges,
+    leafletLoaded,
+    setLeafletLoaded,
+    activeCategory,
+    setActiveCategory,
+    loadingMapData,
+    loadEventPoisAndGraph,
+    getCategoryStats,
+    getSortedPois,
+
+    // Navigation context fields
+    stats,
+    navTarget,
+    setNavTarget,
+    deviceHeading,
+    setDeviceHeading,
+    isWalking,
+    setIsWalking,
+    arrivalNotify,
+    setArrivalNotify,
+    computeNavigationStats,
+    getNavigationStats,
+    handleSimulateWalking,
+    logNavigationInstructions,
+
+    // Notification context fields
+    notifications,
+    dismissedNotificationIds,
+    setDismissedNotificationIds,
+    activeToasts,
+    dismissToast,
+    triggerToast,
+    registerPushNotifications,
+
+    // Cross-cutting methods
+    fetchEventsCatalog,
+    handleEventSelection,
+    triggerExplicitRedownload,
+    clearDownloadedCache,
+    handleGrantPermission,
+  }), [
+    backendUrl,
+    setBackendUrl,
+    detectedIpPreset,
+    usbTetheringPreset,
+    offlineMode,
+    setOfflineMode,
+    platformName,
+    apiError,
+    setApiError,
+    events,
+    setEvents,
+    loadingEvents,
+    downloadedEventIds,
+    setDownloadedEventIds,
+    selectedEvent,
+    setSelectedEvent,
+    screenMode,
+    setScreenMode,
+    downloadProgress,
+    setDownloadProgress,
+    getOfflineEvents,
+    isInitialized,
+    locationPermission,
+    setLocationPermission,
+    userGps,
+    setUserGps,
+    gpsAccuracy,
+    gpsStatus,
+    getRealGps,
+    handleGpsUpdate,
+    startGpsWatch,
+    stopGpsWatch,
+    poisList,
+    routeNodes,
+    routeEdges,
+    leafletLoaded,
+    setLeafletLoaded,
+    activeCategory,
+    setActiveCategory,
+    loadingMapData,
+    loadEventPoisAndGraph,
+    getCategoryStats,
+    getSortedPois,
+    stats,
+    navTarget,
+    setNavTarget,
+    deviceHeading,
+    setDeviceHeading,
+    isWalking,
+    setIsWalking,
+    arrivalNotify,
+    setArrivalNotify,
+    computeNavigationStats,
+    getNavigationStats,
+    handleSimulateWalking,
+    logNavigationInstructions,
+    notifications,
+    dismissedNotificationIds,
+    setDismissedNotificationIds,
+    activeToasts,
+    dismissToast,
+    triggerToast,
+    registerPushNotifications,
+    fetchEventsCatalog,
+    handleEventSelection,
+    triggerExplicitRedownload,
+    clearDownloadedCache,
+    handleGrantPermission,
+  ]);
+
   return (
-    <UserTestCombinedContext.Provider
-      value={{
-        // Config context fields
-        backendUrl,
-        setBackendUrl,
-        detectedIpPreset,
-        usbTetheringPreset,
-        offlineMode,
-        setOfflineMode,
-        platformName,
-        apiError,
-        setApiError,
-
-        // Events context fields
-        events,
-        setEvents,
-        loadingEvents,
-        downloadedEventIds,
-        setDownloadedEventIds,
-        selectedEvent,
-        setSelectedEvent,
-        screenMode,
-        setScreenMode,
-        downloadProgress,
-        setDownloadProgress,
-        getOfflineEvents,
-
-        // GPS context fields
-        locationPermission,
-        setLocationPermission,
-        userGps,
-        setUserGps,
-        gpsAccuracy,
-        gpsStatus,
-        getRealGps,
-        handleGpsUpdate,
-        startGpsWatch,
-        stopGpsWatch,
-
-        // Map Data context fields
-        poisList,
-        routeNodes,
-        routeEdges,
-        leafletLoaded,
-        setLeafletLoaded,
-        activeCategory,
-        setActiveCategory,
-        loadingMapData,
-        loadEventPoisAndGraph,
-        getCategoryStats,
-        getSortedPois,
-
-        // Navigation context fields
-        stats,
-        navTarget,
-        setNavTarget,
-        deviceHeading,
-        setDeviceHeading,
-        isWalking,
-        setIsWalking,
-        arrivalNotify,
-        setArrivalNotify,
-        computeNavigationStats,
-        getNavigationStats,
-        handleSimulateWalking,
-        logNavigationInstructions,
-
-        // Notification context fields
-        notifications,
-        dismissedNotificationIds,
-        setDismissedNotificationIds,
-        activeToasts,
-        dismissToast,
-        triggerToast,
-        registerPushNotifications,
-
-        // Cross-cutting methods
-        fetchEventsCatalog,
-        handleEventSelection,
-        triggerExplicitRedownload,
-        clearDownloadedCache,
-        handleGrantPermission,
-      }}
-    >
+    <UserTestCombinedContext.Provider value={value}>
       {children}
     </UserTestCombinedContext.Provider>
   );

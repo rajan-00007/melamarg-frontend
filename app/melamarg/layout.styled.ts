@@ -594,3 +594,35 @@ export const FloatingExploreButton = styled.button`
     stroke-width: 2.5;
   }
 `;
+
+export const FloatDevButton = styled.button`
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    color: #111827;
+    background-color: #ffffff;
+    transform: rotate(45deg);
+  }
+
+  svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+`;
+

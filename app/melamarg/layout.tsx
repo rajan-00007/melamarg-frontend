@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { UserTestProvider, useUserTest } from './context/UserTestContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -23,7 +23,8 @@ import {
   Usb,
   Home,
   Store,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 
 import {
@@ -58,7 +59,8 @@ import {
   GPSLockedPill,
   GPSSearchingPill,
   GPSLostPill,
-  FloatingExploreButton
+  FloatingExploreButton,
+  FloatDevButton
 } from './layout.styled';
 
 function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
@@ -79,6 +81,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
     platformName,
     selectedEvent,
     setSelectedEvent,
+    isInitialized,
     setNavTarget,
     setArrivalNotify,
     gpsAccuracy,
@@ -97,12 +100,18 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   } = useUserTest();
 
   const { t } = useLanguage();
+  const [showDevBanner, setShowDevBanner] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // First visit check: redirect to language selection page if no language chosen yet
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLang = localStorage.getItem('mm_language');
-      const isLanguageRoute = pathname === '/melamarg/language';
+      const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
       if (!savedLang && !isLanguageRoute) {
         router.push(`/melamarg/language?returnUrl=${pathname}`);
       }
@@ -111,12 +120,14 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 
   // If no event is selected and we try to access sub-routes, redirect to the selector
   useEffect(() => {
-    const isSetupRoute = pathname === '/melamarg';
-    const isLanguageRoute = pathname === '/melamarg/language';
+    if (!isInitialized) return; // Wait until local storage state is loaded
+    
+    const isSetupRoute = pathname === '/melamarg' || pathname === '/melamarg/';
+    const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
     if (!selectedEvent && !isSetupRoute && !isLanguageRoute) {
-      router.push('/melamarg');
+      router.push(`/melamarg?returnUrl=${pathname}`);
     }
-  }, [selectedEvent, pathname, router]);
+  }, [isInitialized, selectedEvent, pathname, router]);
 
   // Handle deep-linking query parameters if present on layout mount
   useEffect(() => {
@@ -160,7 +171,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   else if (pathname.endsWith('/all-pois')) currentTab = 'all-pois';
   else if (pathname.endsWith('/ideas')) currentTab = 'ideas';
 
-  const isSetupRoute = pathname === '/melamarg';
+  const isSetupRoute = pathname === '/melamarg' || pathname === '/melamarg/';
   const isNavigatingRoute = pathname.endsWith('/navigation');
   const showNav = selectedEvent && !isSetupRoute && !isNavigatingRoute;
 
@@ -189,8 +200,76 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Prevent hydration flashing/blinking and side effects during initial mount or redirect phases
+  if (!mounted) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
+        <div className="animate-pulse text-slate-400 font-medium" style={{ fontFamily: 'system-ui, sans-serif' }}>Loading...</div>
+      </div>
+    );
+  }
+
+  const savedLang = typeof window !== 'undefined' ? localStorage.getItem('mm_language') : null;
+  const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
+
+  // 1. Language redirect check
+  if (!savedLang && !isLanguageRoute) {
+    return null; // Let the useEffect redirect run, render nothing to avoid blinking
+  }
+
+  // 2. Setup/Selected event redirect check
+  if (isInitialized && !selectedEvent && !isSetupRoute && !isLanguageRoute) {
+    return null; // Let the useEffect redirect run, render nothing to avoid blinking
+  }
+
   return (
     <RootContainer>
+
+
+      {/* Global Offline Status Notification Banner */}
+      {offlineMode && (
+        <div style={{
+          backgroundColor: '#feebc8',
+          color: '#c05621',
+          padding: '0.6rem 1rem',
+          fontSize: '11px',
+          fontWeight: 800,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid #fbd38d',
+          zIndex: 39,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          fontFamily: 'Inter, system-ui, sans-serif'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+            <AlertTriangle style={{ width: '14px', height: '14px', color: '#dd6b20' }} />
+            <span>Running in Offline Mode (using cached maps & data)</span>
+          </div>
+          {typeof window !== 'undefined' && !navigator.onLine ? (
+            <span style={{ fontSize: '10px', opacity: 0.8 }}>(Browser is offline)</span>
+          ) : (
+            <button 
+              onClick={() => setOfflineMode(false)}
+              style={{
+                backgroundColor: '#dd6b20',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#c05621'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dd6b20'}
+            >
+              Go Online
+            </button>
+          )}
+        </div>
+      )}
       
       {/* Dynamic Glassmorphic Toasts Container */}
       <ToastsContainer>

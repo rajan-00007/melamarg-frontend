@@ -531,7 +531,7 @@ export default function RedesignedEventHomePage() {
               </Text>
             </SafetyCard>
 
-            <SafetyCard onClick={() => router.push('/melamarg/saved')}>
+            <SafetyCard onClick={() => router.push('/melamarg/saved-spot')}>
               <SafetyIconBox $bgColor="rgba(0, 105, 92, 0.08)" $color="#00695C">
                 <MapPin />
               </SafetyIconBox>

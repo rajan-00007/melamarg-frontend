@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { translations, LanguageType } from '@/lib/translations';
+import { useLanguageStore } from '../stores/languageStore';
 
 interface LanguageContextType {
   language: LanguageType;
@@ -16,24 +17,22 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const storeLanguage = useLanguageStore((state) => state.language);
+  const storeSetLanguage = useLanguageStore((state) => state.setLanguage);
+
   const [language, setLanguageState] = useState<LanguageType>('en');
 
-  // Load language preference from local storage on mount
+  // Load language preference from Zustand store state on client mount (preventing SSR hydration mismatch)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem('mm_language') as LanguageType;
-      if (savedLang && (savedLang === 'en' || savedLang === 'hi' || savedLang === 'or' || savedLang === 'bn')) {
-        setLanguageState(savedLang);
-      }
-    }
-  }, []);
+    setLanguageState(storeLanguage);
+  }, [storeLanguage]);
 
   const setLanguage = useCallback((lang: LanguageType) => {
-    setLanguageState(lang);
+    storeSetLanguage(lang);
     if (typeof window !== 'undefined') {
       localStorage.setItem('mm_language', lang);
     }
-  }, []);
+  }, [storeSetLanguage]);
 
   // Translation helper function
   const t = useCallback((key: keyof typeof translations['en']): string => {

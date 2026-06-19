@@ -67,7 +67,9 @@ export default function UserTestPage() {
     backendUrl,
     setBackendUrl,
     selectedEvent,
+    setSelectedEvent,
     screenMode,
+    setScreenMode,
     downloadProgress,
     locationPermission,
     handleEventSelection,
@@ -94,12 +96,20 @@ export default function UserTestPage() {
     return '/rathyatra_banner.png';
   };
 
-  // Redirect to home if setup is fully complete
+  // Reset selected event and screen mode on mount to ensure we always show the selector first
   useEffect(() => {
-    if (selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission === true) {
-      router.push('/melamarg/home');
+    setSelectedEvent(null);
+    setScreenMode('selector');
+  }, [setSelectedEvent, setScreenMode]);
+
+  // Redirect to home or returnUrl if setup is fully complete
+  useEffect(() => {
+    if (screenMode !== 'selector' && selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission === true) {
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get('returnUrl');
+      router.push(returnUrl || '/melamarg/home');
     }
-  }, [selectedEvent, downloadedEventIds, locationPermission, router]);
+  }, [screenMode, selectedEvent, downloadedEventIds, locationPermission, router]);
 
   return (
     <Wrapper>
@@ -128,16 +138,6 @@ export default function UserTestPage() {
               <AlertText>
                 {t('couldNotReachServer')} at <span className="underline font-mono text-cyan-400">{backendUrl}</span>. {events.length > 0 ? t('noMapsCheckConnection') : t('noMapsCheckConnection')}
               </AlertText>
-              <ConfigureButton
-                onClick={() => {
-                  const newUrl = prompt('Enter backend API server URL (e.g. https://api-wp-events.infoviz.co):', backendUrl);
-                  if (newUrl !== null) {
-                    setBackendUrl(newUrl.trim());
-                  }
-                }}
-              >
-                {t('configureServer')}
-              </ConfigureButton>
             </AlertBox>
           )}
 

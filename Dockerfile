@@ -34,7 +34,7 @@ ENV NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 ENV NEXT_PUBLIC_FIREBASE_VAPID_KEY=$NEXT_PUBLIC_FIREBASE_VAPID_KEY
 
 # Build the Next.js application
-RUN npm run build
+RUN NEXT_STANDALONE=true npm run build
 
 # Stage 2: Production Runtime (Optimized to be <120MB)
 FROM alpine:3.19 AS runner

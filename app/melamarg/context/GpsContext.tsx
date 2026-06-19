@@ -205,23 +205,32 @@ export function GpsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleGpsUpdate, stopGpsWatch]);
 
+  const value = React.useMemo(() => ({
+    locationPermission,
+    setLocationPermission,
+    userGps,
+    setUserGps,
+    gpsAccuracy,
+    setGpsAccuracy,
+    gpsStatus,
+    setGpsStatus,
+    getRealGps,
+    handleGpsUpdate,
+    startGpsWatch,
+    stopGpsWatch,
+  }), [
+    locationPermission,
+    userGps,
+    gpsAccuracy,
+    gpsStatus,
+    getRealGps,
+    handleGpsUpdate,
+    startGpsWatch,
+    stopGpsWatch,
+  ]);
+
   return (
-    <GpsContext.Provider
-      value={{
-        locationPermission,
-        setLocationPermission,
-        userGps,
-        setUserGps,
-        gpsAccuracy,
-        setGpsAccuracy,
-        gpsStatus,
-        setGpsStatus,
-        getRealGps,
-        handleGpsUpdate,
-        startGpsWatch,
-        stopGpsWatch,
-      }}
-    >
+    <GpsContext.Provider value={value}>
       {children}
     </GpsContext.Provider>
   );
