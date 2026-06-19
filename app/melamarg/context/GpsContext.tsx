@@ -171,6 +171,8 @@ export function GpsProvider({ children }: { children: React.ReactNode }) {
               console.warn('[GPS] Capacitor watch error:', err);
               if (err.code === 1 || (err.message && err.message.toLowerCase().includes('permission'))) {
                 setGpsStatus('lost');
+              } else if (err.code === 2) {
+                setGpsStatus('lost'); // Position unavailable
               } else {
                 setGpsStatus('searching');
               }
@@ -188,6 +190,8 @@ export function GpsProvider({ children }: { children: React.ReactNode }) {
             console.warn('[GPS] Browser watch error:', err);
             if (err.code === 1 || (err.message && err.message.toLowerCase().includes('permission'))) {
               setGpsStatus('lost');
+            } else if (err.code === 2) {
+              setGpsStatus('lost'); // Position unavailable (e.g. laptop offline)
             } else {
               setGpsStatus('searching');
             }

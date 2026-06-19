@@ -237,9 +237,9 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     setSelectedEvent(event);
     
     if (downloadedEventIds.includes(event.id)) {
-      if (locationPermission === true) {
-        await initializeUserGps(event);
-        await loadEventPoisAndGraph(event);
+      if (locationPermission !== null) {
+        initializeUserGps(event);
+        loadEventPoisAndGraph(event);
         setScreenMode('home');
       } else {
         setScreenMode('permission');
@@ -257,9 +257,9 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
               setDownloadedEventIds(updated);
               localStorage.setItem('mm_downloaded_event_ids', JSON.stringify(updated));
 
-              if (locationPermission === true) {
-                await initializeUserGps(event);
-                await loadEventPoisAndGraph(event);
+              if (locationPermission !== null) {
+                initializeUserGps(event);
+                loadEventPoisAndGraph(event);
                 setScreenMode('home');
               } else {
                 setScreenMode('permission');
@@ -293,9 +293,9 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
             setDownloadedEventIds(finalUpdated);
             localStorage.setItem('mm_downloaded_event_ids', JSON.stringify(finalUpdated));
 
-            if (locationPermission === true) {
-              await initializeUserGps(event);
-              await loadEventPoisAndGraph(event);
+            if (locationPermission !== null) {
+              initializeUserGps(event);
+              loadEventPoisAndGraph(event);
               setScreenMode('home');
             } else {
               setScreenMode('permission');
@@ -359,10 +359,10 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('mm_location_permission', nativeGranted ? 'granted' : 'denied');
     
     if (nativeGranted && selectedEvent) {
-      await initializeUserGps(selectedEvent);
+      initializeUserGps(selectedEvent);
     }
     if (selectedEvent) {
-      await loadEventPoisAndGraph(selectedEvent);
+      loadEventPoisAndGraph(selectedEvent);
     }
     setScreenMode('home');
   };

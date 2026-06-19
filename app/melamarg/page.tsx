@@ -110,9 +110,9 @@ export default function UserTestPage() {
     router.prefetch('/melamarg/ideas');
   }, [setSelectedEvent, setScreenMode, router]);
 
-  // Redirect to home or returnUrl if setup is fully complete
+  // Redirect to home or returnUrl if setup is fully complete (locationPermission is resolved to either true or false)
   useEffect(() => {
-    if (screenMode !== 'selector' && selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission === true) {
+    if (screenMode !== 'selector' && selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission !== null) {
       const params = new URLSearchParams(window.location.search);
       const returnUrl = params.get('returnUrl');
       router.push(returnUrl || '/melamarg/home');
