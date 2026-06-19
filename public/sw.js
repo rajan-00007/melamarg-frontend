@@ -1,6 +1,6 @@
 const CACHE_NAME = 'melamarg-cache-v2';
 const ASSETS_TO_CACHE = [
-  '/',
+  '/melamarg',
   '/manifest.json',
   '/favicon.ico',
   '/leaflet/leaflet.js',
@@ -29,6 +29,19 @@ function fetchWithTimeout(request, timeoutMs = 4000) {
         reject(err);
       }
     );
+  });
+}
+
+// Safari redirection bug fix: clean response to remove the "redirected" flag
+function cleanResponse(response) {
+  if (!response || !response.redirected) return response;
+  
+  // Construct a new response from the original body, ignoring the redirected flag
+  const headers = new Headers(response.headers);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: headers
   });
 }
 
@@ -80,7 +93,7 @@ self.addEventListener('fetch', (event) => {
       fetchWithTimeout(event.request, 4000)
         .then((response) => {
           if (response && response.status === 200) {
-            const responseToCache = response.clone();
+            const responseToCache = cleanResponse(response.clone());
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
             });
@@ -90,7 +103,7 @@ self.addEventListener('fetch', (event) => {
         .catch((err) => {
           console.log('[SW] Navigation failed. Falling back to App Shell.', err);
           return caches.match(event.request).then((cachedResponse) => {
-            return cachedResponse || caches.match('/');
+            return cachedResponse || caches.match('/melamarg');
           });
         })
     );
@@ -110,7 +123,7 @@ self.addEventListener('fetch', (event) => {
           .then((response) => {
             // Cache successful or opaque (cross-origin) tile responses
             if (response && (response.status === 200 || response.status === 0)) {
-              const responseToCache = response.clone();
+              const responseToCache = cleanResponse(response.clone());
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(event.request, responseToCache);
               });
@@ -146,7 +159,7 @@ self.addEventListener('fetch', (event) => {
         const fetchPromise = fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
+              const responseToCache = cleanResponse(networkResponse.clone());
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(event.request, responseToCache);
               });
@@ -167,7 +180,7 @@ self.addEventListener('fetch', (event) => {
     fetchWithTimeout(event.request, 5000)
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
+          const responseToCache = cleanResponse(response.clone());
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
