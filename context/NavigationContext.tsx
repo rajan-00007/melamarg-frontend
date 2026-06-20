@@ -39,7 +39,7 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const { userGps, setUserGps } = useGps();
-  const { routeNodes, routeEdges } = useMapData();
+  const { routeNodes, routeEdges, activeAdvisories } = useMapData();
 
   const [navTarget, setNavTarget] = useState<POIItem | null>(null);
   const [deviceHeading, setDeviceHeading] = useState(0);
@@ -128,15 +128,18 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       destNode = routeNodes[0];
     }
 
+    const advisoriesToUse = (navTarget && (navTarget.id === 'saved-spot-nav' || navTarget.category_name === 'Saved Spot')) ? [] : activeAdvisories;
+
     const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(
       currentLat,
       currentLng,
       destNode,
       routeNodes,
-      routeEdges
+      routeEdges,
+      advisoriesToUse
     );
 
-    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
+    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id, advisoriesToUse);
     
     // Check if user is off route by calculating distance to path segments
     let isOffRoute = true;
@@ -375,15 +378,18 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
     if (!destNode) destNode = routeNodes[0];
 
+    const advisoriesToUse = (poi && (poi.id === 'saved-spot-nav' || poi.category_name === 'Saved Spot')) ? [] : activeAdvisories;
+
     const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(
       userGps[0],
       userGps[1],
       destNode,
       routeNodes,
-      routeEdges
+      routeEdges,
+      advisoriesToUse
     );
 
-    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
+    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id, advisoriesToUse);
     
     console.log(`\n=== NAVIGATION INSTRUCTIONS TO ${poi.name_en.toUpperCase()} ===`);
     if (minUserDist > 15) {

@@ -75,7 +75,7 @@ export default function MedicalHelpDetailsPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(targetPoi);
-    router.push('/melamarg/map');
+    router.push('/melamarg/navigation?returnUrl=/melamarg/all-pois/medical-help');
   };
 
   return (

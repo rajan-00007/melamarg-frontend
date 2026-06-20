@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Menu } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useUserTest } from '@/context/UserTestContext';
 import {
   AlertPageHeader,
   BackButton,
@@ -16,11 +17,12 @@ import {
 export default function AlertHeader() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { setIsSidebarOpen } = useUserTest();
 
   return (
     <AlertPageHeader>
-      <BackButton onClick={() => router.push('/melamarg/home')}>
-        <ChevronLeft />
+      <BackButton onClick={() => setIsSidebarOpen(true)} aria-label="Menu">
+        <Menu />
       </BackButton>
       <TitleContainer>
         <TitleText>{t('alerts').toUpperCase()}</TitleText>

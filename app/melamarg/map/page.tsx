@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '@/context/UserTestContext';
-import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon } from 'lucide-react';
+import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   MapWrapper,
@@ -251,7 +251,9 @@ export default function EventMapPage() {
     screenMode,
     deviceHeading,
     computeNavigationStats,
-    loadingMapData
+    loadingMapData,
+    activeAdvisories,
+    setIsSidebarOpen
   } = useUserTest();
 
   const { language, t, tPoiName, tPoiDesc, tEventName } = useLanguage();
@@ -272,7 +274,7 @@ export default function EventMapPage() {
   // Redirect to active navigation page if navTarget is active
   useEffect(() => {
     if (navTarget) {
-      router.push('/melamarg/navigation');
+      router.push('/melamarg/navigation?returnUrl=/melamarg/map');
     }
   }, [navTarget, router]);
 
@@ -712,12 +714,16 @@ export default function EventMapPage() {
 
   // Force Leaflet recalculation on expanded state toggle
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
     if (mapRef.current) {
-      setTimeout(() => {
-        mapRef.current.invalidateSize({ animate: true });
-        mapRef.current.panTo(userGps);
+      timer = setTimeout(() => {
+        mapRef.current?.invalidateSize?.({ animate: true });
+        mapRef.current?.panTo?.(userGps);
       }, 150);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isMapExpanded, userGps]);
 
 
@@ -921,12 +927,34 @@ export default function EventMapPage() {
       const startNode = routeNodes.find((n) => n.id === startId);
       const endNode = routeNodes.find((n) => n.id === endId);
       if (startNode && endNode) {
+        // Determine if edge status is affected by active advisories
+        let edgeColor = '#22d3ee';
+        let isDashed = true;
+
+        if (activeAdvisories && activeAdvisories.length > 0) {
+          activeAdvisories.forEach(advisory => {
+            if (advisory.is_active && advisory.edges) {
+              advisory.edges.forEach((ae: any) => {
+                if (ae.edge_id === edge.id) {
+                  if (ae.status === 'blocked') {
+                    edgeColor = '#ef4444'; // Red
+                    isDashed = false;
+                  } else if (ae.status === 'recommended') {
+                    edgeColor = '#10b981'; // Green
+                    isDashed = true;
+                  }
+                }
+              });
+            }
+          });
+        }
+
         // Shaded corridor representing the 20-meter buffer radius (40m total width)
         L.polyline([
           [Number(startNode.latitude), Number(startNode.longitude)],
           [Number(endNode.latitude), Number(endNode.longitude)]
         ], {
-          color: '#22d3ee',
+          color: edgeColor,
           weight: 40, // Visual corridor thickness
           opacity: 0.12,
           lineCap: 'round',
@@ -938,10 +966,10 @@ export default function EventMapPage() {
           [Number(startNode.latitude), Number(startNode.longitude)],
           [Number(endNode.latitude), Number(endNode.longitude)]
         ], {
-          color: '#22d3ee',
+          color: edgeColor,
           weight: 3,
           opacity: 0.75,
-          dashArray: '6, 6'
+          dashArray: isDashed ? '6, 6' : undefined
         }).addTo(routeLayerRef.current);
       }
     });
@@ -1286,7 +1314,30 @@ export default function EventMapPage() {
       {/* Top Floating Header Controls */}
       <FloatingHeaderWrapper>
         <FloatingHeaderPillRow>
-          <OfflineActivePill>
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '2.25rem',
+              height: '2.25rem',
+              backgroundColor: '#ffffff',
+              border: '1px solid rgba(0,0,0,0.05)',
+              borderRadius: '50%',
+              color: '#E65100',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              pointerEvents: 'auto',
+              flexShrink: 0
+            }}
+            type="button"
+            aria-label="Menu"
+          >
+            <Menu size={18} />
+          </button>
+          
+          <OfflineActivePill style={{ marginLeft: '0.45rem', marginRight: 'auto' }}>
             <span className="dot"></span>
             <span>{t('offlineNavigationActive')}</span>
           </OfflineActivePill>
@@ -1308,6 +1359,31 @@ export default function EventMapPage() {
             </GpsStrongPill>
           )}
         </FloatingHeaderPillRow>
+
+        {activeAdvisories && activeAdvisories.filter(a => a.is_active).length > 0 && (
+          <div 
+            onClick={() => router.push('/melamarg/advisories')}
+            style={{
+              pointerEvents: 'auto',
+              width: '100%',
+              borderRadius: '0.75rem',
+              padding: '0.6rem 0.8rem',
+              background: 'rgba(234, 88, 12, 0.95)',
+              color: '#ffffff',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              marginTop: '0.5rem',
+              fontFamily: 'Inter, system-ui, sans-serif'
+            }}
+          >
+            <span>{t('trafficAlertBanner')}</span>
+          </div>
+        )}
 
         <UnifiedStatusCard>
           <UnifiedStatusHeader $isOffPath={explorePathStatus.isOff}>

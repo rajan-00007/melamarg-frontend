@@ -69,6 +69,8 @@ export interface UserTestContextType
   triggerExplicitRedownload: (event: EventItem, e: React.MouseEvent) => void;
   clearDownloadedCache: () => void;
   handleGrantPermission: (granted: boolean) => Promise<void>;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const UserTestCombinedContext = createContext<UserTestContextType | undefined>(undefined);
@@ -124,6 +126,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     poisList,
     routeNodes,
     routeEdges,
+    activeAdvisories,
+    setActiveAdvisories,
     leafletLoaded,
     setLeafletLoaded,
     activeCategory,
@@ -159,6 +163,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     triggerToast,
     registerPushNotifications,
   } = useNotification();
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Local helper ref signals
   const urlReady = useRef(false);
@@ -561,6 +567,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     poisList,
     routeNodes,
     routeEdges,
+    activeAdvisories,
+    setActiveAdvisories,
     leafletLoaded,
     setLeafletLoaded,
     activeCategory,
@@ -593,6 +601,10 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     dismissToast,
     triggerToast,
     registerPushNotifications,
+
+    // Sidebar state
+    isSidebarOpen,
+    setIsSidebarOpen,
 
     // Cross-cutting methods
     fetchEventsCatalog,
@@ -636,6 +648,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     poisList,
     routeNodes,
     routeEdges,
+    activeAdvisories,
+    setActiveAdvisories,
     leafletLoaded,
     setLeafletLoaded,
     activeCategory,
@@ -669,6 +683,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     triggerExplicitRedownload,
     clearDownloadedCache,
     handleGrantPermission,
+    isSidebarOpen,
+    setIsSidebarOpen,
   ]);
 
   return (

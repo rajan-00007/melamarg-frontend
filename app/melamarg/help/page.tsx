@@ -17,7 +17,8 @@ import {
   PhoneCall,
   Volume2,
   RefreshCw,
-  Map as MapIcon
+  Map as MapIcon,
+  ArrowRight
 } from 'lucide-react';
 
 import { MdLocalPolice, MdDirectionsWalk } from "react-icons/md";
@@ -145,7 +146,7 @@ export default function EventHelpPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(boothPoi);
-    router.push('/melamarg/map');
+    router.push('/melamarg/navigation?returnUrl=/melamarg/help');
   };
 
   const currentLat = userGps ? `${userGps[0].toFixed(4)}° N` : '19.8134° N';
@@ -381,6 +382,46 @@ export default function EventHelpPage() {
           </HelplinesCardList>
         </div>
 
+        {/* Share Feedback Card */}
+        <div
+          onClick={() => router.push('/melamarg/ideas')}
+          style={{
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #EEF2F6',
+            borderRadius: '1.5rem',
+            padding: '20px',
+            width: '100%',
+            flexShrink: 0,
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#0F172A' }}>
+              {t('ideas')}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: '2px' }}>
+              {t('voiceOfVisitor')}
+            </div>
+          </div>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: '#F1F5F9',
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ArrowRight size={18} />
+          </div>
+        </div>
 
       </ScrollContent>
     </HelpContainer>

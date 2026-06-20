@@ -43,7 +43,7 @@ export default function SanitationDetailsPage() {
     setScreenMode('navigation');
     setArrivalNotify(false);
     logNavigationInstructions(toiletPoi);
-    router.push('/melamarg/map');
+    router.push('/melamarg/navigation?returnUrl=/melamarg/all-pois/sanitation');
   };
 
   return (

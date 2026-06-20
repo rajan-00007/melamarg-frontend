@@ -24,8 +24,13 @@ import {
   Home,
   Store,
   MessageSquare,
-  Settings
+  Settings,
+  Route,
+  Bookmark,
+  Globe
 } from 'lucide-react';
+
+import { getEventNavigatorName } from '@/components/NavigatorHeader';
 
 import {
   RootContainer,
@@ -60,7 +65,18 @@ import {
   GPSSearchingPill,
   GPSLostPill,
   FloatingExploreButton,
-  FloatDevButton
+  FloatDevButton,
+  SidebarBackdrop,
+  SidebarContainer,
+  SidebarHeader,
+  SidebarTitleWrapper,
+  SidebarTitle,
+  SidebarSubtitle,
+  SidebarCloseButton,
+  SidebarList,
+  SidebarItem,
+  SidebarFooter,
+  SidebarFooterText
 } from './layout.styled';
 
 function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
@@ -96,7 +112,9 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
     clearDownloadedCache,
     screenMode,
     setScreenMode,
-    triggerToast
+    triggerToast,
+    isSidebarOpen,
+    setIsSidebarOpen
   } = useUserTest();
 
   const { t } = useLanguage();
@@ -162,14 +180,14 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   }, [selectedEvent, pathname, router, setNavTarget]);
 
   // Determine active tab based on pathname
-  let currentTab: 'home' | 'map' | 'shops' | 'alerts' | 'help' | 'ideas' | 'all-pois' | null = null;
+  let currentTab: 'home' | 'map' | 'shops' | 'alerts' | 'help' | 'advisories' | 'all-pois' | null = null;
   if (pathname.endsWith('/home')) currentTab = 'home';
   else if (pathname.endsWith('/map')) currentTab = 'map';
   else if (pathname.endsWith('/alerts')) currentTab = 'alerts';
   else if (pathname.endsWith('/help')) currentTab = 'help';
   else if (pathname.endsWith('/shops')) currentTab = 'shops';
   else if (pathname.endsWith('/all-pois')) currentTab = 'all-pois';
-  else if (pathname.endsWith('/ideas')) currentTab = 'ideas';
+  else if (pathname.endsWith('/advisories')) currentTab = 'advisories';
 
   const isSetupRoute = pathname === '/melamarg' || pathname === '/melamarg/';
   const isNavigatingRoute = pathname.endsWith('/navigation');
@@ -224,6 +242,69 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <RootContainer>
+      {/* Mobile Sidebar Navigation */}
+      <SidebarBackdrop $isOpen={isSidebarOpen} onClick={() => setIsSidebarOpen(false)} />
+      <SidebarContainer $isOpen={isSidebarOpen}>
+        <SidebarHeader>
+          <SidebarTitleWrapper>
+            <SidebarTitle>{selectedEvent ? getEventNavigatorName(selectedEvent.name) : 'MelaMarg'}</SidebarTitle>
+            <SidebarSubtitle>{t('melaMarg')}</SidebarSubtitle>
+          </SidebarTitleWrapper>
+          <SidebarCloseButton onClick={() => setIsSidebarOpen(false)}>
+            <X size={18} />
+          </SidebarCloseButton>
+        </SidebarHeader>
+
+        <SidebarList>
+          <SidebarItem 
+            $isActive={pathname.endsWith('/saved-spot')}
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push('/melamarg/saved-spot');
+            }}
+          >
+            <Bookmark />
+            <span>{t('savedSpot')}</span>
+          </SidebarItem>
+
+          <SidebarItem 
+            $isActive={pathname.endsWith('/ideas')}
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push('/melamarg/ideas');
+            }}
+          >
+            <MessageSquare />
+            <span>{t('feedback')}</span>
+          </SidebarItem>
+
+          <SidebarItem 
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push('/melamarg');
+            }}
+          >
+            <RefreshCw />
+            <span>{t('changeFestival') || 'Switch Festival / Event'}</span>
+          </SidebarItem>
+
+          <SidebarItem 
+            $isActive={pathname.endsWith('/language')}
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push(`/melamarg/language?returnUrl=${pathname}`);
+            }}
+          >
+            <Globe />
+            <span>{t('language') || 'Language Settings'}</span>
+          </SidebarItem>
+        </SidebarList>
+
+        <SidebarFooter>
+          <SidebarFooterText>MelaMarg App</SidebarFooterText>
+          <span style={{ fontSize: '9px', fontWeight: 600, color: '#94A3B8' }}>v1.2.0 (Offline Native)</span>
+        </SidebarFooter>
+      </SidebarContainer>
 
 
       {/* Global Offline Status Notification Banner */}
@@ -276,7 +357,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
         {activeToasts.map(toast => {
           const isEmergency = toast.is_emergency;
           const isService = toast.title.toUpperCase().includes('SERVICE');
-          const isAdvisory = toast.title.toUpperCase().includes('ADVISORY') || toast.title.toUpperCase().includes('CROWD');
+          const isAdvisory = toast.title.toUpperCase().includes('ADVISORY') || toast.title.toUpperCase().includes('CROWD') || !!toast.advisory_id;
 
           let leftBorderColor = '#ef4444';
           let alertColorTheme = '#f43f5e';
@@ -323,7 +404,18 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
                 <ToastMessage>
                   {toast.message}
                 </ToastMessage>
-                {toast.latitude && toast.longitude && (
+                {toast.advisory_id ? (
+                  <ToastAction
+                    onClick={() => {
+                      dismissToast(toast.id);
+                      router.push('/melamarg/advisories');
+                    }}
+                  >
+                    <Route className="w-3.5 h-3.5" />
+                    <span>{t('viewDetourMap')}</span>
+                    <ArrowRight className="w-3 h-3 arrow-right" />
+                  </ToastAction>
+                ) : toast.latitude && toast.longitude && (
                   <ToastAction
                     onClick={() => {
                       const targetPoi = {
@@ -337,7 +429,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
                       setNavTarget(targetPoi);
                       setArrivalNotify(false);
                       dismissToast(toast.id);
-                      router.push('/melamarg/navigation');
+                      router.push(`/melamarg/navigation?returnUrl=${pathname}`);
                     }}
                   >
                     <Compass className="w-3.5 h-3.5" />
@@ -443,16 +535,16 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
           </NavButton>
 
           <NavButton
-            $isActive={currentTab === 'ideas'}
+            $isActive={currentTab === 'advisories'}
             $activeColor="#1d4ed8"
             onClick={() => {
-              router.push('/melamarg/ideas');
+              router.push('/melamarg/advisories');
             }}
           >
-            <NavIconWrapper $isActive={currentTab === 'ideas'}>
-              <MessageSquare />
+            <NavIconWrapper $isActive={currentTab === 'advisories'}>
+              <Route />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'ideas'}>{t('ideas')}</NavButtonText>
+            <NavButtonText $isActive={currentTab === 'advisories'}>{t('advisories')}</NavButtonText>
           </NavButton>
         </BottomNav>
       )}

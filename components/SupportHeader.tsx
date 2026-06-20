@@ -8,6 +8,7 @@ import { getEventNavigatorName } from './NavigatorHeader';
 import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 import styled, { keyframes } from 'styled-components';
+import { Menu } from 'lucide-react';
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; }
@@ -87,7 +88,7 @@ const LangBadge = styled.button`
 export default function SupportHeader() {
   const router = useRouter();
   const pathname = usePathname();
-  const { selectedEvent } = useUserTest();
+  const { selectedEvent, setIsSidebarOpen } = useUserTest();
   const { language } = useLanguage();
 
   const [isOnline, setIsOnline] = useState(true);
@@ -122,23 +123,43 @@ export default function SupportHeader() {
 
   return (
     <HeaderContainer>
-      <BrandBlock>
-        {/* Rust Orange Signal SVG Icon matching mockup */}
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#E65100" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-          <line x1="18" y1="20" x2="18" y2="10" />
-          <line x1="12" y1="20" x2="12" y2="4" />
-          <line x1="6" y1="20" x2="6" y2="14" />
-        </svg>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <button 
+          onClick={() => setIsSidebarOpen(true)} 
+          style={{ 
+            background: 'none', 
+            border: 0, 
+            padding: '4px', 
+            color: '#E65100', 
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '6px'
+          }}
+          type="button"
+          aria-label="Menu"
+        >
+          <Menu size={20} />
+        </button>
+        <BrandBlock>
+          {/* Rust Orange Signal SVG Icon matching mockup */}
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#E65100" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
 
-        <TitleContainer>
-          <Text variant="bodyPrimary" weight={800} color={colors.brand.primary} style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '15px', lineHeight: '1.1', margin: 0 }}>
-            {firstLine}
-          </Text>
-          <Text variant="bodyPrimary" weight={800} color={colors.brand.primary} style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '15px', lineHeight: '1.1', margin: 0 }}>
-            {secondLine}
-          </Text>
-        </TitleContainer>
-      </BrandBlock>
+          <TitleContainer>
+            <Text variant="bodyPrimary" weight={800} color={colors.brand.primary} style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '15px', lineHeight: '1.1', margin: 0 }}>
+              {firstLine}
+            </Text>
+            <Text variant="bodyPrimary" weight={800} color={colors.brand.primary} style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '15px', lineHeight: '1.1', margin: 0 }}>
+              {secondLine}
+            </Text>
+          </TitleContainer>
+        </BrandBlock>
+      </div>
 
       <ControlsGroup>
         <StatusPill $isOnline={isOnline}>

@@ -19,7 +19,8 @@ import {
   Heart,
   MapPin,
   CheckCircle,
-  Navigation
+  Navigation,
+  Menu
 } from 'lucide-react';
 import { useUserTest } from '@/context/UserTestContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -160,7 +161,11 @@ export default function RedesignedEventHomePage() {
     gpsStatus,
     offlineMode,
     backendUrl,
-    userGps
+    userGps,
+    setScreenMode,
+    setArrivalNotify,
+    logNavigationInstructions,
+    setIsSidebarOpen
   } = useUserTest();
   const { language, t, tEventName, tPoiName, tPoiDesc } = useLanguage();
   
@@ -273,7 +278,10 @@ export default function RedesignedEventHomePage() {
   const handleNavigateNearestMedical = () => {
     if (nearestMedical) {
       setNavTarget(nearestMedical);
-      router.push('/melamarg/map');
+      setScreenMode('navigation');
+      setArrivalNotify(false);
+      logNavigationInstructions(nearestMedical);
+      router.push('/melamarg/navigation?returnUrl=/melamarg/home');
     } else {
       // Mock navigation target if database empty
       const mockMedical = {
@@ -285,7 +293,10 @@ export default function RedesignedEventHomePage() {
         description: 'First aid post setup'
       };
       setNavTarget(mockMedical);
-      router.push('/melamarg/map');
+      setScreenMode('navigation');
+      setArrivalNotify(false);
+      logNavigationInstructions(mockMedical);
+      router.push('/melamarg/navigation?returnUrl=/melamarg/home');
     }
   };
 
@@ -342,8 +353,8 @@ export default function RedesignedEventHomePage() {
     <HomeContainer>
       {/* Redesigned Top Header Overlay */}
       <HomeHeader>
-        <HeaderLeft onClick={() => router.push('/melamarg')}>
-          <img src="/favicon.ico" alt="logo" />
+        <HeaderLeft onClick={() => setIsSidebarOpen(true)}>
+          <Menu size={24} color="#ffffff" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
         </HeaderLeft>
         <HeaderRight>
           <LocationBadge>

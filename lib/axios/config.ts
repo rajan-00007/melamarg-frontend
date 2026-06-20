@@ -9,7 +9,7 @@
 // export const BASE_URL = 'http://192.168.1.100:5000/api/'; https://api-wp-events.infoviz.co/api/
 
 // OPTION 4: WEB BROWSER DEV
-export const BASE_URL = 'https://api-wp-events.infoviz.co/api/';
+export const BASE_URL = 'http://localhost:5000/api/';
 
 export const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
@@ -23,6 +23,6 @@ export const getBaseUrl = (): string => {
     const cleaned = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
     return cleaned.endsWith('/api') ? cleaned + '/' : cleaned + '/api/';
   }
-  return 'https://api-wp-events.infoviz.co/api/';
+  return 'http://localhost:5000/api/';
 };
 

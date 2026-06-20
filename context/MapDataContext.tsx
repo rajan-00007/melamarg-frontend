@@ -14,6 +14,8 @@ export interface MapDataContextType {
   setRouteNodes: React.Dispatch<React.SetStateAction<NodeItem[]>>;
   routeEdges: EdgeItem[];
   setRouteEdges: React.Dispatch<React.SetStateAction<EdgeItem[]>>;
+  activeAdvisories: any[];
+  setActiveAdvisories: React.Dispatch<React.SetStateAction<any[]>>;
   leafletLoaded: boolean;
   setLeafletLoaded: React.Dispatch<React.SetStateAction<boolean>>;
   activeCategory: string;
@@ -34,6 +36,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
   const [poisList, setPoisList] = useState<POIItem[]>([]);
   const [routeNodes, setRouteNodes] = useState<NodeItem[]>([]);
   const [routeEdges, setRouteEdges] = useState<EdgeItem[]>([]);
+  const [activeAdvisories, setActiveAdvisories] = useState<any[]>([]);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('toilet');
   const [loadingMapData, setLoadingMapData] = useState(false);
@@ -85,17 +88,20 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       let loadedPois = isMock ? MOCK_POIS : [];
       let loadedNodes = isMock ? MOCK_NODES : [];
       let loadedEdges = isMock ? MOCK_EDGES : [];
+      let loadedAdvisories: any[] = [];
       let hasLocalCache = false;
 
       if (typeof window !== 'undefined') {
         const cachedPois = localStorage.getItem(`mm_offline_pois_${event.id}`);
         const cachedRoutes = localStorage.getItem(`mm_offline_routes_${event.id}`);
+        const cachedAdvisories = localStorage.getItem(`mm_offline_advisories_${event.id}`);
         if (cachedPois && cachedRoutes) {
           try {
             loadedPois = JSON.parse(cachedPois);
             const routeData = JSON.parse(cachedRoutes);
             if (routeData.nodes) loadedNodes = routeData.nodes;
             if (routeData.edges) loadedEdges = routeData.edges;
+            if (cachedAdvisories) loadedAdvisories = JSON.parse(cachedAdvisories);
             hasLocalCache = true;
             console.log(`[Offline Cache] Loaded ${loadedPois.length} POIs and route graph from local storage for event ${event.id}`);
           } catch (e) {
@@ -107,15 +113,18 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       setPoisList(loadedPois);
       setRouteNodes(loadedNodes);
       setRouteEdges(loadedEdges);
+      setActiveAdvisories(loadedAdvisories);
 
       if (!offlineMode) {
         try {
           console.log(`[Fetch] Fetching latest map data from server for event ${event.id}...`);
           let pDataFetched = false;
           let rDataFetched = false;
+          let aDataFetched = false;
           let newPois = loadedPois;
           let newNodes = loadedNodes;
           let newEdges = loadedEdges;
+          let newAdvisories = loadedAdvisories;
 
           try {
             const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id));
@@ -144,15 +153,28 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
             console.warn('[Fetch] Routes fetch failed:', e);
           }
 
-          if (pDataFetched || rDataFetched) {
+          try {
+            const aRes = await axiosClient.get(API_ENDPOINTS.events.advisories(event.id) + '/active');
+            const aJson = aRes.data;
+            if (aJson.success && Array.isArray(aJson.data)) {
+              newAdvisories = aJson.data;
+              aDataFetched = true;
+            }
+          } catch (e) {
+            console.warn('[Fetch] Advisories fetch failed:', e);
+          }
+
+          if (pDataFetched || rDataFetched || aDataFetched) {
             loadedPois = newPois;
             loadedNodes = newNodes;
             loadedEdges = newEdges;
+            loadedAdvisories = newAdvisories;
             hasLocalCache = true;
             
             if (typeof window !== 'undefined') {
               localStorage.setItem(`mm_offline_pois_${event.id}`, JSON.stringify(newPois));
               localStorage.setItem(`mm_offline_routes_${event.id}`, JSON.stringify({ nodes: newNodes, edges: newEdges }));
+              localStorage.setItem(`mm_offline_advisories_${event.id}`, JSON.stringify(newAdvisories));
               console.log(`[Offline Cache] Updated offline cache in storage for event ${event.id}`);
             }
           }
@@ -187,6 +209,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       setPoisList(loadedPois);
       setRouteNodes(loadedNodes);
       setRouteEdges(loadedEdges);
+      setActiveAdvisories(loadedAdvisories);
     } finally {
       setLoadingMapData(false);
     }
@@ -218,6 +241,8 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
         setRouteNodes,
         routeEdges,
         setRouteEdges,
+        activeAdvisories,
+        setActiveAdvisories,
         leafletLoaded,
         setLeafletLoaded,
         activeCategory,

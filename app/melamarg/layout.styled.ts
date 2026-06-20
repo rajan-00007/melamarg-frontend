@@ -626,3 +626,139 @@ export const FloatDevButton = styled.button`
   }
 `;
 
+// Mobile Sidebar Styled Components
+export const SidebarBackdrop = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  opacity: ${props => props.$isOpen ? 1 : 0};
+  visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+`;
+
+export const SidebarContainer = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 290px;
+  max-width: 80%;
+  background-color: rgba(255, 255, 255, 0.98);
+  box-shadow: 20px 0 50px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(${props => props.$isOpen ? '0' : '-100%'});
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  overflow: hidden;
+`;
+
+export const SidebarHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1.25rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #FCF2E7 0%, #FFFFFF 100%);
+`;
+
+export const SidebarTitleWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+`;
+
+export const SidebarTitle = styled.h2`
+  font-family: 'Atkinson Hyperlegible Next', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: #E65100;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+`;
+
+export const SidebarSubtitle = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+export const SidebarCloseButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.04);
+  border: 0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+`;
+
+export const SidebarList = styled.nav`
+  flex: 1;
+  padding: 1.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+`;
+
+export const SidebarItem = styled.div<{ $isActive?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: ${props => props.$isActive ? '#E65100' : '#475569'};
+  background-color: ${props => props.$isActive ? '#FCF2E7' : 'transparent'};
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid ${props => props.$isActive ? 'rgba(230, 81, 0, 0.15)' : 'transparent'};
+
+  &:hover {
+    background-color: ${props => props.$isActive ? '#FCF2E7' : '#F8FAFC'};
+    color: ${props => props.$isActive ? '#E65100' : '#0F172A'};
+    transform: translateX(4px);
+  }
+
+  svg {
+    width: 1.2rem;
+    height: 1.2rem;
+    color: ${props => props.$isActive ? '#E65100' : '#64748B'};
+  }
+`;
+
+export const SidebarFooter = styled.div`
+  padding: 1.25rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  background-color: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+export const SidebarFooterText = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+

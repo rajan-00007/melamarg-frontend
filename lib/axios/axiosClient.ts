@@ -18,7 +18,10 @@ axiosClient.interceptors.request.use(
     const baseUrl = getBaseUrl();
     // Set baseURL dynamically so every request uses the latest saved URL
     config.baseURL = baseUrl;
-    console.log('[axiosClient] Request →', baseUrl + (config.url || ''));
+    const requestUrl = config.url?.startsWith('http://') || config.url?.startsWith('https://')
+      ? config.url
+      : baseUrl + (config.url || '');
+    console.log('[axiosClient] Request →', requestUrl);
     return config;
   },
   (error) => Promise.reject(error)

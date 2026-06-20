@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
     get base() { return `${getBase()}/events`; },
     pois: (eventId: string) => `${getBase()}/pois?eventId=${eventId}`,
     routes: (eventId: string) => `${getBase()}/events/${eventId}/routes`,
+    advisories: (eventId: string) => `${getBase()}/events/${eventId}/advisories`,
   },
   notifications: {
     get register() { return `${getBase()}/notifications/register`; },

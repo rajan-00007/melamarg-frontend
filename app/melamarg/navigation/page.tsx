@@ -1,60 +1,23 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUserTest } from '@/context/UserTestContext';
 import { Navigation, MapPin, Volume2, VolumeX, LogOut, Compass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import GpsWaitingOverlay from './GpsWaitingOverlay';
+import ArrivalOverlay from './ArrivalOverlay';
+import NavigationHUD from './NavigationHUD';
 import {
   NavContainer,
-  Overlay,
-  OverlayBox,
-  CenterBox,
-  WarningIconWrapper,
-  OverlayTitle,
-  OverlayText,
-  OverlayPillWrapper,
-  BypassButton,
-  StopButton,
-  ArrivalOverlay,
-  ArrivalTitle,
-  ArrivalText,
-  ArrivalButton,
   MapCanvas,
-  GPSLockedPill,
-  GPSSearchingPill,
-  GPSLostPill,
-  StyledCompassIcon,
-  StyledPartyPopper,
-  
-  // Redesigned UI components
   FloatingHeaderWrapper,
   FloatingHeaderPillRow,
   OfflineActivePill,
   GpsStrongPill,
-  RouteStatusBanner,
-  RouteStatusIconWrapper,
-  RouteStatusInfo,
-  RouteStatusTitle,
-  RouteStatusSubtitle,
-  FloatingBottomWrapper,
   FloatingControlsRow,
   FloatingLocateButton,
   FloatingSimulateButton,
-  PremiumBottomCard,
-  BottomCardProgressHeader,
-  BottomCardDestinationText,
-  BottomCardPercentageText,
-  BottomProgressBarContainer,
-  BottomProgressBarFill,
-  BottomMetricsRow,
-  BottomMetricCol,
-  BottomMetricLabel,
-  BottomMetricValue,
-  BottomActionsRow,
-  BottomVoiceButton,
-  BottomExitButton,
-  NextInstructionPill,
   UnifiedStatusCard,
   UnifiedStatusHeader,
   UnifiedStatusBody
@@ -125,6 +88,7 @@ const getClosestPointOnSegment = (
 
 export default function CompassNavigationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     navTarget,
     setNavTarget,
@@ -146,7 +110,8 @@ export default function CompassNavigationPage() {
     selectedEvent,
     leafletLoaded,
     getRealGps,
-    poisList
+    poisList,
+    activeAdvisories
   } = useUserTest();
 
   const { language, t, tPoiName } = useLanguage();
@@ -168,6 +133,7 @@ export default function CompassNavigationPage() {
   const activeRouteLayerRef = useRef<any>(null);
   const offRouteConnectorRef = useRef<any>(null);
   const poiMarkersLayerRef = useRef<any>(null);
+  const advisoryLayerRef = useRef<any>(null);
   const LRef = useRef<any>(null);
 
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
@@ -189,6 +155,28 @@ export default function CompassNavigationPage() {
       setInitialDistance(null);
     }
   }, [navTarget, stats?.distance, initialDistance]);
+
+  // Clean up navigation target and reset screen mode on unmount
+  useEffect(() => {
+    const returnUrl = searchParams.get('returnUrl') || '';
+    return () => {
+      // Avoid clearing navTarget if unmounting/remounting on the same page (React StrictMode / Dev reload)
+      if (typeof window !== 'undefined' && window.location.pathname.includes('/navigation')) {
+        return;
+      }
+      setNavTarget(null);
+      setIsWalking(false);
+      if (returnUrl.includes('/advisories')) {
+        setScreenMode('home');
+      } else if (returnUrl.includes('/map')) {
+        setScreenMode('home');
+      } else if (returnUrl.includes('/home')) {
+        setScreenMode('home');
+      } else {
+        setScreenMode('pois');
+      }
+    };
+  }, [setNavTarget, setIsWalking, setScreenMode, searchParams]);
 
   const progressPercent = useMemo(() => {
     if (!stats || !initialDistance) return 0;
@@ -283,7 +271,7 @@ export default function CompassNavigationPage() {
 
   // Real-time Left and Right POI quadrant calculations
   const nearestQuadrantPOIs = useMemo(() => {
-    if (!poisList || poisList.length === 0) {
+    if (!poisList || poisList.length === 0 || (navTarget && (navTarget.id === 'saved-spot-nav' || navTarget.category_name === 'Saved Spot'))) {
       return { left: null, right: null };
     }
 
@@ -414,6 +402,8 @@ export default function CompassNavigationPage() {
     const L = LRef.current || (window as any).L;
     if (!L) return;
 
+    const isSavedSpot = navTarget && (navTarget.id === 'saved-spot-nav' || navTarget.category_name === 'Saved Spot');
+
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
@@ -485,7 +475,61 @@ export default function CompassNavigationPage() {
     const networkLayer = L.layerGroup().addTo(map);
     routeLayerRef.current = networkLayer;
 
-    // Draw full waypoint grid network reference lines removed to keep active navigation view clean without low opacity blue lines
+    // Draw full waypoint grid network reference lines (route segments)
+    const advisoriesToUseForEdges = isSavedSpot ? [] : activeAdvisories;
+    routeEdges.forEach((edge) => {
+      const startId = edge.start_node_id || (edge as any).startNodeId;
+      const endId = edge.end_node_id || (edge as any).endNodeId;
+      const startNode = routeNodes.find((n) => n.id === startId);
+      const endNode = routeNodes.find((n) => n.id === endId);
+      if (startNode && endNode) {
+        let edgeColor = '#22d3ee';
+        let isDashed = true;
+
+        if (advisoriesToUseForEdges && advisoriesToUseForEdges.length > 0) {
+          advisoriesToUseForEdges.forEach(advisory => {
+            if (advisory.is_active && advisory.edges) {
+              advisory.edges.forEach((ae: any) => {
+                if (ae.edge_id === edge.id) {
+                  if (ae.status === 'blocked') {
+                    edgeColor = '#ef4444'; // Red
+                    isDashed = false;
+                  } else if (ae.status === 'recommended') {
+                    edgeColor = '#10b981'; // Green
+                    isDashed = true;
+                  }
+                }
+              });
+            }
+          });
+        }
+
+        // Shaded corridor representing the 20-meter buffer radius (40m total width)
+        L.polyline([
+          [Number(startNode.latitude), Number(startNode.longitude)],
+          [Number(endNode.latitude), Number(endNode.longitude)]
+        ], {
+          color: edgeColor,
+          weight: 40,
+          opacity: 0.12,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(networkLayer);
+
+        // Center line
+        L.polyline([
+          [Number(startNode.latitude), Number(startNode.longitude)],
+          [Number(endNode.latitude), Number(endNode.longitude)]
+        ], {
+          color: edgeColor,
+          weight: 3,
+          opacity: 0.75,
+          dashArray: isDashed ? '6, 6' : undefined,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(networkLayer);
+      }
+    });
 
     routeNodes.forEach((node) => {
       const lat = Number(node.latitude);
@@ -540,20 +584,65 @@ export default function CompassNavigationPage() {
 
     activeRouteLayerRef.current = L.layerGroup().addTo(map);
     poiMarkersLayerRef.current = L.layerGroup().addTo(map);
+    advisoryLayerRef.current = L.layerGroup().addTo(map);
+
+    // Plot advisory edges on navigation map
+    if (!isSavedSpot && activeAdvisories && activeAdvisories.length > 0) {
+      activeAdvisories.forEach(advisory => {
+        if (advisory.is_active && advisory.edges) {
+          advisory.edges.forEach((ae: any) => {
+            const edge = routeEdges.find(e => e.id === ae.edge_id);
+            if (edge) {
+              const startId = edge.start_node_id || (edge as any).startNodeId;
+              const endId = edge.end_node_id || (edge as any).endNodeId;
+              const startNode = routeNodes.find(n => n.id === startId);
+              const endNode = routeNodes.find(n => n.id === endId);
+              if (startNode && endNode) {
+                const color = ae.status === 'blocked' ? '#ef4444' : '#10b981';
+                
+                // Draw thick corridor highlight
+                L.polyline([
+                  [Number(startNode.latitude), Number(startNode.longitude)],
+                  [Number(endNode.latitude), Number(endNode.longitude)]
+                ], {
+                  color,
+                  weight: 20,
+                  opacity: 0.15,
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }).addTo(advisoryLayerRef.current);
+
+                // Draw center dash/solid line
+                L.polyline([
+                  [Number(startNode.latitude), Number(startNode.longitude)],
+                  [Number(endNode.latitude), Number(endNode.longitude)]
+                ], {
+                  color,
+                  weight: 3,
+                  opacity: 0.8,
+                  dashArray: ae.status === 'blocked' ? undefined : '5, 5',
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }).addTo(advisoryLayerRef.current);
+              }
+            }
+          });
+        }
+      });
+    }
 
     // Initial path drawing
     if (stats && stats.pathNodes) {
       drawActiveRoute(L, stats.pathNodes);
     }
 
-    setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize({ animate: false });
-        mapRef.current.panTo(userGps);
-      }
+    let initTimer = setTimeout(() => {
+      mapRef.current?.invalidateSize?.({ animate: false });
+      mapRef.current?.panTo?.(userGps);
     }, 150);
 
     return () => {
+      clearTimeout(initTimer);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -562,9 +651,10 @@ export default function CompassNavigationPage() {
         activeRouteLayerRef.current = null;
         offRouteConnectorRef.current = null;
         poiMarkersLayerRef.current = null;
+        advisoryLayerRef.current = null;
       }
     };
-  }, [leafletLoaded, selectedEvent, navTarget]);
+  }, [leafletLoaded, selectedEvent, navTarget, activeAdvisories]);
 
   // Render and update secondary POI markers based on zoom and path proximity
   useEffect(() => {
@@ -573,6 +663,10 @@ export default function CompassNavigationPage() {
 
     const poiMarkersLayer = poiMarkersLayerRef.current;
     poiMarkersLayer.clearLayers();
+
+    if (navTarget && (navTarget.id === 'saved-spot-nav' || navTarget.category_name === 'Saved Spot')) {
+      return;
+    }
 
     if (!poisList) return;
 
@@ -693,12 +787,16 @@ export default function CompassNavigationPage() {
 
   // Force map size checks on expand/collapse size change
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
     if (mapRef.current) {
-      setTimeout(() => {
-        mapRef.current.invalidateSize({ animate: true });
-        mapRef.current.panTo(userGps);
+      timer = setTimeout(() => {
+        mapRef.current?.invalidateSize?.({ animate: true });
+        mapRef.current?.panTo?.(userGps);
       }, 150);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isMapExpanded, userGps]);
 
   // Redraw route highlighting when GPS or nodes update
@@ -748,92 +846,15 @@ export default function CompassNavigationPage() {
 
   if (!navTarget || !stats) return null;
 
-  const renderGpsStatusPill = () => {
-    if (gpsStatus === 'locked') {
-      return (
-        <GPSLockedPill>
-          <span className="dot"></span>
-          <span>Locked ({gpsAccuracy ? `${Math.round(gpsAccuracy)}m` : 'Good'})</span>
-        </GPSLockedPill>
-      );
-    } else if (gpsStatus === 'searching') {
-      return (
-        <GPSSearchingPill>
-          <span className="dot"></span>
-          <span>Searching GPS... ({gpsAccuracy ? `${Math.round(gpsAccuracy)}m` : 'Weak'})</span>
-        </GPSSearchingPill>
-      );
-    } else {
-      return (
-        <GPSLostPill>
-          <span className="dot"></span>
-          <span>No GPS ({gpsAccuracy ? `${Math.round(gpsAccuracy)}m` : 'No Signal'})</span>
-        </GPSLostPill>
-      );
-    }
-  };
 
   return (
     <NavContainer>
       
       {/* Waiting for GPS Lock Bypass Modal */}
-      {gpsStatus !== 'locked' && (
-        <Overlay>
-          <OverlayBox>
-            <CenterBox>
-              <WarningIconWrapper>
-                <StyledCompassIcon />
-              </WarningIconWrapper>
-            </CenterBox>
-            <OverlayTitle>{t('waitingForGps')}</OverlayTitle>
-            <OverlayText>
-              {t('gpsRequiredDesc')}
-            </OverlayText>
-            <OverlayPillWrapper>
-              {renderGpsStatusPill()}
-            </OverlayPillWrapper>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: '0.5rem' }}>
-              <BypassButton 
-                onClick={() => handleGpsUpdate({
-                  coords: { latitude: userGps[0], longitude: userGps[1], accuracy: 12 },
-                  timestamp: Date.now()
-                })}
-              >
-                {t('forceMockGps')}
-              </BypassButton>
-              <StopButton
-                onClick={() => {
-                  setNavTarget(null);
-                  setScreenMode('pois');
-                  setIsWalking(false);
-                  router.push('/melamarg/pois');
-                }}
-              >
-                {t('stopNavigation')}
-              </StopButton>
-            </div>
-          </OverlayBox>
-        </Overlay>
-      )}
+      <GpsWaitingOverlay />
 
-      {arrivalNotify && (
-        <ArrivalOverlay>
-          <StyledPartyPopper />
-          <ArrivalTitle>{t('destinationReached')}</ArrivalTitle>
-          <ArrivalText>{t('arrivedSafelyAt')} {tPoiName(navTarget)}.</ArrivalText>
-          <ArrivalButton
-            onClick={() => {
-              setNavTarget(null);
-              setScreenMode('pois');
-              setIsWalking(false);
-              setArrivalNotify(false);
-              router.push('/melamarg/pois');
-            }}
-          >
-            {t('returnToPoiList')}
-          </ArrivalButton>
-        </ArrivalOverlay>
-      )}
+      {/* Destination Arrival popper overlay */}
+      <ArrivalOverlay />
 
       {/* Main Map & Floating Redesigned UI */}
       <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', flexGrow: 1 }}>
@@ -877,8 +898,14 @@ export default function CompassNavigationPage() {
         </FloatingHeaderWrapper>
 
         {/* Bottom Floating Card & Secondary Actions */}
-        <FloatingBottomWrapper>
-          <FloatingControlsRow>
+        <NavigationHUD
+          stats={stats}
+          progressPercent={progressPercent}
+          arrivalTimeStr={arrivalTimeStr}
+          voiceOn={voiceOn}
+          setVoiceOn={setVoiceOn}
+        >
+          <FloatingControlsRow style={{ marginBottom: '10px' }}>
             <FloatingSimulateButton
               onClick={handleSimulateWalking}
               disabled={isWalking || arrivalNotify}
@@ -911,68 +938,7 @@ export default function CompassNavigationPage() {
               <Navigation style={{ width: '1.2rem', height: '1.2rem', transform: 'rotate(45deg)' }} />
             </FloatingLocateButton>
           </FloatingControlsRow>
-
-          <PremiumBottomCard>
-            <BottomCardProgressHeader>
-              <BottomCardDestinationText>{tPoiName(navTarget)}</BottomCardDestinationText>
-              <BottomCardPercentageText>{progressPercent}% {t('complete')}</BottomCardPercentageText>
-            </BottomCardProgressHeader>
-
-            <BottomProgressBarContainer>
-              <BottomProgressBarFill $percent={progressPercent} />
-            </BottomProgressBarContainer>
-
-            <BottomMetricsRow>
-              <BottomMetricCol>
-                <BottomMetricLabel>{t('arrival')}</BottomMetricLabel>
-                <BottomMetricValue className="arrival-time">{arrivalTimeStr}</BottomMetricValue>
-              </BottomMetricCol>
-
-              <BottomMetricCol>
-                <BottomMetricLabel>{t('time')}</BottomMetricLabel>
-                <BottomMetricValue>
-                  {stats.time < 60 
-                    ? `${stats.time} ${language === 'hi' ? 'सेकंड' : language === 'or' ? 'ସେକେଣ୍ଡ' : language === 'bn' ? 'সেকেন্ড' : 'sec'}` 
-                    : `${Math.ceil(stats.time / 60)} ${language === 'hi' ? 'मिनट' : language === 'or' ? 'ମିନିଟ୍' : language === 'bn' ? 'মিনিট' : 'min'}`}
-                </BottomMetricValue>
-              </BottomMetricCol>
-
-              <BottomMetricCol>
-                <BottomMetricLabel>{t('distance')}</BottomMetricLabel>
-                <BottomMetricValue>
-                  {stats.distance < 1000 
-                    ? `${stats.distance} ${language === 'hi' ? 'मीटर' : language === 'or' ? 'ମିଟର' : language === 'bn' ? 'মিটার' : 'm'}` 
-                    : `${(stats.distance / 1000).toFixed(2)} ${language === 'hi' ? 'किमी' : language === 'or' ? 'କିମି' : language === 'bn' ? 'কিমি' : 'km'}`}
-                </BottomMetricValue>
-              </BottomMetricCol>
-            </BottomMetricsRow>
-
-            <BottomActionsRow>
-              <BottomVoiceButton $active={voiceOn} onClick={() => setVoiceOn(!voiceOn)}>
-                {voiceOn ? (
-                  <Volume2 style={{ width: '1.1rem', height: '1.1rem' }} />
-                ) : (
-                  <VolumeX style={{ width: '1.1rem', height: '1.1rem' }} />
-                )}
-                <span>{voiceOn ? t('voiceOn') : t('voiceOff')}</span>
-              </BottomVoiceButton>
-
-              <BottomExitButton
-                onClick={() => {
-                  if (confirm(t('confirmExitNav'))) {
-                    setNavTarget(null);
-                    setScreenMode('pois');
-                    setIsWalking(false);
-                    router.push('/melamarg/pois');
-                  }
-                }}
-              >
-                <LogOut style={{ width: '1rem', height: '1rem' }} />
-                <span>{t('exit')}</span>
-              </BottomExitButton>
-            </BottomActionsRow>
-          </PremiumBottomCard>
-        </FloatingBottomWrapper>
+        </NavigationHUD>
 
       </div>
     </NavContainer>

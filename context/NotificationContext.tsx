@@ -176,6 +176,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               is_emergency: payload.data?.isEmergency === 'true' || payload.data?.is_emergency === 'true',
               latitude: payload.data?.latitude ? Number(payload.data.latitude) : undefined,
               longitude: payload.data?.longitude ? Number(payload.data.longitude) : undefined,
+              advisory_id: payload.data?.advisoryId || payload.data?.advisory_id || undefined,
               created_at: new Date().toISOString()
             };
 
@@ -240,6 +241,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           is_emergency: notification.data?.isEmergency === 'true' || notification.data?.isEmergency === true,
           latitude: notification.data?.latitude ? Number(notification.data.latitude) : undefined,
           longitude: notification.data?.longitude ? Number(notification.data.longitude) : undefined,
+          advisory_id: notification.data?.advisoryId || notification.data?.advisory_id || undefined,
           created_at: new Date().toISOString()
         };
 

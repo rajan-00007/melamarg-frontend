@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface SavedSpotData {
+  id: string;
   name: string;
   photo: string | null;
   latitude: number;
@@ -10,20 +11,20 @@ export interface SavedSpotData {
 }
 
 interface SavedSpotState {
-  savedSpot: SavedSpotData | null;
-  saveSpot: (spot: SavedSpotData) => void;
-  deleteSpot: () => void;
+  savedSpots: SavedSpotData[];
+  addSpot: (spot: SavedSpotData) => void;
+  deleteSpot: (id: string) => void;
 }
 
 export const useSavedSpotStore = create<SavedSpotState>()(
   persist(
     (set) => ({
-      savedSpot: null,
-      saveSpot: (spot) => set({ savedSpot: spot }),
-      deleteSpot: () => set({ savedSpot: null }),
+      savedSpots: [],
+      addSpot: (spot) => set((state) => ({ savedSpots: [spot, ...state.savedSpots] })),
+      deleteSpot: (id) => set((state) => ({ savedSpots: state.savedSpots.filter((s) => s.id !== id) })),
     }),
     {
-      name: 'mm_saved_spot_store', // LocalStorage key
+      name: 'mm_saved_spots_store', // Updated LocalStorage key to prevent type conflict
     }
   )
 );

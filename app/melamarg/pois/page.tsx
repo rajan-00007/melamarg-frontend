@@ -163,7 +163,7 @@ export default function CategoryPoisPage() {
                   setScreenMode('navigation');
                   setArrivalNotify(false);
                   logNavigationInstructions(poi);
-                  router.push('/melamarg/navigation');
+                  router.push('/melamarg/navigation?returnUrl=/melamarg/pois');
                 }}
               >
                 <span>{t('go')}</span>

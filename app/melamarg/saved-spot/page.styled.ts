@@ -136,3 +136,76 @@ export const EmptyState = styled.div`
   text-align: center;
   gap: 1rem;
 `;
+
+export const SpotList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+`;
+
+export const SpotCard = styled.div`
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  border: 1px solid #EEF2F6;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+  width: 100%;
+`;
+
+export const SpotCardBody = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+`;
+
+export const SpotThumbnail = styled.div`
+  width: 70px;
+  height: 70px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+  background-color: #F1F5F9;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+export const SpotInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+`;
+
+export const SpotMetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+`;
+
+export const DistanceBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  background-color: #FCF2E7;
+  color: #E65100;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+`;

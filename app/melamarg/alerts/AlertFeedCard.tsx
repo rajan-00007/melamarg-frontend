@@ -8,7 +8,8 @@ import {
   AlertTriangle,
   AlertCircle,
   Bell,
-  Compass
+  Compass,
+  Route
 } from 'lucide-react';
 import {
   AlertCard,
@@ -35,6 +36,7 @@ interface AlertFeedCardProps {
     latitude?: number;
     longitude?: number;
     actionText?: string;
+    advisory_id?: string;
   };
 }
 
@@ -49,11 +51,16 @@ export default function AlertFeedCard({ alert }: AlertFeedCardProps) {
   } = useUserTest();
   const { t } = useLanguage();
 
+  const isAdvisory = !!alert.advisory_id;
+  const category = isAdvisory ? 'WARNING' : alert.category;
+
   let TitleIcon = Bell;
-  if (alert.category === 'CRITICAL') TitleIcon = AlertTriangle;
-  else if (alert.category === 'WARNING') TitleIcon = AlertCircle;
+  if (isAdvisory) TitleIcon = Route;
+  else if (category === 'CRITICAL') TitleIcon = AlertTriangle;
+  else if (category === 'WARNING') TitleIcon = AlertCircle;
 
   const getLocalizedActionText = () => {
+    if (isAdvisory) return t('viewDetourMap');
     const text = alert.actionText || 'NAVIGATE TO LOCATION';
     if (text === 'NAVIGATE TO LOCATION') return t('navigateLocation');
     if (text === 'NAVIGATE TO MEDICAL POST') return t('navigateMedical');
@@ -78,26 +85,36 @@ export default function AlertFeedCard({ alert }: AlertFeedCardProps) {
   };
 
   return (
-    <AlertCard $type={alert.category}>
+    <AlertCard $type={category}>
       <CardHeaderRow>
         <TypeBadge>
-          <IconBox $type={alert.category}>
-            <TitleIcon />
+          <IconBox $type={category}>
+            <TitleIcon size={14} />
           </IconBox>
-          <TypeLabel $type={alert.category}>
-            {t(alert.category.toLowerCase() as any).toUpperCase()}
+          <TypeLabel $type={category}>
+            {isAdvisory ? t('trafficAdvisory').toUpperCase() : t(category.toLowerCase() as any).toUpperCase()}
           </TypeLabel>
         </TypeBadge>
         <TimeAgo>{getLocalizedTimeLabel(alert.timeLabel)}</TimeAgo>
       </CardHeaderRow>
       
-      <AlertTitle $type={alert.category}>{alert.title}</AlertTitle>
-      <AlertText $type={alert.category}>{alert.message}</AlertText>
+      <AlertTitle $type={category}>{alert.title}</AlertTitle>
+      <AlertText $type={category}>{alert.message}</AlertText>
       
-      {/* Render full-width navigation action if coordinates are present */}
-      {alert.latitude && alert.longitude && (
+      {/* Render full-width navigation action if it is an advisory OR has coordinates */}
+      {isAdvisory ? (
         <NavigateButton
-          $type={alert.category}
+          $type="WARNING"
+          onClick={() => {
+            router.push('/melamarg/advisories');
+          }}
+        >
+          <Route size={14} />
+          <span>{getLocalizedActionText()}</span>
+        </NavigateButton>
+      ) : alert.latitude && alert.longitude && (
+        <NavigateButton
+          $type={category}
           onClick={() => {
             const targetPoi: POIItem = {
               id: `alert-poi-${alert.id}`,
@@ -112,7 +129,7 @@ export default function AlertFeedCard({ alert }: AlertFeedCardProps) {
             setScreenMode('navigation');
             setArrivalNotify(false);
             logNavigationInstructions(targetPoi);
-            router.push('/melamarg/map');
+            router.push('/melamarg/navigation?returnUrl=/melamarg/alerts');
           }}
         >
           <Compass size={14} />
@@ -121,7 +138,7 @@ export default function AlertFeedCard({ alert }: AlertFeedCardProps) {
       )}
 
       {/* If it's a real notification, render a dismiss option */}
-      {!alert.id.startsWith('mock-') && (
+     {/*  {!alert.id.startsWith('mock-') && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
           <DismissTextLink
             onClick={() => {
@@ -131,7 +148,7 @@ export default function AlertFeedCard({ alert }: AlertFeedCardProps) {
             {t('dismissAlert')}
           </DismissTextLink>
         </div>
-      )}
+      )} */}
     </AlertCard>
   );
 }

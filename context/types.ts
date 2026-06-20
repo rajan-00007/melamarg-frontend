@@ -59,11 +59,29 @@ export class DijkstraRouter {
     nodes: NodeItem[],
     edges: EdgeItem[],
     startNodeId: string,
-    endNodeId: string
+    endNodeId: string,
+    activeAdvisories?: any[]
   ): NodeItem[] | null {
     if (startNodeId === endNodeId) {
       const node = nodes.find(n => n.id === startNodeId);
       return node ? [node] : null;
+    }
+
+    const blockedEdgeIds = new Set<string>();
+    const recommendedEdgeIds = new Set<string>();
+
+    if (activeAdvisories && activeAdvisories.length > 0) {
+      activeAdvisories.forEach(advisory => {
+        if (advisory.is_active && advisory.edges) {
+          advisory.edges.forEach((ae: any) => {
+            if (ae.status === 'blocked') {
+              blockedEdgeIds.add(ae.edge_id);
+            } else if (ae.status === 'recommended') {
+              recommendedEdgeIds.add(ae.edge_id);
+            }
+          });
+        }
+      });
     }
 
     const graph: { [key: string]: { node: NodeItem; neighbors: { targetId: string; distance: number }[] } } = {};
@@ -91,8 +109,19 @@ export class DijkstraRouter {
       const startId = edge.start_node_id || (edge as any).startNodeId;
       const endId = edge.end_node_id || (edge as any).endNodeId;
 
+      // Skip blocked edges!
+      if (edge.id && blockedEdgeIds.has(edge.id)) {
+        return;
+      }
+
       if (graph[startId] && graph[endId]) {
-        const dist = getDistance(graph[startId].node, graph[endId].node);
+        let dist = getDistance(graph[startId].node, graph[endId].node);
+
+        // Bias towards recommended detour edges!
+        if (edge.id && recommendedEdgeIds.has(edge.id)) {
+          dist = dist * 0.5; // cost reduction
+        }
+
         graph[startId].neighbors.push({ targetId: endId, distance: dist });
         graph[endId].neighbors.push({ targetId: startId, distance: dist });
       }
@@ -268,7 +297,8 @@ export function findOptimalEntranceNode(
   userLng: number,
   destNode: NodeItem,
   nodes: NodeItem[],
-  edges: EdgeItem[]
+  edges: EdgeItem[],
+  activeAdvisories?: any[]
 ): { nearestNodeToUser: NodeItem; minUserDist: number } {
   let nearestNode = nodes[0];
   let minGeomDist = Infinity;
@@ -297,7 +327,7 @@ export function findOptimalEntranceNode(
 
   entranceNodes.forEach((entrance) => {
     const distToEntrance = getHaversineDistance(userLat, userLng, entrance.latitude, entrance.longitude);
-    const path = DijkstraRouter.findShortestPath(nodes, edges, entrance.id, destNode.id);
+    const path = DijkstraRouter.findShortestPath(nodes, edges, entrance.id, destNode.id, activeAdvisories);
     
     if (path && path.length > 0) {
       foundValidPath = true;

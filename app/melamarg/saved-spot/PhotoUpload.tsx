@@ -89,6 +89,42 @@ interface PhotoUploadProps {
   onChange: (base64: string | null) => void;
 }
 
+const compressImage = (base64Str: string, maxWidth = 600, maxHeight = 600): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        // Export to standard JPEG at 0.6 quality for lightweight storage
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+  });
+};
+
 export default function PhotoUpload({ photo, onChange }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
@@ -103,8 +139,15 @@ export default function PhotoUpload({ photo, onChange }: PhotoUploadProps) {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        onChange(reader.result as string);
+      reader.onloadend = async () => {
+        const rawBase64 = reader.result as string;
+        try {
+          const compressed = await compressImage(rawBase64);
+          onChange(compressed);
+        } catch (err) {
+          console.warn('Image compression failed, falling back to raw data', err);
+          onChange(rawBase64);
+        }
       };
       reader.readAsDataURL(file);
     }
