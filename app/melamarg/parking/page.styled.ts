@@ -181,13 +181,13 @@ export const ReserveButton = styled.button<{ $disabled?: boolean }>`
   color: #ffffff;
   border: none;
   border-radius: 16px;
-  padding: 16px;
-  font-size: 16px;
+  padding: 12px 14px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
   box-shadow: ${props => props.$disabled ? 'none' : '0 4px 12px rgba(180, 83, 9, 0.2)'};
@@ -463,4 +463,20 @@ export const TicketCancelButton = styled.button`
   &:hover {
     color: #dc2626;
   }
+`;
+
+export const PriceBadge = styled.div<{ $isPaid: boolean }>`
+  align-self: flex-start;
+  background: ${props => props.$isPaid ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)'};
+  color: ${props => props.$isPaid ? '#ef4444' : '#10b981'};
+  border: 1px solid ${props => props.$isPaid ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'};
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 `;

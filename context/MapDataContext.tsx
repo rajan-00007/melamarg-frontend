@@ -127,7 +127,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
           let newAdvisories = loadedAdvisories;
 
           try {
-            const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id));
+            const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id) + `?t=${Date.now()}`);
             const pJson = pRes.data;
             if (pJson.success && Array.isArray(pJson.data)) {
               newPois = pJson.data;
@@ -138,7 +138,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
           }
 
           try {
-            const rRes = await axiosClient.get(API_ENDPOINTS.events.routes(event.id));
+            const rRes = await axiosClient.get(API_ENDPOINTS.events.routes(event.id) + `?t=${Date.now()}`);
             const rJson = rRes.data;
             if ((rJson.status === 'success' || rJson.success) && rJson.data) {
               if (Array.isArray(rJson.data.nodes)) {
@@ -154,7 +154,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
           }
 
           try {
-            const aRes = await axiosClient.get(API_ENDPOINTS.events.advisories(event.id) + '/active');
+            const aRes = await axiosClient.get(API_ENDPOINTS.events.advisories(event.id) + `/active?t=${Date.now()}`);
             const aJson = aRes.data;
             if (aJson.success && Array.isArray(aJson.data)) {
               newAdvisories = aJson.data;

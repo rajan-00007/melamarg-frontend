@@ -33,7 +33,7 @@ export const Wrapper = styled.div`
   justify-content: start;
   position: relative;
   background-color: #fafaf5;
-  min-height: 100dvh;
+  min-height: 100%;
 `;
 
 // Selector Screen
@@ -331,7 +331,7 @@ export const DownloadingContainer = styled.div`
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  min-height: 100dvh;
+  min-height: 100%;
   animation: ${fadeIn} 0.4s ease-out forwards;
 `;
 

@@ -172,6 +172,59 @@ export default function RedesignedEventHomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
 
+  const [currentCityName, setCurrentCityName] = useState<string>(() => {
+    if (typeof window !== 'undefined' && selectedEvent) {
+      return localStorage.getItem(`mm_cached_city_${selectedEvent.id}`) || '';
+    }
+    return '';
+  });
+  const fetchedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedEvent) return;
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem(`mm_cached_city_${selectedEvent.id}`);
+      setCurrentCityName(cached || '');
+    }
+  }, [selectedEvent?.id]);
+
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const isOnline = !offlineMode && (typeof navigator !== 'undefined' ? navigator.onLine : true);
+    if (!isOnline || !userGps || userGps[0] === 0 || userGps[1] === 0) return;
+    if (fetchedRef.current === selectedEvent.id) return;
+
+    let isMounted = true;
+    const fetchCityName = async () => {
+      try {
+        const [lat, lng] = userGps;
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+          headers: {
+            'Accept-Language': 'en'
+          }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.address) {
+          const city = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.county;
+          if (city && isMounted) {
+            setCurrentCityName(city);
+            localStorage.setItem(`mm_cached_city_${selectedEvent.id}`, city);
+            fetchedRef.current = selectedEvent.id;
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching city name via reverse geocoding:', err);
+      }
+    };
+
+    fetchCityName();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userGps, offlineMode, selectedEvent?.id]);
+
   const getEventSlides = () => {
     if (!selectedEvent) return EVENT_SLIDES_MAP.rathyatra;
     const name = selectedEvent.name.toLowerCase();
@@ -270,7 +323,7 @@ export default function RedesignedEventHomePage() {
     ? [...medicalPois].sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))[0] 
     : null;
 
-  const nearestMedicalName = nearestMedical ? tPoiName(nearestMedical) : t('medicalCamp');
+  const nearestMedicalName = t('medicalHelp') || 'Medical Help';
   const nearestMedicalDistance = nearestMedical ? `${Math.round(nearestMedical.distance || 200)}m` : '200m';
   const nearestMedicalDesc = nearestMedical ? (tPoiDesc(nearestMedical) || t('locatedAshwaDwara')) : t('locatedAshwaDwara');
 
@@ -346,7 +399,7 @@ export default function RedesignedEventHomePage() {
     { id: 'sanitation', label: 'Sanitation', icon: Brush, bg: 'rgba(0, 105, 92, 0.08)', color: '#00695C' }
   ];
 
-  const eventLocation = selectedEvent.name.split(' - ')[1] || 'Puri';
+  const eventLocation = currentCityName;
   const isGpsActive = gpsStatus === 'locked' && !offlineMode;
 
   return (
@@ -357,10 +410,12 @@ export default function RedesignedEventHomePage() {
           <Menu size={24} color="#ffffff" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
         </HeaderLeft>
         <HeaderRight>
-          <LocationBadge>
-            <CheckCircle />
-            <span>{eventLocation}</span>
-          </LocationBadge>
+          {eventLocation && (
+            <LocationBadge>
+              <CheckCircle />
+              <span>{eventLocation}</span>
+            </LocationBadge>
+          )}
           <LiveBadge style={{ backgroundColor: isGpsActive ? '#84d5c5' : '#E5EAF0', color: isGpsActive ? '#00201b' : '#475569' }}>
             <Compass style={{ opacity: isGpsActive ? 1 : 0.4 }} />
             <span>{isGpsActive ? t('gpsLive') : t('offline')}</span>

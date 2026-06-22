@@ -56,6 +56,7 @@ import {
   ListCardActions,
   CompactReserveButton,
   CompactRouteButton,
+  PriceBadge,
 } from './page.styled';
 
 // Haversine distance calculator
@@ -114,7 +115,7 @@ export default function ParkingFinderPage() {
     // 2. Fetch fresh details from API if online
     if (!offlineMode) {
       try {
-        const res = await axiosClient.get(`/parking/events/${selectedEvent.id}/parking`);
+        const res = await axiosClient.get(`/parking/events/${selectedEvent.id}/parking?t=${Date.now()}`);
         if (res.data && res.data.success) {
           const freshData = res.data.data || [];
           setParkingLots(freshData);
@@ -368,7 +369,12 @@ export default function ParkingFinderPage() {
       {activeReservation && reservedLot && (
         <div style={{ marginBottom: '24px' }}>
           <FeaturedCard style={{ marginBottom: '12px', border: '1.5px solid #0ea5e9' }}>
-            <FastFillBadge style={{ background: '#0ea5e9' }}>Your Reservation</FastFillBadge>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <FastFillBadge style={{ background: '#0ea5e9', marginBottom: 0 }}>Your Reservation</FastFillBadge>
+              <PriceBadge $isPaid={Number(reservedLot.price_per_hour) > 0}>
+                {Number(reservedLot.price_per_hour) > 0 ? `Paid • ₹${reservedLot.price_per_hour}/hr` : 'Free'}
+              </PriceBadge>
+            </div>
             <CardRow>
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
                 <CardTitle>{reservedLot.name}</CardTitle>
@@ -395,7 +401,7 @@ export default function ParkingFinderPage() {
                 style={{ flex: 1 }}
               >
                 <span>P</span>
-                <span>Spot Already Reserved</span>
+                <span>{t('reserved')}</span>
               </ReserveButton>
               <ReserveButton
                 onClick={() => handleNavigate(reservedLot)}
@@ -439,7 +445,12 @@ export default function ParkingFinderPage() {
       {/* 1. TOP SPOTLIGHT FEATURED CARD */}
       {spotlightLot && (
         <FeaturedCard>
-          <FastFillBadge>Fastest Fill</FastFillBadge>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <FastFillBadge style={{ marginBottom: 0 }}>Fastest Fill</FastFillBadge>
+            <PriceBadge $isPaid={Number(spotlightLot.price_per_hour) > 0}>
+              {Number(spotlightLot.price_per_hour) > 0 ? `Paid • ₹${spotlightLot.price_per_hour}/hr` : 'Free'}
+            </PriceBadge>
+          </div>
           <CardRow>
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
               <CardTitle>{spotlightLot.name}</CardTitle>
@@ -467,7 +478,7 @@ export default function ParkingFinderPage() {
               style={{ flex: 1 }}
             >
               <span>P</span>
-              <span>{spotlightLot.available_spots <= 0 ? 'Full' : activeReservation ? 'Spot Already Reserved' : t('reserveSpot')}</span>
+              <span>{spotlightLot.available_spots <= 0 ? 'Full' : activeReservation ? t('reserved') : t('reserveSpot')}</span>
             </ReserveButton>
             <ReserveButton
               onClick={() => handleNavigate(spotlightLot)}
@@ -491,7 +502,12 @@ export default function ParkingFinderPage() {
                     <Car size={20} />
                   </ListIconBox>
                   <ListInfo>
-                    <ListTitle>{lot.name}</ListTitle>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <ListTitle>{lot.name}</ListTitle>
+                      <PriceBadge $isPaid={Number(lot.price_per_hour) > 0}>
+                        {Number(lot.price_per_hour) > 0 ? `₹${lot.price_per_hour}/hr` : 'Free'}
+                      </PriceBadge>
+                    </div>
                     <ListMeta>
                       {getLotDistanceText(lot)} {lot.landmark ? `• ${lot.landmark}` : ''}
                     </ListMeta>
@@ -500,9 +516,6 @@ export default function ParkingFinderPage() {
                     <MiniStatus $type={isFull ? 'full' : 'free'}>
                       {isFull ? 'Full' : `${lot.available_spots} Free`}
                     </MiniStatus>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
-                      {Number(lot.price_per_hour) > 0 ? `₹${lot.price_per_hour}/hr` : 'Free'}
-                    </span>
                   </div>
                 </div>
 
@@ -514,7 +527,7 @@ export default function ParkingFinderPage() {
                     }}
                     $disabled={isFull || !!activeReservation}
                   >
-                    <span>{isFull ? 'Full' : activeReservation ? 'Reserved' : t('reserveSpot')}</span>
+                    <span>{isFull ? 'Full' : activeReservation ? t('reserved') : t('reserveSpot')}</span>
                   </CompactReserveButton>
                   
                   <CompactRouteButton

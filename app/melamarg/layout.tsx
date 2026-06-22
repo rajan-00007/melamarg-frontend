@@ -27,7 +27,8 @@ import {
   Settings,
   Route,
   Bookmark,
-  Globe
+  Globe,
+  Car
 } from 'lucide-react';
 
 import { getEventNavigatorName } from '@/components/NavigatorHeader';
@@ -191,7 +192,8 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 
   const isSetupRoute = pathname === '/melamarg' || pathname === '/melamarg/';
   const isNavigatingRoute = pathname.endsWith('/navigation');
-  const showNav = selectedEvent && !isSetupRoute && !isNavigatingRoute;
+  const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
+  const showNav = selectedEvent && !isSetupRoute && !isNavigatingRoute && !isLanguageRoute;
 
   const renderGpsStatusPill = () => {
     if (gpsStatus === 'locked') {
@@ -228,7 +230,6 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   const savedLang = typeof window !== 'undefined' ? localStorage.getItem('mm_language') : null;
-  const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
 
   // 1. Language redirect check
   if (!savedLang && !isLanguageRoute) {
@@ -265,6 +266,17 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
           >
             <Bookmark />
             <span>{t('savedSpot')}</span>
+          </SidebarItem>
+
+          <SidebarItem 
+            $isActive={pathname.endsWith('/parking')}
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push('/melamarg/parking');
+            }}
+          >
+            <Car />
+            <span>{t('liveParking') || 'Parking'}</span>
           </SidebarItem>
 
           <SidebarItem 
