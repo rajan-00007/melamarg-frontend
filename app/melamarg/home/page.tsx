@@ -331,7 +331,7 @@ export default function RedesignedEventHomePage() {
   };
 
   const alertCategory = getAlertCategory(latestAlert);
-
+  
   let AlertIcon = Bell;
   if (alertCategory === 'CRITICAL') AlertIcon = AlertTriangle;
   else if (alertCategory === 'WARNING') AlertIcon = AlertCircle;
@@ -553,8 +553,7 @@ export default function RedesignedEventHomePage() {
 
             {/* Live Parking Card */}
             <LiveParkingRow onClick={() => {
-              setActiveCategory('parking');
-              router.push('/melamarg/pois');
+              router.push('/melamarg/parking');
             }}>
               <ParkingIconBox>
                 <Car />

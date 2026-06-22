@@ -62,8 +62,11 @@ export class DijkstraRouter {
     endNodeId: string,
     activeAdvisories?: any[]
   ): NodeItem[] | null {
-    if (startNodeId === endNodeId) {
-      const node = nodes.find(n => n.id === startNodeId);
+    const sNodeId = String(startNodeId);
+    const eNodeId = String(endNodeId);
+
+    if (sNodeId === eNodeId) {
+      const node = nodes.find(n => String(n.id) === sNodeId);
       return node ? [node] : null;
     }
 
@@ -87,7 +90,7 @@ export class DijkstraRouter {
     const graph: { [key: string]: { node: NodeItem; neighbors: { targetId: string; distance: number }[] } } = {};
     
     nodes.forEach(node => {
-      graph[node.id] = { node, neighbors: [] };
+      graph[String(node.id)] = { node, neighbors: [] };
     });
 
     const getDistance = (n1: NodeItem, n2: NodeItem) => {
@@ -106,8 +109,8 @@ export class DijkstraRouter {
     };
 
     edges.forEach(edge => {
-      const startId = edge.start_node_id || (edge as any).startNodeId;
-      const endId = edge.end_node_id || (edge as any).endNodeId;
+      const startId = String(edge.start_node_id || (edge as any).startNodeId);
+      const endId = String(edge.end_node_id || (edge as any).endNodeId);
 
       // Skip blocked edges!
       if (edge.id && blockedEdgeIds.has(edge.id)) {
@@ -132,16 +135,17 @@ export class DijkstraRouter {
     const unvisited = new Set<string>();
 
     nodes.forEach(node => {
-      distances[node.id] = Infinity;
-      previous[node.id] = null;
-      unvisited.add(node.id);
+      const nId = String(node.id);
+      distances[nId] = Infinity;
+      previous[nId] = null;
+      unvisited.add(nId);
     });
 
-    if (distances[startNodeId] === undefined || distances[endNodeId] === undefined) {
+    if (distances[sNodeId] === undefined || distances[eNodeId] === undefined) {
       return null;
     }
 
-    distances[startNodeId] = 0;
+    distances[sNodeId] = 0;
 
     while (unvisited.size > 0) {
       let currentNodeId: string | null = null;
@@ -158,7 +162,7 @@ export class DijkstraRouter {
         break;
       }
 
-      if (currentNodeId === endNodeId) {
+      if (currentNodeId === eNodeId) {
         break;
       }
 
@@ -176,12 +180,12 @@ export class DijkstraRouter {
       }
     }
 
-    if (distances[endNodeId] === Infinity) {
+    if (distances[eNodeId] === Infinity) {
       return null;
     }
 
     const pathIds: string[] = [];
-    let curr: string | null = endNodeId;
+    let curr: string | null = eNodeId;
     while (curr !== null) {
       pathIds.push(curr);
       curr = previous[curr];

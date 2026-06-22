@@ -814,11 +814,14 @@ export default function CompassNavigationPage() {
     if (path && path.length > 0) {
       const latlngs = path.map((n: any) => [Number(n.latitude), Number(n.longitude)]);
       
+      const isParkingTarget = navTarget?.category_name?.toLowerCase().includes('parking');
+      const activeColor = isParkingTarget ? '#ea580c' : '#10b981';
+      
       // Keep the active route as a visible 20m corridor, not just a thin line.
       L.polyline(latlngs, {
-        color: '#10b981',
+        color: activeColor,
         weight: 40,
-        opacity: 0.12,
+        opacity: 0.15,
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(activeRouteLayerRef.current);

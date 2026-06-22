@@ -148,14 +148,17 @@ const getCategoryEmoji = (cat: string) => {
 
 const DijkstraRouter = {
   findShortestPath(ns: any[], es: any[], startId: string, endId: string) {
-    if (startId === endId) {
-      const node = ns.find(n => n.id === startId);
+    const sNodeId = String(startId);
+    const eNodeId = String(endId);
+
+    if (sNodeId === eNodeId) {
+      const node = ns.find(n => String(n.id) === sNodeId);
       return node ? [node] : null;
     }
 
     const graph: any = {};
     ns.forEach(node => {
-      graph[node.id] = { node, neighbors: [] };
+      graph[String(node.id)] = { node, neighbors: [] };
     });
 
     const getDist = (n1: any, n2: any) => {
@@ -163,8 +166,8 @@ const DijkstraRouter = {
     };
 
     es.forEach(edge => {
-      const sId = edge.start_node_id || edge.startNodeId;
-      const eId = edge.end_node_id || edge.endNodeId;
+      const sId = String(edge.start_node_id || edge.startNodeId);
+      const eId = String(edge.end_node_id || edge.endNodeId);
       if (graph[sId] && graph[eId]) {
         const dist = getDist(graph[sId].node, graph[eId].node);
         graph[sId].neighbors.push({ targetId: eId, distance: dist });
@@ -177,12 +180,13 @@ const DijkstraRouter = {
     const unvisited = new Set<string>();
 
     ns.forEach(node => {
-      distances[node.id] = Infinity;
-      previous[node.id] = null;
-      unvisited.add(node.id);
+      const nId = String(node.id);
+      distances[nId] = Infinity;
+      previous[nId] = null;
+      unvisited.add(nId);
     });
 
-    distances[startId] = 0;
+    distances[sNodeId] = 0;
 
     while (unvisited.size > 0) {
       let currentNodeId: string | null = null;
@@ -199,7 +203,7 @@ const DijkstraRouter = {
         break;
       }
 
-      if (currentNodeId === endId) {
+      if (currentNodeId === eNodeId) {
         break;
       }
 
@@ -216,10 +220,10 @@ const DijkstraRouter = {
       }
     }
 
-    if (distances[endId] === Infinity) return null;
+    if (distances[eNodeId] === Infinity) return null;
 
     const pathIds: string[] = [];
-    let curr: string | null = endId;
+    let curr: string | null = eNodeId;
     while (curr !== null) {
       pathIds.push(curr);
       curr = previous[curr];
