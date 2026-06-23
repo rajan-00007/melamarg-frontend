@@ -115,7 +115,8 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       setRouteEdges(loadedEdges);
       setActiveAdvisories(loadedAdvisories);
 
-      if (!offlineMode) {
+      const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      if (!offlineMode && isUuid(event.id)) {
         try {
           console.log(`[Fetch] Fetching latest map data from server for event ${event.id}...`);
           let pDataFetched = false;
@@ -127,7 +128,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
           let newAdvisories = loadedAdvisories;
 
           try {
-            const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id) + `?t=${Date.now()}`);
+            const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id) + `&t=${Date.now()}`);
             const pJson = pRes.data;
             if (pJson.success && Array.isArray(pJson.data)) {
               newPois = pJson.data;

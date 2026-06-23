@@ -113,7 +113,8 @@ export default function ParkingFinderPage() {
     }
 
     // 2. Fetch fresh details from API if online
-    if (!offlineMode) {
+    const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    if (!offlineMode && isUuid(selectedEvent.id)) {
       try {
         const res = await axiosClient.get(`/parking/events/${selectedEvent.id}/parking?t=${Date.now()}`);
         if (res.data && res.data.success) {

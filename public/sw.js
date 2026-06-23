@@ -1,4 +1,4 @@
-const CACHE_NAME = 'melamarg-cache-v2';
+const CACHE_NAME = 'melamarg-cache-v3';
 const ASSETS_TO_CACHE = [
   '/melamarg',
   '/manifest.json',
@@ -75,6 +75,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Filter out non-http/https requests (e.g. chrome-extension, Capacitor schemas)
+  if (!event.request.url.startsWith('http:') && !event.request.url.startsWith('https:')) {
+    return;
+  }
+
   const url = new URL(event.request.url);
 
   // Bypass service worker for hot-reloading / development endpoints
@@ -95,7 +100,9 @@ self.addEventListener('fetch', (event) => {
           if (response && response.status === 200) {
             const responseToCache = cleanResponse(response.clone());
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
+              cache.put(event.request, responseToCache).catch((err) => {
+                console.warn('[SW] Failed to cache navigation response:', err);
+              });
             });
           }
           return response;
@@ -125,7 +132,9 @@ self.addEventListener('fetch', (event) => {
             if (response && (response.status === 200 || response.status === 0)) {
               const responseToCache = cleanResponse(response.clone());
               caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
+                cache.put(event.request, responseToCache).catch((err) => {
+                  console.warn('[SW] Failed to cache OSM tile:', err);
+                });
               });
             }
             return response;
@@ -161,7 +170,9 @@ self.addEventListener('fetch', (event) => {
             if (networkResponse && networkResponse.status === 200) {
               const responseToCache = cleanResponse(networkResponse.clone());
               caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
+                cache.put(event.request, responseToCache).catch((err) => {
+                  console.warn('[SW] Failed to cache static asset:', err);
+                });
               });
             }
             return networkResponse;
@@ -182,7 +193,9 @@ self.addEventListener('fetch', (event) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = cleanResponse(response.clone());
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, responseToCache).catch((err) => {
+              console.warn('[SW] Failed to cache dynamic response:', err);
+            });
           });
         }
         return response;

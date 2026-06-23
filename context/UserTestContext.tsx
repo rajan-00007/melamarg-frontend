@@ -169,6 +169,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
   // Local helper ref signals
   const urlReady = useRef(false);
   const [urlReadySignal, setUrlReadySignal] = useState(0);
+  const lastLoadedEventIdRef = useRef<string | null>(null);
 
   // Fetch events on start or mode change
   const fetchEventsCatalog = useCallback(async () => {
@@ -512,9 +513,10 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
 
   // Auto-load POIs and Graph if selectedEvent is restored but map data is empty
   useEffect(() => {
-    if (selectedEvent && poisList.length === 0 && !loadingMapData) {
-      console.log(`[AutoLoad] Selected event found but poisList empty. Loading map data for ${selectedEvent.id}...`);
+    if (selectedEvent && lastLoadedEventIdRef.current !== selectedEvent.id && !loadingMapData) {
+      console.log(`[AutoLoad] Selected event found. Loading map data for ${selectedEvent.id}...`);
       const autoLoad = async () => {
+        lastLoadedEventIdRef.current = selectedEvent.id;
         if (locationPermission === true) {
           await initializeUserGps(selectedEvent);
         }
@@ -522,7 +524,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
       };
       autoLoad();
     }
-  }, [selectedEvent, poisList.length, loadingMapData, locationPermission, initializeUserGps, loadEventPoisAndGraph]);
+  }, [selectedEvent, loadingMapData, locationPermission, initializeUserGps, loadEventPoisAndGraph]);
 
   const value = React.useMemo(() => ({
     // Config context fields

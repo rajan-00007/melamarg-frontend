@@ -134,6 +134,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // 1. Fetch historical alerts feed (One-off)
     const fetchHistory = async () => {
+      const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      if (!isUuid(selectedEvent.id)) return;
       try {
         console.log(`[Push] Loading notification history for event ${selectedEvent.id}...`);
         const res = await axiosClient.get(API_ENDPOINTS.notifications.eventAlerts(selectedEvent.id));
