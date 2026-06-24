@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '@/context/UserTestContext';
-import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu, X } from 'lucide-react';
+import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu, X, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   MapWrapper,
@@ -39,12 +39,14 @@ import {
   HUDSection,
   HUDIndicatorBadge,
   ZoneHUDCard,
+  ZoneHUDTopRow,
   ZoneInfoGroup,
   ZoneLabel,
   ZoneName,
   VehicleStatusRow,
   VehicleStatusBadge,
   ZoneAdvisoryWarningPill,
+  FloatingToggleZonesButton,
   DrawerBackdrop,
   DrawerContent,
   DrawerHeader,
@@ -374,6 +376,7 @@ export default function EventMapPage() {
   const lastGpsRef = useRef<[number, number] | null>(null);
 
   const [isAdvisoryDrawerOpen, setIsAdvisoryDrawerOpen] = useState<boolean>(false);
+  const [showZones, setShowZones] = useState<boolean>(false);
 
   // Active Zone detection based on user coordinates
   const currentZone = useMemo(() => {
@@ -846,7 +849,7 @@ export default function EventMapPage() {
     zonesLayerRef.current = L.layerGroup().addTo(map);
 
     // Draw Zones
-    if (zonesList && zonesList.length > 0) {
+    if (showZones && zonesList && zonesList.length > 0) {
       zonesList.forEach((zone) => {
         const boundary = typeof zone.boundary === 'string' ? JSON.parse(zone.boundary) : zone.boundary;
         if (!Array.isArray(boundary) || boundary.length < 3) return;
@@ -1087,7 +1090,7 @@ export default function EventMapPage() {
         zonesLayerRef.current = null;
       }
     };
-  }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent, zonesList]);
+  }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent, zonesList, showZones]);
 
   // ACTIVE ROUTE HIGHLIGHT EFFECT
   useEffect(() => {
@@ -1588,15 +1591,54 @@ export default function EventMapPage() {
           >
             <Navigation style={{ width: '1.2rem', height: '1.2rem', transform: 'rotate(45deg)' }} />
           </FloatingLocateButton>
+
+          <FloatingToggleZonesButton
+            $active={showZones}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowZones(prev => !prev);
+            }}
+            title={showZones ? "Hide zones" : "Show zones"}
+          >
+            <Layers style={{ width: '1.2rem', height: '1.2rem' }} />
+          </FloatingToggleZonesButton>
         </FloatingControlsRow>
 
-        {/* Current Zone HUD Card */}
         {currentZone && (
           <ZoneHUDCard>
-            <ZoneInfoGroup>
-              <ZoneLabel>{t('activeZone') || 'Active Zone'}</ZoneLabel>
-              <ZoneName>{currentZone.name}</ZoneName>
-            </ZoneInfoGroup>
+            <ZoneHUDTopRow>
+              <ZoneInfoGroup>
+                <ZoneLabel>{t('activeZone') || 'Active Zone'}</ZoneLabel>
+                <ZoneName>{currentZone.name}</ZoneName>
+              </ZoneInfoGroup>
+
+              {zoneAdvisories.length > 0 && (() => {
+                const severityMap: Record<string, number> = {
+                  critical: 4,
+                  congested: 3,
+                  warning: 2,
+                  stable: 1,
+                  general: 0
+                };
+                const sorted = [...zoneAdvisories].sort((a, b) => {
+                  const scoreA = severityMap[a.status_tag || 'general'] || 0;
+                  const scoreB = severityMap[b.status_tag || 'general'] || 0;
+                  return scoreB - scoreA;
+                });
+                const highestAlert = sorted[0];
+                const tag = highestAlert?.status_tag || 'warning';
+                
+                return (
+                  <ZoneAdvisoryWarningPill 
+                    $severity={tag}
+                    onClick={() => setIsAdvisoryDrawerOpen(true)}
+                  >
+                    <AlertTriangle size={12} />
+                    <span>{t('advisory') || 'Advisory'} ({zoneAdvisories.length})</span>
+                  </ZoneAdvisoryWarningPill>
+                );
+              })()}
+            </ZoneHUDTopRow>
 
             <VehicleStatusRow>
               <VehicleStatusBadge $allowed={currentZone.allow_pedestrians !== false} title={currentZone.allow_pedestrians !== false ? 'Pedestrians Allowed' : 'Pedestrians Restricted'}>
@@ -1612,52 +1654,10 @@ export default function EventMapPage() {
                 <span>{currentZone.allow_cars !== false ? '✓' : '✗'}</span>
               </VehicleStatusBadge>
             </VehicleStatusRow>
-
-            {zoneAdvisories.length > 0 && (() => {
-              const severityMap: Record<string, number> = {
-                critical: 4,
-                congested: 3,
-                warning: 2,
-                stable: 1,
-                general: 0
-              };
-              const sorted = [...zoneAdvisories].sort((a, b) => {
-                const scoreA = severityMap[a.status_tag || 'general'] || 0;
-                const scoreB = severityMap[b.status_tag || 'general'] || 0;
-                return scoreB - scoreA;
-              });
-              const highestAlert = sorted[0];
-              const tag = highestAlert?.status_tag || 'warning';
-              
-              let pillBg = 'rgba(249, 115, 22, 0.95)';
-              let textHex = '#ffffff';
-              
-              if (tag === 'critical') {
-                pillBg = 'rgba(239, 68, 68, 0.95)';
-              } else if (tag === 'congested') {
-                pillBg = 'rgba(249, 115, 22, 0.95)';
-              } else if (tag === 'warning') {
-                pillBg = 'rgba(245, 158, 11, 0.95)';
-              } else if (tag === 'stable') {
-                pillBg = 'rgba(16, 185, 129, 0.95)';
-              } else if (tag === 'general') {
-                pillBg = 'rgba(59, 130, 246, 0.95)';
-              }
-
-              return (
-                <ZoneAdvisoryWarningPill 
-                  onClick={() => setIsAdvisoryDrawerOpen(true)}
-                  style={{ background: pillBg, color: textHex, boxShadow: '0 2px 6px ' + pillBg.replace('0.95', '0.2') }}
-                >
-                  <AlertTriangle size={12} />
-                  <span>{t('advisory') || 'Advisory'} ({zoneAdvisories.length}) - {tag.toUpperCase()}</span>
-                </ZoneAdvisoryWarningPill>
-              );
-            })()}
           </ZoneHUDCard>
         )}
 
-        {selectedPoi ? (
+        {selectedPoi && (
           <ExploreBottomCard>
             <ExploreCardTitle>{tPoiName(selectedPoi)}</ExploreCardTitle>
             <ExplorePOIInfoRow>
@@ -1687,13 +1687,6 @@ export default function EventMapPage() {
               </ExploreCloseButton>
             </ExploreActionsRow>
           </ExploreBottomCard>
-        ) : (
-          <ExploreBottomCard>
-            <ExploreCardTitle>{selectedEvent ? tEventName(selectedEvent) : 'Event Map'}</ExploreCardTitle>
-            <ExploreCardDescription>
-              {t('nearestHelpSub')}
-            </ExploreCardDescription>
-          </ExploreBottomCard>
         )}
       </FloatingBottomWrapper>
 
@@ -1713,30 +1706,30 @@ export default function EventMapPage() {
             <AdvisoryList>
               {zoneAdvisories.map((advisory: any) => {
                 const tag = advisory.status_tag || 'general';
-                let borderCol = '#e5e7eb';
-                let badgeBg = '#f3f4f6';
-                let badgeText = '#4b5563';
+                let borderCol = 'rgba(0, 0, 0, 0.05)';
+                let badgeBg = 'rgba(0, 0, 0, 0.04)';
+                let badgeText = '#475569';
                 
                 if (tag === 'critical') {
-                  borderCol = 'rgba(239, 68, 68, 0.3)';
-                  badgeBg = 'rgba(239, 68, 68, 0.1)';
-                  badgeText = '#ef4444';
+                  borderCol = 'rgba(239, 68, 68, 0.2)';
+                  badgeBg = 'rgba(239, 68, 68, 0.08)';
+                  badgeText = '#b91c1c';
                 } else if (tag === 'congested') {
-                  borderCol = 'rgba(249, 115, 22, 0.3)';
-                  badgeBg = 'rgba(249, 115, 22, 0.1)';
-                  badgeText = '#f97316';
+                  borderCol = 'rgba(249, 115, 22, 0.2)';
+                  badgeBg = 'rgba(249, 115, 22, 0.08)';
+                  badgeText = '#c2410c';
                 } else if (tag === 'warning') {
-                  borderCol = 'rgba(245, 158, 11, 0.3)';
-                  badgeBg = 'rgba(245, 158, 11, 0.1)';
-                  badgeText = '#d97706';
+                  borderCol = 'rgba(217, 119, 6, 0.2)';
+                  badgeBg = 'rgba(217, 119, 6, 0.08)';
+                  badgeText = '#a16207';
                 } else if (tag === 'stable') {
-                  borderCol = 'rgba(16, 185, 129, 0.3)';
-                  badgeBg = 'rgba(16, 185, 129, 0.1)';
-                  badgeText = '#10b981';
+                  borderCol = 'rgba(16, 185, 129, 0.2)';
+                  badgeBg = 'rgba(16, 185, 129, 0.08)';
+                  badgeText = '#047857';
                 } else if (tag === 'general') {
-                  borderCol = 'rgba(59, 130, 246, 0.3)';
-                  badgeBg = 'rgba(59, 130, 246, 0.1)';
-                  badgeText = '#3b82f6';
+                  borderCol = 'rgba(59, 130, 246, 0.2)';
+                  badgeBg = 'rgba(59, 130, 246, 0.08)';
+                  badgeText = '#1d4ed8';
                 }
 
                 return (

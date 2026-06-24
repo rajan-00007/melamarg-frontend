@@ -1,6 +1,6 @@
 'use client';
 
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 const pulse = keyframes`
   0%, 100% {
@@ -802,7 +802,8 @@ export const FloatingBottomWrapper = styled.div`
 
 export const FloatingControlsRow = styled.div`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 0.5rem;
   pointer-events: auto;
 `;
@@ -830,26 +831,30 @@ export const FloatingLocateButton = styled.button`
 export const ExploreBottomCard = styled.div`
   pointer-events: auto;
   width: 100%;
-  background: #ffffff;
-  border-radius: 1.5rem;
-  padding: 1.25rem;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.3rem;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export const ExploreCardTitle = styled.div`
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: #0f172a;
 `;
 
 export const ExploreCardDescription = styled.div`
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
-  line-height: 1.5;
+  line-height: 1.4;
 `;
 
 export const ExplorePOIInfoRow = styled.div`
@@ -1072,16 +1077,16 @@ export const HUDIndicatorBadge = styled.div<{ $direction: 'front' | 'back' | 'le
 export const ZoneHUDCard = styled.div`
   pointer-events: auto;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.75rem;
   width: 100%;
   max-width: 480px;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 1.25rem;
-  padding: 0.75rem 1.25rem;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  padding: 1.0rem 1.25rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -1097,16 +1102,24 @@ export const ZoneHUDCard = styled.div`
   }
 `;
 
+export const ZoneHUDTopRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
 export const ZoneInfoGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+  flex-shrink: 0;
 `;
 
 export const ZoneLabel = styled.span`
   font-size: 9px;
   font-weight: 700;
-  color: #fb923c;
+  color: #ea580c;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
@@ -1114,16 +1127,20 @@ export const ZoneLabel = styled.span`
 export const ZoneName = styled.span`
   font-size: 15px;
   font-weight: 800;
-  color: #ffffff;
+  color: #0f172a;
+  white-space: nowrap;
 `;
 
 export const VehicleStatusRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  width: 100%;
+  flex-shrink: 0;
 `;
 
 export const VehicleStatusBadge = styled.div<{ $allowed: boolean }>`
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1132,40 +1149,92 @@ export const VehicleStatusBadge = styled.div<{ $allowed: boolean }>`
   border-radius: 0.75rem;
   font-size: 11px;
   font-weight: 700;
-  background: ${props => props.$allowed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'};
-  border: 1px solid ${props => props.$allowed ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
-  color: ${props => props.$allowed ? '#34d399' : '#f87171'};
+  background: ${props => props.$allowed ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)'};
+  border: 1px solid ${props => props.$allowed ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'};
+  color: ${props => props.$allowed ? '#047857' : '#b91c1c'};
 `;
 
-export const ZoneAdvisoryWarningPill = styled.button`
+export const ZoneAdvisoryWarningPill = styled.button<{ $severity?: string }>`
   display: flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.8rem;
   border-radius: 9999px;
-  background: rgba(249, 115, 22, 0.2);
-  border: 1px solid rgba(249, 115, 22, 0.4);
-  color: #fdba74;
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
   animation: pulseWarning 2s infinite;
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.1);
   transition: all 0.2s;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
 
-  &:hover {
-    background: rgba(249, 115, 22, 0.35);
-    border-color: rgba(249, 115, 22, 0.6);
-  }
+  ${props => {
+    const sev = props.$severity || 'general';
+    if (sev === 'critical') {
+      return css`
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #b91c1c;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.08);
+        &:hover {
+          background: rgba(239, 68, 68, 0.2);
+          border-color: rgba(239, 68, 68, 0.5);
+        }
+      `;
+    } else if (sev === 'congested') {
+      return css`
+        background: rgba(249, 115, 22, 0.1);
+        border-color: rgba(249, 115, 22, 0.3);
+        color: #c2410c;
+        box-shadow: 0 0 12px rgba(249, 115, 22, 0.08);
+        &:hover {
+          background: rgba(249, 115, 22, 0.2);
+          border-color: rgba(249, 115, 22, 0.5);
+        }
+      `;
+    } else if (sev === 'warning') {
+      return css`
+        background: rgba(217, 119, 6, 0.1);
+        border-color: rgba(217, 119, 6, 0.3);
+        color: #a16207;
+        box-shadow: 0 0 12px rgba(217, 119, 6, 0.08);
+        &:hover {
+          background: rgba(217, 119, 6, 0.2);
+          border-color: rgba(217, 119, 6, 0.5);
+        }
+      `;
+    } else if (sev === 'stable') {
+      return css`
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #047857;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.08);
+        &:hover {
+          background: rgba(16, 185, 129, 0.2);
+          border-color: rgba(16, 185, 129, 0.5);
+        }
+      `;
+    } else {
+      return css`
+        background: rgba(37, 99, 235, 0.1);
+        border-color: rgba(37, 99, 235, 0.3);
+        color: #1d4ed8;
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.08);
+        &:hover {
+          background: rgba(37, 99, 235, 0.2);
+          border-color: rgba(37, 99, 235, 0.5);
+        }
+      `;
+    }
+  }}
 
   @keyframes pulseWarning {
     0%, 100% {
       transform: scale(1);
-      box-shadow: 0 0 12px rgba(249, 115, 22, 0.15);
     }
     50% {
       transform: scale(1.03);
-      box-shadow: 0 0 18px rgba(249, 115, 22, 0.35);
     }
   }
 `;
@@ -1189,11 +1258,11 @@ export const DrawerBackdrop = styled.div`
 export const DrawerContent = styled.div`
   width: 100%;
   max-width: 500px;
-  background: #0f172a;
-  border-top: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border-top: 1.5px solid rgba(0, 0, 0, 0.08);
   border-radius: 1.5rem 1.5rem 0 0;
   padding: 1.5rem;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -1216,26 +1285,26 @@ export const DrawerHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   padding-bottom: 0.75rem;
 `;
 
 export const DrawerTitle = styled.h3`
   font-size: 16px;
   font-weight: 800;
-  color: #ffffff;
+  color: #0f172a;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
 
 export const DrawerCloseButton = styled.button`
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
   border: none;
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  color: #a1a1aa;
+  color: #71717a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1243,8 +1312,8 @@ export const DrawerCloseButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    background: rgba(0, 0, 0, 0.1);
+    color: #0f172a;
   }
 `;
 
@@ -1255,8 +1324,8 @@ export const AdvisoryList = styled.div`
 `;
 
 export const AdvisoryCard = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 0.75rem;
   padding: 1rem;
   display: flex;
@@ -1267,13 +1336,34 @@ export const AdvisoryCard = styled.div`
 export const AdvisoryCardTitle = styled.h4`
   font-size: 13px;
   font-weight: 700;
-  color: #fb923c;
+  color: #ea580c;
 `;
 
 export const AdvisoryCardMessage = styled.p`
   font-size: 12px;
-  color: #cbd5e1;
+  color: #334155;
   line-height: 1.5;
+`;
+
+export const FloatingToggleZonesButton = styled.button<{ $active: boolean }>`
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: ${props => props.$active ? '#e65100' : '#ffffff'};
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  color: ${props => props.$active ? '#ffffff' : '#e65100'};
+  transition: all 0.2s;
+  padding: 0;
+  pointer-events: auto;
+
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 
 
