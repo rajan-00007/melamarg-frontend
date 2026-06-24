@@ -26,7 +26,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { selectedEvent, setScreenMode } = useEvents();
-  const { poisList } = useMapData();
+  const { poisList, refreshActiveAdvisories } = useMapData();
   const { setNavTarget, setArrivalNotify, logNavigationInstructions } = useNavigation();
 
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -188,6 +188,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             });
 
             triggerToast(newAlert);
+
+            if (selectedEvent) {
+              refreshActiveAdvisories(selectedEvent.id);
+            }
           }
         });
       } catch (err) {
@@ -200,7 +204,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
       };
     }
-  }, [selectedEvent, triggerToast]);
+  }, [selectedEvent, triggerToast, refreshActiveAdvisories]);
 
   // Capacitor native push notification listeners setup
   useEffect(() => {
@@ -253,9 +257,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         });
 
         triggerToast(newAlert);
+
+        if (selectedEvent) {
+          refreshActiveAdvisories(selectedEvent.id);
+        }
       });
 
       actionListener = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        if (selectedEvent) {
+          refreshActiveAdvisories(selectedEvent.id);
+        }
         const data = action.notification.data;
         if (data) {
           if (data.latitude && data.longitude) {
@@ -293,7 +304,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (receivedListener) receivedListener.remove();
       if (actionListener) actionListener.remove();
     };
-  }, [triggerToast, logNavigationInstructions, selectedEvent, poisList, setNavTarget, setScreenMode, setArrivalNotify]);
+  }, [triggerToast, logNavigationInstructions, selectedEvent, poisList, setNavTarget, setScreenMode, setArrivalNotify, refreshActiveAdvisories]);
 
   return (
     <NotificationContext.Provider

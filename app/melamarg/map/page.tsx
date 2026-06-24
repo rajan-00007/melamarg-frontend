@@ -386,6 +386,7 @@ export default function EventMapPage() {
     if (!currentZone || !activeAdvisories) return [];
     return activeAdvisories.filter(advisory => 
       advisory.is_active && 
+      advisory.advisory_type === 'zone' &&
       Array.isArray(advisory.zoneIds) && 
       advisory.zoneIds.includes(currentZone.id)
     );
@@ -1001,7 +1002,7 @@ export default function EventMapPage() {
 
         if (activeAdvisories && activeAdvisories.length > 0) {
           activeAdvisories.forEach(advisory => {
-            if (advisory.is_active && advisory.edges) {
+            if (advisory.is_active && advisory.advisory_type === 'road' && advisory.edges) {
               advisory.edges.forEach((ae: any) => {
                 if (ae.edge_id === edge.id) {
                   if (ae.status === 'blocked') {
@@ -1612,12 +1613,47 @@ export default function EventMapPage() {
               </VehicleStatusBadge>
             </VehicleStatusRow>
 
-            {zoneAdvisories.length > 0 && (
-              <ZoneAdvisoryWarningPill onClick={() => setIsAdvisoryDrawerOpen(true)}>
-                <AlertTriangle size={12} />
-                <span>{t('advisory') || 'Advisory'} ({zoneAdvisories.length})</span>
-              </ZoneAdvisoryWarningPill>
-            )}
+            {zoneAdvisories.length > 0 && (() => {
+              const severityMap: Record<string, number> = {
+                critical: 4,
+                congested: 3,
+                warning: 2,
+                stable: 1,
+                general: 0
+              };
+              const sorted = [...zoneAdvisories].sort((a, b) => {
+                const scoreA = severityMap[a.status_tag || 'general'] || 0;
+                const scoreB = severityMap[b.status_tag || 'general'] || 0;
+                return scoreB - scoreA;
+              });
+              const highestAlert = sorted[0];
+              const tag = highestAlert?.status_tag || 'warning';
+              
+              let pillBg = 'rgba(249, 115, 22, 0.95)';
+              let textHex = '#ffffff';
+              
+              if (tag === 'critical') {
+                pillBg = 'rgba(239, 68, 68, 0.95)';
+              } else if (tag === 'congested') {
+                pillBg = 'rgba(249, 115, 22, 0.95)';
+              } else if (tag === 'warning') {
+                pillBg = 'rgba(245, 158, 11, 0.95)';
+              } else if (tag === 'stable') {
+                pillBg = 'rgba(16, 185, 129, 0.95)';
+              } else if (tag === 'general') {
+                pillBg = 'rgba(59, 130, 246, 0.95)';
+              }
+
+              return (
+                <ZoneAdvisoryWarningPill 
+                  onClick={() => setIsAdvisoryDrawerOpen(true)}
+                  style={{ background: pillBg, color: textHex, boxShadow: '0 2px 6px ' + pillBg.replace('0.95', '0.2') }}
+                >
+                  <AlertTriangle size={12} />
+                  <span>{t('advisory') || 'Advisory'} ({zoneAdvisories.length}) - {tag.toUpperCase()}</span>
+                </ZoneAdvisoryWarningPill>
+              );
+            })()}
           </ZoneHUDCard>
         )}
 
@@ -1675,12 +1711,55 @@ export default function EventMapPage() {
               </DrawerCloseButton>
             </DrawerHeader>
             <AdvisoryList>
-              {zoneAdvisories.map((advisory: any) => (
-                <AdvisoryCard key={advisory.id}>
-                  <AdvisoryCardTitle>{advisory.title}</AdvisoryCardTitle>
-                  <AdvisoryCardMessage>{advisory.message}</AdvisoryCardMessage>
-                </AdvisoryCard>
-              ))}
+              {zoneAdvisories.map((advisory: any) => {
+                const tag = advisory.status_tag || 'general';
+                let borderCol = '#e5e7eb';
+                let badgeBg = '#f3f4f6';
+                let badgeText = '#4b5563';
+                
+                if (tag === 'critical') {
+                  borderCol = 'rgba(239, 68, 68, 0.3)';
+                  badgeBg = 'rgba(239, 68, 68, 0.1)';
+                  badgeText = '#ef4444';
+                } else if (tag === 'congested') {
+                  borderCol = 'rgba(249, 115, 22, 0.3)';
+                  badgeBg = 'rgba(249, 115, 22, 0.1)';
+                  badgeText = '#f97316';
+                } else if (tag === 'warning') {
+                  borderCol = 'rgba(245, 158, 11, 0.3)';
+                  badgeBg = 'rgba(245, 158, 11, 0.1)';
+                  badgeText = '#d97706';
+                } else if (tag === 'stable') {
+                  borderCol = 'rgba(16, 185, 129, 0.3)';
+                  badgeBg = 'rgba(16, 185, 129, 0.1)';
+                  badgeText = '#10b981';
+                } else if (tag === 'general') {
+                  borderCol = 'rgba(59, 130, 246, 0.3)';
+                  badgeBg = 'rgba(59, 130, 246, 0.1)';
+                  badgeText = '#3b82f6';
+                }
+
+                return (
+                  <AdvisoryCard key={advisory.id} style={{ borderColor: borderCol, position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <AdvisoryCardTitle style={{ margin: 0 }}>{advisory.title}</AdvisoryCardTitle>
+                      <span style={{
+                        fontSize: '9px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: badgeBg,
+                        color: badgeText,
+                        border: '1px solid ' + borderCol
+                      }}>
+                        {tag}
+                      </span>
+                    </div>
+                    <AdvisoryCardMessage style={{ marginTop: '8px' }}>{advisory.message}</AdvisoryCardMessage>
+                  </AdvisoryCard>
+                );
+              })}
             </AdvisoryList>
           </DrawerContent>
         </DrawerBackdrop>

@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     routes: (eventId: string) => `${getBase()}/events/${eventId}/routes`,
     advisories: (eventId: string) => `${getBase()}/events/${eventId}/advisories`,
     zones: (eventId: string) => `${getBase()}/events/${eventId}/zones`,
+    highlights: (eventId: string) => `${getBase()}/events/${eventId}/highlights`,
   },
   notifications: {
     get register() { return `${getBase()}/notifications/register`; },

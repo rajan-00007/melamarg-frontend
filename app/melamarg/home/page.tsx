@@ -28,6 +28,13 @@ import { colors } from '@/components/style/colors';
 import Text from '@/components/style/text/Text';
 import { getHaversineDistance } from '@/context/types';
 
+import CurrentZoneBlock from './CurrentZoneBlock';
+import AdvisoryNearMe from './AdvisoryNearMe';
+import AccessRules from './AccessRules';
+import SurroundingByYou from './SurroundingByYou';
+import TodayHighlights from './TodayHighlights';
+import QuickActions from './QuickActions';
+
 // Static Image Imports for offline asset resolution
 import rathyatraBanner1 from '@/public/rathyatra_banner.png';
 import rathyatraBanner2 from '@/public/rathyatra_banner2.png';
@@ -439,7 +446,7 @@ export default function RedesignedEventHomePage() {
                    slide.badge === 'Art & Culture' ? t('artCulture') :
                    slide.badge === 'Live Event' ? t('liveEvent') : slide.badge}
                 </SlideBadge>
-                <Text variant="sectionTitle" weight={800} color="#FFFFFF" style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '20px', margin: 0 }}>
+                <Text variant="sectionTitle" weight={600} color="#FFFFFF" style={{ fontFamily: '"Atkinson Hyperlegible Next", sans-serif', fontSize: '20px', margin: 0 }}>
                   {slide.title === 'Temple Heritage' ? t('pilgrimGuide') :
                    slide.title === 'Grand Procession' ? t('exploreLiveMap') :
                    slide.title === 'Grand Boita Bandana' ? t('navigatingSafely') :
@@ -462,169 +469,12 @@ export default function RedesignedEventHomePage() {
 
       {/* Main Body Contents */}
       <HomeBody>
-        {/* 2. Condensed Urgent Alert */}
-        <UrgentAlertCard $type={alertCategory}>
-          <AlertContent>
-            <AlertIcon size={44} />
-            <AlertText>{latestAlert.message}</AlertText>
-          </AlertContent>
-          <AlertLink onClick={() => router.push('/melamarg/alerts')}>VIEW ALL</AlertLink>
-        </UrgentAlertCard>
-
-        {/* 4. Refined Nearest Help Card */}
-        <NearestHelpCard>
-          <HelpBadgeWrapper>
-            <HelpBadgeDot />
-            <HelpBadgeText>{t('nearestHelp')}</HelpBadgeText>
-          </HelpBadgeWrapper>
-
-          <HelpCardRow>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', flex: 1, minWidth: 0 }}>
-              <Text variant="sectionTitle" weight={700} color="#FFFFFF" style={{margin: 0, letterSpacing: '-0.01em' }}>
-                {nearestMedicalName} ({nearestMedicalDistance})
-              </Text>
-              <Text variant="bodySecondary" weight={600} color="rgba(255, 255, 255, 0.8)" style={{ margin: 0 }}>
-                {nearestMedicalDesc}
-              </Text>
-            </div>
-            <HelpCardButton onClick={handleNavigateNearestMedical}>
-              <Navigation fill="currentColor" />
-            </HelpCardButton>
-          </HelpCardRow>
-        </NearestHelpCard>
-
-        {/* 5. Quick Action Grid */}
-        <ActionGrid>
-          {/* Emergency SOS Help */}
-          <SosButton onClick={handleSosTrigger}>
-            <SosIconBox>
-              <AlertTriangle fill="currentColor" />
-            </SosIconBox>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Text variant="bodyPrimary" weight={700} color="#93000a" style={{  margin: 0 }}>
-                {t('sosHelp')}
-              </Text>
-              <Text variant="bodySecondary" weight={600} color="rgba(147, 0, 10, 0.8)" style={{  margin: 0 }}>
-                {t('tapForEmergency')}
-              </Text>
-            </div>
-          </SosButton>
-
-          {/* Quick Service Category Items */}
-          {services.map((item) => {
-            const Icon = item.icon;
-            
-            // Calculate dynamic counts
-            let count = 0;
-            const query = item.id.toLowerCase();
-            if (query === 'toilet') {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes('toilet')).length;
-            } else if (query === 'water') {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes('water') || p.category_name.toLowerCase().includes('drinking')).length;
-            } else if (query === 'medical') {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes('medical') || p.category_name.toLowerCase().includes('firstaid')).length;
-            } else if (query === 'police') {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes('police') || p.category_name.toLowerCase().includes('post')).length;
-            } else if (query === 'food') {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes('food') || p.category_name.toLowerCase().includes('camp') || p.category_name.toLowerCase().includes('langar')).length;
-            } else if (query === 'sanitation') {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes('sanitation') || p.category_name.toLowerCase().includes('waste')).length;
-            } else {
-              count = poisList.filter(p => p.category_name.toLowerCase().includes(query)).length;
-            }
-
-            const getSuffix = (catId: string) => {
-              if (catId === 'toilet') return t('restrooms');
-              if (catId === 'water') return t('drinkingWater');
-              if (catId === 'medical') return t('medical');
-              if (catId === 'police') return t('police');
-              if (catId === 'food') return t('foodCamps');
-              if (catId === 'sanitation') return t('sanitation');
-              return 'Units';
-            };
-
-            const getServiceLabel = (catId: string, defaultLabel: string) => {
-              if (catId === 'toilet') return t('restrooms');
-              if (catId === 'water') return t('drinkingWater');
-              if (catId === 'medical') return t('medical');
-              if (catId === 'police') return t('police');
-              if (catId === 'food') return t('foodCamps');
-              if (catId === 'sanitation') return t('sanitation');
-              return defaultLabel;
-            };
-
-            return (
-              <GridItemCard 
-                key={item.id} 
-                onClick={() => {
-                  setActiveCategory(item.id);
-                  router.push('/melamarg/pois');
-                }}
-              >
-                <GridIconBox $bgColor={item.bg} $color={item.color}>
-                  <Icon />
-                </GridIconBox>
-                <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0 }}>
-                  {getServiceLabel(item.id, item.label)}
-                </Text>
-                <Text variant="bodyTiny" weight={600} color={colors.neutral[700]} style={{ fontSize: '11px', margin: 0, marginTop: '2px' }}>
-                  {count} {getSuffix(item.id)}
-                </Text>
-              </GridItemCard>
-            );
-          })}
-        </ActionGrid>
-
-        {/* View All Categories Button */}
-        <ViewAllButton onClick={() => {
-          setActiveCategory('all');
-          router.push('/melamarg/pois');
-        }}>
-          <LayoutGrid />
-          <span>{t('viewAllCategories')}</span>
-        </ViewAllButton>
-
-        {/* Safety & Planning Section */}
-        <SafetySection>
-          <SectionTitle>{t('safetyPlanning')}</SectionTitle>
-          <SafetyGrid>
-            <SafetyCard onClick={() => router.push('/melamarg/saved')}>
-              <SafetyIconBox $bgColor="rgba(76, 97, 108, 0.08)" $color="#4C616C">
-                <Users />
-              </SafetyIconBox>
-              <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0, textAlign: 'left' }}>
-                {t('familyMeetup')}
-              </Text>
-            </SafetyCard>
-
-            <SafetyCard onClick={() => router.push('/melamarg/saved-spot')}>
-              <SafetyIconBox $bgColor="rgba(0, 105, 92, 0.08)" $color="#00695C">
-                <MapPin />
-              </SafetyIconBox>
-              <Text variant="bodyTiny" weight={700} color={colors.neutral[900]} style={{ fontSize: '13.5px', margin: 0, textAlign: 'left' }}>
-                {t('saveMySpot')}
-              </Text>
-            </SafetyCard>
-
-            {/* Live Parking Card */}
-            <LiveParkingRow onClick={() => {
-              router.push('/melamarg/parking');
-            }}>
-              <ParkingIconBox>
-                <Car />
-              </ParkingIconBox>
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <Text variant="bodySecondary" weight={600} color={colors.neutral[900]} style={{  margin: 0 }}>
-                  {t('liveParking')}
-                </Text>
-                <Text variant="caption" weight={600} color="#E65100" style={{ margin: 0 }}>
-                  {t('busStandSpots')}
-                </Text>
-              </div>
-              <ChevronRight color="#B5B7BD" size={18} />
-            </LiveParkingRow>
-          </SafetyGrid>
-        </SafetySection>
+        <CurrentZoneBlock />
+        <AdvisoryNearMe />
+        <AccessRules />
+        <SurroundingByYou />
+        <TodayHighlights />
+        <QuickActions />
       </HomeBody>
     </HomeContainer>
   );
