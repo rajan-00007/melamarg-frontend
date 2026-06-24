@@ -16,6 +16,8 @@ export interface MapDataContextType {
   setRouteEdges: React.Dispatch<React.SetStateAction<EdgeItem[]>>;
   activeAdvisories: any[];
   setActiveAdvisories: React.Dispatch<React.SetStateAction<any[]>>;
+  zonesList: any[];
+  setZonesList: React.Dispatch<React.SetStateAction<any[]>>;
   leafletLoaded: boolean;
   setLeafletLoaded: React.Dispatch<React.SetStateAction<boolean>>;
   activeCategory: string;
@@ -25,6 +27,7 @@ export interface MapDataContextType {
   loadEventPoisAndGraph: (event: EventItem) => Promise<void>;
   getCategoryStats: (cat: string) => number;
   getSortedPois: () => POIItem[];
+  findZoneForCoordinate: (latitude: number, longitude: number) => any | null;
 }
 
 const MapDataContext = createContext<MapDataContextType | undefined>(undefined);
@@ -37,6 +40,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
   const [routeNodes, setRouteNodes] = useState<NodeItem[]>([]);
   const [routeEdges, setRouteEdges] = useState<EdgeItem[]>([]);
   const [activeAdvisories, setActiveAdvisories] = useState<any[]>([]);
+  const [zonesList, setZonesList] = useState<any[]>([]);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('toilet');
   const [loadingMapData, setLoadingMapData] = useState(false);
@@ -89,12 +93,14 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       let loadedNodes = isMock ? MOCK_NODES : [];
       let loadedEdges = isMock ? MOCK_EDGES : [];
       let loadedAdvisories: any[] = [];
+      let loadedZones: any[] = [];
       let hasLocalCache = false;
 
       if (typeof window !== 'undefined') {
         const cachedPois = localStorage.getItem(`mm_offline_pois_${event.id}`);
         const cachedRoutes = localStorage.getItem(`mm_offline_routes_${event.id}`);
         const cachedAdvisories = localStorage.getItem(`mm_offline_advisories_${event.id}`);
+        const cachedZones = localStorage.getItem(`mm_offline_zones_${event.id}`);
         if (cachedPois && cachedRoutes) {
           try {
             loadedPois = JSON.parse(cachedPois);
@@ -102,8 +108,9 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
             if (routeData.nodes) loadedNodes = routeData.nodes;
             if (routeData.edges) loadedEdges = routeData.edges;
             if (cachedAdvisories) loadedAdvisories = JSON.parse(cachedAdvisories);
+            if (cachedZones) loadedZones = JSON.parse(cachedZones);
             hasLocalCache = true;
-            console.log(`[Offline Cache] Loaded ${loadedPois.length} POIs and route graph from local storage for event ${event.id}`);
+            console.log(`[Offline Cache] Loaded ${loadedPois.length} POIs, ${loadedZones.length} zones and route graph from local storage for event ${event.id}`);
           } catch (e) {
             console.error('Failed to parse offline cache:', e);
           }
@@ -114,6 +121,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       setRouteNodes(loadedNodes);
       setRouteEdges(loadedEdges);
       setActiveAdvisories(loadedAdvisories);
+      setZonesList(loadedZones);
 
       const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
       if (!offlineMode && isUuid(event.id)) {
@@ -122,10 +130,12 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
           let pDataFetched = false;
           let rDataFetched = false;
           let aDataFetched = false;
+          let zDataFetched = false;
           let newPois = loadedPois;
           let newNodes = loadedNodes;
           let newEdges = loadedEdges;
           let newAdvisories = loadedAdvisories;
+          let newZones = loadedZones;
 
           try {
             const pRes = await axiosClient.get(API_ENDPOINTS.events.pois(event.id) + `&t=${Date.now()}`);
@@ -165,17 +175,30 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
             console.warn('[Fetch] Advisories fetch failed:', e);
           }
 
-          if (pDataFetched || rDataFetched || aDataFetched) {
+          try {
+            const zRes = await axiosClient.get(API_ENDPOINTS.events.zones(event.id) + `?t=${Date.now()}`);
+            const zJson = zRes.data;
+            if (zJson.success && Array.isArray(zJson.data)) {
+              newZones = zJson.data;
+              zDataFetched = true;
+            }
+          } catch (e) {
+            console.warn('[Fetch] Zones fetch failed:', e);
+          }
+
+          if (pDataFetched || rDataFetched || aDataFetched || zDataFetched) {
             loadedPois = newPois;
             loadedNodes = newNodes;
             loadedEdges = newEdges;
             loadedAdvisories = newAdvisories;
+            loadedZones = newZones;
             hasLocalCache = true;
             
             if (typeof window !== 'undefined') {
               localStorage.setItem(`mm_offline_pois_${event.id}`, JSON.stringify(newPois));
               localStorage.setItem(`mm_offline_routes_${event.id}`, JSON.stringify({ nodes: newNodes, edges: newEdges }));
               localStorage.setItem(`mm_offline_advisories_${event.id}`, JSON.stringify(newAdvisories));
+              localStorage.setItem(`mm_offline_zones_${event.id}`, JSON.stringify(newZones));
               console.log(`[Offline Cache] Updated offline cache in storage for event ${event.id}`);
             }
           }
@@ -211,6 +234,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       setRouteNodes(loadedNodes);
       setRouteEdges(loadedEdges);
       setActiveAdvisories(loadedAdvisories);
+      setZonesList(loadedZones);
     } finally {
       setLoadingMapData(false);
     }
@@ -233,6 +257,41 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
       .sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }, [poisList, activeCategory, userGps]);
 
+  const findZoneForCoordinate = useCallback((latitude: number, longitude: number) => {
+    if (!zonesList || zonesList.length === 0) return null;
+    
+    const x = longitude;
+    const y = latitude;
+
+    for (const zone of zonesList) {
+      const boundary = typeof zone.boundary === 'string' ? JSON.parse(zone.boundary) : zone.boundary;
+      if (!Array.isArray(boundary) || boundary.length < 3) continue;
+
+      let inside = false;
+      for (let i = 0, j = boundary.length - 1; i < boundary.length; j = i++) {
+        const pI = boundary[i];
+        const pJ = boundary[j];
+        
+        const xi = pI.lng !== undefined ? pI.lng : pI.longitude;
+        const yi = pI.lat !== undefined ? pI.lat : pI.latitude;
+        const xj = pJ.lng !== undefined ? pJ.lng : pJ.longitude;
+        const yj = pJ.lat !== undefined ? pJ.lat : pJ.latitude;
+
+        if (xi === undefined || yi === undefined || xj === undefined || yj === undefined) {
+          continue;
+        }
+
+        const intersect = ((yi > y) !== (yj > y))
+          && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+
+      if (inside) return zone;
+    }
+
+    return null;
+  }, [zonesList]);
+
   return (
     <MapDataContext.Provider
       value={{
@@ -244,6 +303,8 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
         setRouteEdges,
         activeAdvisories,
         setActiveAdvisories,
+        zonesList,
+        setZonesList,
         leafletLoaded,
         setLeafletLoaded,
         activeCategory,
@@ -253,6 +314,7 @@ export function MapDataProvider({ children }: { children: React.ReactNode }) {
         loadEventPoisAndGraph,
         getCategoryStats,
         getSortedPois,
+        findZoneForCoordinate,
       }}
     >
       {children}

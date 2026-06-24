@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '@/context/UserTestContext';
-import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu } from 'lucide-react';
+import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   MapWrapper,
@@ -37,7 +37,23 @@ import {
   UnifiedStatusBody,
   FloatingHUDContainer,
   HUDSection,
-  HUDIndicatorBadge
+  HUDIndicatorBadge,
+  ZoneHUDCard,
+  ZoneInfoGroup,
+  ZoneLabel,
+  ZoneName,
+  VehicleStatusRow,
+  VehicleStatusBadge,
+  ZoneAdvisoryWarningPill,
+  DrawerBackdrop,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerCloseButton,
+  AdvisoryList,
+  AdvisoryCard,
+  AdvisoryCardTitle,
+  AdvisoryCardMessage
 } from './page.styled';
 
 // Pure Utility Helpers (defined at module scope to avoid hoisting/initialization errors)
@@ -257,7 +273,9 @@ export default function EventMapPage() {
     computeNavigationStats,
     loadingMapData,
     activeAdvisories,
-    setIsSidebarOpen
+    setIsSidebarOpen,
+    zonesList,
+    findZoneForCoordinate
   } = useUserTest();
 
   const { language, t, tPoiName, tPoiDesc, tEventName } = useLanguage();
@@ -354,6 +372,24 @@ export default function EventMapPage() {
   const [mapZoom, setMapZoom] = useState<number>(16);
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
   const lastGpsRef = useRef<[number, number] | null>(null);
+
+  const [isAdvisoryDrawerOpen, setIsAdvisoryDrawerOpen] = useState<boolean>(false);
+
+  // Active Zone detection based on user coordinates
+  const currentZone = useMemo(() => {
+    if (!userGps || !findZoneForCoordinate) return null;
+    return findZoneForCoordinate(userGps[0], userGps[1]);
+  }, [userGps, findZoneForCoordinate]);
+
+  // Filter advisories that apply to the current active zone
+  const zoneAdvisories = useMemo(() => {
+    if (!currentZone || !activeAdvisories) return [];
+    return activeAdvisories.filter(advisory => 
+      advisory.is_active && 
+      Array.isArray(advisory.zoneIds) && 
+      advisory.zoneIds.includes(currentZone.id)
+    );
+  }, [currentZone, activeAdvisories]);
 
   useEffect(() => {
     if (!userGps) return;
@@ -532,6 +568,7 @@ export default function EventMapPage() {
   const poisLayerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const activeRouteLayerRef = useRef<any>(null);
+  const zonesLayerRef = useRef<any>(null);
   const LRef = useRef<any>(null);
 
   const findOptimalEntranceNode = (
@@ -805,6 +842,33 @@ export default function EventMapPage() {
 
     poisLayerRef.current = L.layerGroup().addTo(map);
     routeLayerRef.current = L.layerGroup().addTo(map);
+    zonesLayerRef.current = L.layerGroup().addTo(map);
+
+    // Draw Zones
+    if (zonesList && zonesList.length > 0) {
+      zonesList.forEach((zone) => {
+        const boundary = typeof zone.boundary === 'string' ? JSON.parse(zone.boundary) : zone.boundary;
+        if (!Array.isArray(boundary) || boundary.length < 3) return;
+
+        const latlngs = boundary.map((p: any) => [
+          p.lat !== undefined ? Number(p.lat) : Number(p.latitude),
+          p.lng !== undefined ? Number(p.lng) : Number(p.longitude)
+        ]);
+
+        L.polygon(latlngs, {
+          color: '#fb923c',
+          fillColor: '#fdba74',
+          fillOpacity: 0.06,
+          weight: 1.5,
+          dashArray: '4, 4'
+        }).addTo(zonesLayerRef.current)
+          .bindTooltip(zone.name, {
+            permanent: true,
+            direction: 'center',
+            className: 'zone-map-tooltip'
+          });
+      });
+    }
 
     // Draw POIs
     const categoryColor = (catName: string): string => {
@@ -1018,8 +1082,11 @@ export default function EventMapPage() {
       if (offPathConnectorLineRef.current) {
         offPathConnectorLineRef.current = null;
       }
+      if (zonesLayerRef.current) {
+        zonesLayerRef.current = null;
+      }
     };
-  }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent]);
+  }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent, zonesList]);
 
   // ACTIVE ROUTE HIGHLIGHT EFFECT
   useEffect(() => {
@@ -1522,6 +1589,38 @@ export default function EventMapPage() {
           </FloatingLocateButton>
         </FloatingControlsRow>
 
+        {/* Current Zone HUD Card */}
+        {currentZone && (
+          <ZoneHUDCard>
+            <ZoneInfoGroup>
+              <ZoneLabel>{t('activeZone') || 'Active Zone'}</ZoneLabel>
+              <ZoneName>{currentZone.name}</ZoneName>
+            </ZoneInfoGroup>
+
+            <VehicleStatusRow>
+              <VehicleStatusBadge $allowed={currentZone.allow_pedestrians !== false} title={currentZone.allow_pedestrians !== false ? 'Pedestrians Allowed' : 'Pedestrians Restricted'}>
+                <span>🚶</span>
+                <span>{currentZone.allow_pedestrians !== false ? '✓' : '✗'}</span>
+              </VehicleStatusBadge>
+              <VehicleStatusBadge $allowed={currentZone.allow_2wheelers !== false} title={currentZone.allow_2wheelers !== false ? '2-Wheelers Allowed' : '2-Wheelers Restricted'}>
+                <span>🏍️</span>
+                <span>{currentZone.allow_2wheelers !== false ? '✓' : '✗'}</span>
+              </VehicleStatusBadge>
+              <VehicleStatusBadge $allowed={currentZone.allow_cars !== false} title={currentZone.allow_cars !== false ? 'Cars Allowed' : 'Cars Restricted'}>
+                <span>🚗</span>
+                <span>{currentZone.allow_cars !== false ? '✓' : '✗'}</span>
+              </VehicleStatusBadge>
+            </VehicleStatusRow>
+
+            {zoneAdvisories.length > 0 && (
+              <ZoneAdvisoryWarningPill onClick={() => setIsAdvisoryDrawerOpen(true)}>
+                <AlertTriangle size={12} />
+                <span>{t('advisory') || 'Advisory'} ({zoneAdvisories.length})</span>
+              </ZoneAdvisoryWarningPill>
+            )}
+          </ZoneHUDCard>
+        )}
+
         {selectedPoi ? (
           <ExploreBottomCard>
             <ExploreCardTitle>{tPoiName(selectedPoi)}</ExploreCardTitle>
@@ -1561,6 +1660,31 @@ export default function EventMapPage() {
           </ExploreBottomCard>
         )}
       </FloatingBottomWrapper>
+
+      {/* Collapsible Zone Advisories Drawer */}
+      {isAdvisoryDrawerOpen && currentZone && (
+        <DrawerBackdrop onClick={() => setIsAdvisoryDrawerOpen(false)}>
+          <DrawerContent onClick={(e) => e.stopPropagation()}>
+            <DrawerHeader>
+              <DrawerTitle>
+                <AlertTriangle style={{ color: '#fb923c' }} size={18} />
+                <span>{currentZone.name} - {t('zoneAdvisories') || 'Traffic Advisories'}</span>
+              </DrawerTitle>
+              <DrawerCloseButton onClick={() => setIsAdvisoryDrawerOpen(false)}>
+                <X size={16} />
+              </DrawerCloseButton>
+            </DrawerHeader>
+            <AdvisoryList>
+              {zoneAdvisories.map((advisory: any) => (
+                <AdvisoryCard key={advisory.id}>
+                  <AdvisoryCardTitle>{advisory.title}</AdvisoryCardTitle>
+                  <AdvisoryCardMessage>{advisory.message}</AdvisoryCardMessage>
+                </AdvisoryCard>
+              ))}
+            </AdvisoryList>
+          </DrawerContent>
+        </DrawerBackdrop>
+      )}
     </div>
   );
 }

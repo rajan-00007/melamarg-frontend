@@ -1069,6 +1069,214 @@ export const HUDIndicatorBadge = styled.div<{ $direction: 'front' | 'back' | 'le
   }
 `;
 
+export const ZoneHUDCard = styled.div`
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-sizing: border-box;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+`;
+
+export const ZoneInfoGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+`;
+
+export const ZoneLabel = styled.span`
+  font-size: 9px;
+  font-weight: 700;
+  color: #fb923c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+export const ZoneName = styled.span`
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+`;
+
+export const VehicleStatusRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+`;
+
+export const VehicleStatusBadge = styled.div<{ $allowed: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.75rem;
+  font-size: 11px;
+  font-weight: 700;
+  background: ${props => props.$allowed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'};
+  border: 1px solid ${props => props.$allowed ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
+  color: ${props => props.$allowed ? '#34d399' : '#f87171'};
+`;
+
+export const ZoneAdvisoryWarningPill = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 9999px;
+  background: rgba(249, 115, 22, 0.2);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  color: #fdba74;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  animation: pulseWarning 2s infinite;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.1);
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(249, 115, 22, 0.35);
+    border-color: rgba(249, 115, 22, 0.6);
+  }
+
+  @keyframes pulseWarning {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.15);
+    }
+    50% {
+      transform: scale(1.03);
+      box-shadow: 0 0 18px rgba(249, 115, 22, 0.35);
+    }
+  }
+`;
+
+// Slide-up drawer for advisories
+export const DrawerBackdrop = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: auto;
+`;
+
+export const DrawerContent = styled.div`
+  width: 100%;
+  max-width: 500px;
+  background: #0f172a;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem 1.5rem 0 0;
+  padding: 1.5rem;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: 70%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes slideInUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+`;
+
+export const DrawerHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.75rem;
+`;
+
+export const DrawerTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const DrawerCloseButton = styled.button`
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+`;
+
+export const AdvisoryList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+export const AdvisoryCard = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const AdvisoryCardTitle = styled.h4`
+  font-size: 13px;
+  font-weight: 700;
+  color: #fb923c;
+`;
+
+export const AdvisoryCardMessage = styled.p`
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.5;
+`;
+
+
 
 
 

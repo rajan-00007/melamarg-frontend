@@ -237,6 +237,9 @@ export const translations = {
     blocked: "Blocked",
     detour: "Detour",
     trafficAlertBanner: "⚠️ Traffic redirect active. Tap to view route advisory details.",
+    activeZone: "Active Zone",
+    advisory: "Advisory",
+    zoneAdvisories: "Zone Advisories",
   },
   hi: {
     appName: "रथ नेविगेटर",
@@ -475,6 +478,9 @@ export const translations = {
     blocked: "अवरुद्ध (Blocked)",
     detour: "वैकल्पिक मार्ग (Detour)",
     trafficAlertBanner: "⚠️ यातायात डायवर्जन सक्रिय है। विवरण देखने के लिए टैप करें।",
+    activeZone: "सक्रिय क्षेत्र",
+    advisory: "सलाह",
+    zoneAdvisories: "क्षेत्रीय सलाह",
   },
   or: {
     appName: "ରଥ ନେଭିଗେଟର",
@@ -713,6 +719,9 @@ export const translations = {
     blocked: "ଅବରୋଧ (Blocked)",
     detour: "ବିକଳ୍ପ ପଥ (Detour)",
     trafficAlertBanner: "⚠️ ଟ୍ରାଫିକ ମାର୍ଗ ପରିବର୍ତ୍ତନ ସକ୍ରିୟ ଅଛି। ବିବରଣୀ ପାଇଁ କ୍ଲିକ କରନ୍ତୁ।",
+    activeZone: "ସକ୍ରିୟ ଜୋନ୍",
+    advisory: "ପରାମର୍ଶ",
+    zoneAdvisories: "ଜୋନ୍ ପରାମର୍ଶଗୁଡ଼ିକ",
   },
   bn: {
     appName: "রথ নেভিগেটর",
@@ -941,6 +950,9 @@ export const translations = {
     blocked: "অবরুদ্ধ (Blocked)",
     detour: "বিকল্প পথ (Detour)",
     trafficAlertBanner: "⚠️ ট্রাফিক ডাইভারশন সক্রিয় রয়েছে। বিবরণ দেখতে ট্যাপ করুন।",
+    activeZone: "সক্রিয় জোন",
+    advisory: "পরামর্শ",
+    zoneAdvisories: "জোন পরামর্শসমূহ",
   }
 } as const;
 

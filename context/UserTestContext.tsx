@@ -128,6 +128,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     routeEdges,
     activeAdvisories,
     setActiveAdvisories,
+    zonesList,
+    setZonesList,
     leafletLoaded,
     setLeafletLoaded,
     activeCategory,
@@ -136,6 +138,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     loadEventPoisAndGraph,
     getCategoryStats,
     getSortedPois,
+    findZoneForCoordinate,
   } = useMapData();
 
   const {
@@ -571,6 +574,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     routeEdges,
     activeAdvisories,
     setActiveAdvisories,
+    zonesList,
+    setZonesList,
     leafletLoaded,
     setLeafletLoaded,
     activeCategory,
@@ -579,6 +584,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     loadEventPoisAndGraph,
     getCategoryStats,
     getSortedPois,
+    findZoneForCoordinate,
 
     // Navigation context fields
     stats,
@@ -638,13 +644,6 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     getOfflineEvents,
     isInitialized,
     locationPermission,
-    setLocationPermission,
-    userGps,
-    setUserGps,
-    gpsAccuracy,
-    gpsStatus,
-    getRealGps,
-    handleGpsUpdate,
     startGpsWatch,
     stopGpsWatch,
     poisList,
@@ -687,6 +686,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     handleGrantPermission,
     isSidebarOpen,
     setIsSidebarOpen,
+    zonesList,
+    findZoneForCoordinate,
   ]);
 
   return (
