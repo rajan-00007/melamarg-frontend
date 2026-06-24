@@ -139,12 +139,12 @@ export default function TodayHighlights() {
   return (
     <SectionWrapper>
       <Text
-        variant="caption"
-        weight={500}
-        color={colors.neutral[800]}
-        style={{ letterSpacing: '0.08em', opacity: 0.6, fontSize: '9.5px', textTransform: 'uppercase', paddingLeft: '0.25rem' }}
+        variant="bodyPrimary"
+        weight={700}
+        color={colors.neutral[900]}
+        style={{ letterSpacing: '0.05em', fontSize: '15px', textTransform: 'uppercase', paddingLeft: '0.25rem', marginBottom: '0.15rem' }}
       >
-        {(t as any)('todayHighlights') || "TODAY'S HIGHLIGHTS"}
+        {t('todayHighlights')}
       </Text>
 
       <ScrollContainer>

@@ -240,6 +240,10 @@ export const translations = {
     activeZone: "Active Zone",
     advisory: "Advisory",
     zoneAdvisories: "Zone Advisories",
+    advisoryNearMe: "Advisory Near Me",
+    currentAccessRules: "Current Access Rules",
+    surroundingByYou: "Surrounding By You",
+    todayHighlights: "Today's Highlights",
   },
   hi: {
     appName: "रथ नेविगेटर",
@@ -481,6 +485,10 @@ export const translations = {
     activeZone: "सक्रिय क्षेत्र",
     advisory: "सलाह",
     zoneAdvisories: "क्षेत्रीय सलाह",
+    advisoryNearMe: "मेरे पास सलाह",
+    currentAccessRules: "वर्तमान पहुंच नियम",
+    surroundingByYou: "आपके आसपास",
+    todayHighlights: "आज के मुख्य आकर्षण",
   },
   or: {
     appName: "ରଥ ନେଭିଗେଟର",
@@ -722,6 +730,10 @@ export const translations = {
     activeZone: "ସକ୍ରିୟ ଜୋନ୍",
     advisory: "ପରାମର୍ଶ",
     zoneAdvisories: "ଜୋନ୍ ପରାମର୍ଶଗୁଡ଼ିକ",
+    advisoryNearMe: "ମୋ ନିକଟରେ ପରାମର୍ଶ",
+    currentAccessRules: "ବର୍ତ୍ତମାନର ପ୍ରବେଶ ନିୟମ",
+    surroundingByYou: "ଆପଣଙ୍କ ଚାରିପାଖରେ",
+    todayHighlights: "ଆଜିର ମୁଖ୍ୟ ଆକର୍ଷଣ",
   },
   bn: {
     appName: "রথ নেভিগেটর",
@@ -953,6 +965,10 @@ export const translations = {
     activeZone: "সক্রিয় জোন",
     advisory: "পরামর্শ",
     zoneAdvisories: "জোন পরামর্শসমূহ",
+    advisoryNearMe: "আমার কাছাকাছি পরামর্শ",
+    currentAccessRules: "বর্তমান প্রবেশ নিয়ম",
+    surroundingByYou: "আপনার চারপাশে",
+    todayHighlights: "আজকের হাইলাইটস",
   }
 } as const;
 

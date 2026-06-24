@@ -464,14 +464,6 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </ContentArea>
 
-      {/* Fixed Explore Map button on Home Page - outside animated scope to prevent movement */}
-      {currentTab === 'home' && (
-        <FloatingExploreButton onClick={() => router.push('/melamarg/map')}>
-          <Compass style={{ transform: 'rotate(0deg)' }} />
-          <span>{t('exploreLiveMap')}</span>
-        </FloatingExploreButton>
-      )}
-
       {/* BOTTOM TAB NAVIGATION BAR */}
       {showNav && (
         <BottomNav>

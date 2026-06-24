@@ -432,7 +432,7 @@ export default function RedesignedEventHomePage() {
           </LangButton>
         </HeaderRight>
       </HomeHeader>
-
+      
       {/* 1. Event Highlights Slider */}
       <SliderWrapper>
         <SliderContainer ref={sliderRef} onScroll={handleSliderScroll}>

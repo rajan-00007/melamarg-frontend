@@ -103,7 +103,7 @@ export default function QuickActions() {
 
   const handleBrowseCategories = () => {
     setActiveCategory('all');
-    router.push('/melamarg/pois');
+    router.push('/melamarg/all-pois');
   };
 
   return (

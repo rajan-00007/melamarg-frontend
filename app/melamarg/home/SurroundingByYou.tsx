@@ -69,6 +69,8 @@ const MapCanvas = styled.div`
   top: 0;
   left: 0;
   z-index: 1;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 `;
 
 const RadarCircleLarge = styled.div`
@@ -112,6 +114,9 @@ const RadarSweep = styled.div`
   animation: ${rotate} 4s linear infinite;
   pointer-events: none;
   z-index: 2; /* Sweep floats on top of the MapCanvas but below text/badges */
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 `;
 
 const UserGpsDot = styled.div`
@@ -467,12 +472,12 @@ export default function SurroundingByYou() {
 
       <SectionHeader>
         <Text
-          variant="caption"
-          weight={500}
-          color={colors.brand.secondary}
-          style={{ letterSpacing: '0.08em', opacity: 0.6, fontSize: '9.5px', textTransform: 'uppercase' }}
+          variant="bodyPrimary"
+          weight={700}
+          color={colors.neutral[900]}
+          style={{ letterSpacing: '0.05em', fontSize: '15px', textTransform: 'uppercase' }}
         >
-          {(t as any)('surroundingByYou') || 'SURROUNDING BY YOU'}
+          {t('surroundingByYou')}
         </Text>
         <Text
           variant="caption"
