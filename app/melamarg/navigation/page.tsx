@@ -848,8 +848,6 @@ export default function CompassNavigationPage() {
         fillColor: color
       });
     }
-
-    mapRef.current.panTo(userGps);
   }, [userGps, gpsAccuracy, gpsStatus]);
 
   useEffect(() => {
@@ -904,13 +902,12 @@ export default function CompassNavigationPage() {
     if (mapRef.current) {
       timer = setTimeout(() => {
         mapRef.current?.invalidateSize?.({ animate: true });
-        mapRef.current?.panTo?.(userGps);
       }, 150);
     }
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [isMapExpanded, userGps]);
+  }, [isMapExpanded]);
 
   // Redraw route highlighting when GPS or nodes update
   useEffect(() => {
@@ -948,6 +945,19 @@ export default function CompassNavigationPage() {
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(activeRouteLayerRef.current);
+
+      // Draw off-path connector line if final node is a projection node
+      const finalNode = path[path.length - 1];
+      if (finalNode && String(finalNode.id).startsWith('proj-') && navTarget) {
+        L.polyline([[Number(finalNode.latitude), Number(finalNode.longitude)], [navTarget.latitude, navTarget.longitude]], {
+          color: '#f97316',
+          weight: 4,
+          opacity: 0.9,
+          dashArray: '6, 6',
+          lineJoin: 'round',
+          lineCap: 'round'
+        }).addTo(activeRouteLayerRef.current);
+      }
     }
   };
 

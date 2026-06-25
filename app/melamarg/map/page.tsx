@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserTest } from '@/context/UserTestContext';
+import { findOptimalPathToPoi } from '@/context/types';
 import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu, X, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -874,13 +875,12 @@ export default function EventMapPage() {
     if (mapRef.current) {
       timer = setTimeout(() => {
         mapRef.current?.invalidateSize?.({ animate: true });
-        mapRef.current?.panTo?.(userGps);
       }, 150);
     }
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [isMapExpanded, userGps]);
+  }, [isMapExpanded]);
 
 
   // Map rendering logic
@@ -1296,28 +1296,10 @@ export default function EventMapPage() {
 
     if (!targetPoi || routeNodes.length === 0) return;
 
-    let destNode = routeNodes.find((n) => n.poi_id === targetPoi.id);
-    if (!destNode) {
-      let minPoiDist = Infinity;
-      routeNodes.forEach((node) => {
-        const dist = getHaversineDistance(targetPoi.latitude, targetPoi.longitude, node.latitude, node.longitude);
-        if (dist < minPoiDist) {
-          minPoiDist = dist;
-          destNode = node;
-        }
-      });
-    }
-    if (!destNode) destNode = routeNodes[0];
-
-    const { nearestNodeToUser } = findOptimalEntranceNode(
-      userGps[0],
-      userGps[1],
-      destNode,
-      routeNodes,
-      routeEdges
-    );
-
-    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
+    const {
+      path,
+      destNode
+    } = findOptimalPathToPoi(userGps[0], userGps[1], targetPoi, routeNodes, routeEdges);
 
     if (path && path.length > 0) {
       const latlngs = path.map((n: any) => [Number(n.latitude), Number(n.longitude)]);
@@ -1339,6 +1321,18 @@ export default function EventMapPage() {
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(activeRouteLayerRef.current);
+
+      // Draw off-path connector line if destNode is a projection node
+      if (destNode && String(destNode.id).startsWith('proj-')) {
+        L.polyline([[Number(destNode.latitude), Number(destNode.longitude)], [targetPoi.latitude, targetPoi.longitude]], {
+          color: '#f97316',
+          weight: 4,
+          opacity: 0.9,
+          dashArray: '6, 6',
+          lineJoin: 'round',
+          lineCap: 'round'
+        }).addTo(activeRouteLayerRef.current);
+      }
     }
   }, [navTarget, selectedPoi, userGps, leafletLoaded, routeNodes, routeEdges, screenMode]);
 
@@ -1375,28 +1369,7 @@ export default function EventMapPage() {
     let pathNodeIds = new Set<string>();
 
     if (selectedPoi) {
-      let destNode = routeNodes.find((n) => n.poi_id === selectedPoi.id);
-      if (!destNode) {
-        let minPoiDist = Infinity;
-        routeNodes.forEach((node) => {
-          const dist = getHaversineDistance(selectedPoi.latitude, selectedPoi.longitude, node.latitude, node.longitude);
-          if (dist < minPoiDist) {
-            minPoiDist = dist;
-            destNode = node;
-          }
-        });
-      }
-      if (!destNode) destNode = routeNodes[0];
-
-      const { nearestNodeToUser } = findOptimalEntranceNode(
-        userGps[0],
-        userGps[1],
-        destNode,
-        routeNodes,
-        routeEdges
-      );
-
-      const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id);
+      const { path } = findOptimalPathToPoi(userGps[0], userGps[1], selectedPoi, routeNodes, routeEdges);
       if (path) {
         pathNodeIds = new Set(path.map(n => n.id));
       }

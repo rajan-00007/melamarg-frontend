@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { POIItem, NodeItem, getHaversineDistance, getCompassBearing, findOptimalEntranceNode, DijkstraRouter } from './types';
+import { POIItem, NodeItem, getHaversineDistance, getCompassBearing, findOptimalEntranceNode, DijkstraRouter, findOptimalPathToPoi } from './types';
 import { useGps } from './GpsContext';
 import { useMapData } from './MapDataContext';
 
@@ -111,35 +111,14 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       };
     }
 
-    let destNode = routeNodes.find(n => n.poi_id === navTarget.id);
-    
-    if (!destNode) {
-      let minPoiDist = Infinity;
-      routeNodes.forEach(node => {
-        const dist = getHaversineDistance(navTarget.latitude, navTarget.longitude, node.latitude, node.longitude);
-        if (dist < minPoiDist) {
-          minPoiDist = dist;
-          destNode = node;
-        }
-      });
-    }
-
-    if (!destNode) {
-      destNode = routeNodes[0];
-    }
-
     const advisoriesToUse = (navTarget && (navTarget.id === 'saved-spot-nav' || navTarget.category_name === 'Saved Spot')) ? [] : activeAdvisories;
 
-    const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(
-      currentLat,
-      currentLng,
-      destNode,
-      routeNodes,
-      routeEdges,
-      advisoriesToUse
-    );
-
-    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id, advisoriesToUse);
+    const {
+      path,
+      nearestNodeToUser,
+      minUserDist,
+      destNode
+    } = findOptimalPathToPoi(currentLat, currentLng, navTarget, routeNodes, routeEdges, advisoriesToUse);
     
     // Check if user is off route by calculating distance to path segments
     let isOffRoute = true;
@@ -365,31 +344,14 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       return;
     }
 
-    let destNode = routeNodes.find(n => n.poi_id === poi.id);
-    if (!destNode) {
-      let minPoiDist = Infinity;
-      routeNodes.forEach(node => {
-        const dist = getHaversineDistance(poi.latitude, poi.longitude, node.latitude, node.longitude);
-        if (dist < minPoiDist) {
-          minPoiDist = dist;
-          destNode = node;
-        }
-      });
-    }
-    if (!destNode) destNode = routeNodes[0];
-
     const advisoriesToUse = (poi && (poi.id === 'saved-spot-nav' || poi.category_name === 'Saved Spot')) ? [] : activeAdvisories;
 
-    const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(
-      userGps[0],
-      userGps[1],
-      destNode,
-      routeNodes,
-      routeEdges,
-      advisoriesToUse
-    );
-
-    const path = DijkstraRouter.findShortestPath(routeNodes, routeEdges, nearestNodeToUser.id, destNode.id, advisoriesToUse);
+    const {
+      path,
+      nearestNodeToUser,
+      minUserDist,
+      destNode
+    } = findOptimalPathToPoi(userGps[0], userGps[1], poi, routeNodes, routeEdges, advisoriesToUse);
     
     console.log(`\n=== NAVIGATION INSTRUCTIONS TO ${poi.name_en.toUpperCase()} ===`);
     if (minUserDist > 15) {

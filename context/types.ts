@@ -376,3 +376,224 @@ export const sanitizeBackendUrl = (url: string): string => {
   }
   return cleaned;
 };
+
+export function getDistanceToSegment(
+  lat: number,
+  lng: number,
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const x = lng;
+  const y = lat;
+  const x1 = lng1;
+  const y1 = lat1;
+  const x2 = lng2;
+  const y2 = lat2;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  if (dx === 0 && dy === 0) {
+    return getHaversineDistance(y, x, y1, x1);
+  }
+
+  let t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+  t = Math.max(0, Math.min(1, t));
+
+  const closestLat = y1 + t * dy;
+  const closestLng = x1 + t * dx;
+
+  return getHaversineDistance(y, x, closestLat, closestLng);
+}
+
+export function getClosestPointOnSegment(
+  lat: number,
+  lng: number,
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): { lat: number; lng: number } {
+  const x = lng;
+  const y = lat;
+  const x1 = lng1;
+  const y1 = lat1;
+  const x2 = lng2;
+  const y2 = lat2;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  if (dx === 0 && dy === 0) {
+    return { lat: y1, lng: x1 };
+  }
+
+  let t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+  t = Math.max(0, Math.min(1, t));
+
+  return {
+    lat: y1 + t * dy,
+    lng: x1 + t * dx
+  };
+}
+
+export function findOptimalPathToPoi(
+  userLat: number,
+  userLng: number,
+  poi: POIItem,
+  nodes: NodeItem[],
+  edges: EdgeItem[],
+  activeAdvisories?: any[]
+): {
+  path: NodeItem[] | null;
+  nearestNodeToUser: NodeItem;
+  minUserDist: number;
+  destNode: NodeItem;
+  distFromEndToPoi: number;
+} {
+  // 1. Check if POI is directly mapped to a node
+  const directNode = nodes.find(n => n.poi_id === poi.id);
+  if (directNode) {
+    const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(userLat, userLng, directNode, nodes, edges, activeAdvisories);
+    const path = DijkstraRouter.findShortestPath(nodes, edges, nearestNodeToUser.id, directNode.id, activeAdvisories);
+    return {
+      path,
+      nearestNodeToUser,
+      minUserDist,
+      destNode: directNode,
+      distFromEndToPoi: 0
+    };
+  }
+
+  // 2. Find the closest edge in the network to the POI
+  let minEdgeDist = Infinity;
+  let closestEdge: EdgeItem | null = null;
+  let closestPoint: { lat: number; lng: number } | null = null;
+
+  edges.forEach((edge) => {
+    const startId = edge.start_node_id || (edge as any).startNodeId;
+    const endId = edge.end_node_id || (edge as any).endNodeId;
+    const startNode = nodes.find((n) => String(n.id) === String(startId));
+    const endNode = nodes.find((n) => String(n.id) === String(endId));
+    if (!startNode || !endNode) return;
+
+    const dist = getDistanceToSegment(
+      poi.latitude,
+      poi.longitude,
+      Number(startNode.latitude),
+      Number(startNode.longitude),
+      Number(endNode.latitude),
+      Number(endNode.longitude)
+    );
+
+    if (dist < minEdgeDist) {
+      minEdgeDist = dist;
+      closestEdge = edge;
+      closestPoint = getClosestPointOnSegment(
+        poi.latitude,
+        poi.longitude,
+        Number(startNode.latitude),
+        Number(startNode.longitude),
+        Number(endNode.latitude),
+        Number(endNode.longitude)
+      );
+    }
+  });
+
+  // 3. Fallback to closest node if no edges exist or we couldn't find one
+  if (!closestEdge || !closestPoint) {
+    let fallbackDest: NodeItem = nodes[0];
+    let minPoiDist = Infinity;
+    nodes.forEach((node) => {
+      const dist = getHaversineDistance(poi.latitude, poi.longitude, node.latitude, node.longitude);
+      if (dist < minPoiDist) {
+        minPoiDist = dist;
+        fallbackDest = node;
+      }
+    });
+    if (!fallbackDest) fallbackDest = nodes[0];
+
+    const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(userLat, userLng, fallbackDest, nodes, edges, activeAdvisories);
+    const path = DijkstraRouter.findShortestPath(nodes, edges, nearestNodeToUser.id, fallbackDest.id, activeAdvisories);
+    return {
+      path,
+      nearestNodeToUser,
+      minUserDist,
+      destNode: fallbackDest,
+      distFromEndToPoi: getHaversineDistance(fallbackDest.latitude, fallbackDest.longitude, poi.latitude, poi.longitude)
+    };
+  }
+
+  // 4. We found the closest edge! Endpoints are startNode and endNode
+  const edge = closestEdge as EdgeItem;
+  const point = closestPoint as { lat: number; lng: number };
+
+  const startId = edge.start_node_id || (edge as any).startNodeId;
+  const endId = edge.end_node_id || (edge as any).endNodeId;
+  const startNode = nodes.find((n) => String(n.id) === String(startId))!;
+  const endNode = nodes.find((n) => String(n.id) === String(endId))!;
+
+  // Create the virtual projection node
+  const projNodeId = `proj-${poi.id}`;
+  const projNode: NodeItem = {
+    id: projNodeId,
+    latitude: point.lat,
+    longitude: point.lng,
+    name: `Near ${poi.name_en}`,
+    poi_id: poi.id
+  };
+
+  // We find the optimal entrance from the user to the projection point.
+  // Use startNode as the destination node to find optimal entrance.
+  const { nearestNodeToUser, minUserDist } = findOptimalEntranceNode(userLat, userLng, startNode, nodes, edges, activeAdvisories);
+
+  // We run Dijkstra to both startNode and endNode.
+  const pathA = DijkstraRouter.findShortestPath(nodes, edges, nearestNodeToUser.id, startNode.id, activeAdvisories);
+  const pathB = DijkstraRouter.findShortestPath(nodes, edges, nearestNodeToUser.id, endNode.id, activeAdvisories);
+
+  const getPathLength = (p: NodeItem[]) => {
+    let len = 0;
+    for (let i = 0; i < p.length - 1; i++) {
+      len += getHaversineDistance(p[i].latitude, p[i].longitude, p[i+1].latitude, p[i+1].longitude);
+    }
+    return len;
+  };
+
+  let bestPath: NodeItem[] | null = null;
+
+  if (pathA && pathB) {
+    const lenA = getPathLength(pathA) + getHaversineDistance(startNode.latitude, startNode.longitude, projNode.latitude, projNode.longitude);
+    const lenB = getPathLength(pathB) + getHaversineDistance(endNode.latitude, endNode.longitude, projNode.latitude, projNode.longitude);
+
+    if (lenA < lenB) {
+      bestPath = [...pathA, projNode];
+    } else {
+      bestPath = [...pathB, projNode];
+    }
+  } else if (pathA) {
+    bestPath = [...pathA, projNode];
+  } else if (pathB) {
+    bestPath = [...pathB, projNode];
+  }
+
+  // If no path was found, fallback
+  if (!bestPath) {
+    return {
+      path: null,
+      nearestNodeToUser,
+      minUserDist,
+      destNode: startNode,
+      distFromEndToPoi: getHaversineDistance(startNode.latitude, startNode.longitude, poi.latitude, poi.longitude)
+    };
+  }
+
+  return {
+    path: bestPath,
+    nearestNodeToUser,
+    minUserDist,
+    destNode: projNode, // Use projNode as the destNode
+    distFromEndToPoi: getHaversineDistance(projNode.latitude, projNode.longitude, poi.latitude, poi.longitude)
+  };
+}
