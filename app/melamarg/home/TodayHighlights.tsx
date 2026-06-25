@@ -2,6 +2,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
+import { Calendar } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useUserTest } from '@/context/UserTestContext';
 import { colors } from '@/components/style/colors';
@@ -32,7 +33,7 @@ const ScrollContainer = styled.div`
 const HighlightCard = styled.div`
   flex: 0 0 65%;
   scroll-snap-align: start;
-  background-color: white; /* Premium off-white/beige */
+  background-color: white;
   border-radius: 1.25rem;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
@@ -63,7 +64,7 @@ const TimePill = styled.span`
   position: absolute;
   top: 0.65rem;
   left: 0.65rem;
-  background-color: #E65100; /* Rust orange */
+  background-color: #E65100;
   color: #FFFFFF;
   font-size: 9px;
   font-weight: 600;
@@ -81,34 +82,38 @@ const TextBlock = styled.div`
   gap: 0.15rem;
 `;
 
+const EmptyStateCard = styled.div`
+  background-color: #FFFFFF;
+  border-radius: 1.25rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  border: 1px dashed #EEF2F6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+  width: 100%;
+  box-sizing: border-box;
+`;
+
+const IconCircle = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${colors.neutral[700]};
+  margin-bottom: 0.25rem;
+  border: 1px solid #F1F5F9;
+`;
+
 export default function TodayHighlights() {
   const { t } = useLanguage();
   const { highlightsList } = useUserTest();
-
-  // Mock static fallback highlights if no server database highlights exist
-  const mockHighlights = React.useMemo(() => [
-    {
-      id: 'h-1',
-      title: 'Evening Aarti',
-      location: 'Main Temple Podium',
-      time: '6:30 PM',
-      image_url: '/rathyatra_banner2.png'
-    },
-    {
-      id: 'h-2',
-      title: 'Cultural Dance',
-      location: 'West Gate Stage',
-      time: '8:00 PM',
-      image_url: '/rathyatra_banner3.png'
-    },
-    {
-      id: 'h-3',
-      title: 'Heritage Walk',
-      location: 'South Entrance',
-      time: '9:30 AM',
-      image_url: '/rathyatra_banner.png'
-    }
-  ], []);
 
   const FALLBACK_BANNERS = React.useMemo(() => [
     '/rathyatra_banner2.png',
@@ -134,8 +139,6 @@ export default function TodayHighlights() {
     });
   }, [highlightsList, todayStr]);
 
-  const displayedHighlights = activeHighlights.length > 0 ? activeHighlights : mockHighlights;
-
   return (
     <SectionWrapper>
       <Text
@@ -147,48 +150,72 @@ export default function TodayHighlights() {
         {t('todayHighlights')}
       </Text>
 
-      <ScrollContainer>
-        {displayedHighlights.map((item, idx) => {
-          const fallbackImg = FALLBACK_BANNERS[idx % FALLBACK_BANNERS.length];
-          const imgUrl = item.image_url || fallbackImg;
+      {activeHighlights.length > 0 ? (
+        <ScrollContainer>
+          {activeHighlights.map((item, idx) => {
+            const fallbackImg = FALLBACK_BANNERS[idx % FALLBACK_BANNERS.length];
+            const imgUrl = item.image_url || fallbackImg;
 
-          return (
-            <HighlightCard key={item.id}>
-              <ImageContainer>
-                <CardImage 
-                  src={imgUrl} 
-                  alt={item.title} 
-                  onError={(e) => {
-                    e.currentTarget.onerror = null; // Prevent infinite loop if fallback fails
-                    e.currentTarget.src = fallbackImg;
-                  }}
-                />
-                {item.time && <TimePill>{item.time}</TimePill>}
-              </ImageContainer>
-              <TextBlock>
-                <Text
-                  variant="bodyPrimary"
-                  weight={600}
-                  color={colors.neutral[900]}
-                  style={{ fontSize: '14px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                >
-                  {item.title}
-                </Text>
-                {item.location && (
+            return (
+              <HighlightCard key={item.id}>
+                <ImageContainer>
+                  <CardImage 
+                    src={imgUrl} 
+                    alt={item.title} 
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = fallbackImg;
+                    }}
+                  />
+                  {item.time && <TimePill>{item.time}</TimePill>}
+                </ImageContainer>
+                <TextBlock>
                   <Text
-                    variant="caption"
-                    weight={500}
-                    color={colors.neutral[800]}
-                    style={{ fontSize: '11px', opacity: 0.6 }}
+                    variant="bodyPrimary"
+                    weight={600}
+                    color={colors.neutral[900]}
+                    style={{ fontSize: '14px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                   >
-                    {item.location}
+                    {item.title}
                   </Text>
-                )}
-              </TextBlock>
-            </HighlightCard>
-          );
-        })}
-      </ScrollContainer>
+                  {item.location && (
+                    <Text
+                      variant="caption"
+                      weight={500}
+                      color={colors.neutral[800]}
+                      style={{ fontSize: '11px', opacity: 0.6 }}
+                    >
+                      {item.location}
+                    </Text>
+                  )}
+                </TextBlock>
+              </HighlightCard>
+            );
+          })}
+        </ScrollContainer>
+      ) : (
+        <EmptyStateCard>
+          <IconCircle>
+            <Calendar size={20} />
+          </IconCircle>
+          <Text
+            variant="bodySecondary"
+            weight={600}
+            color={colors.neutral[900]}
+            style={{ fontSize: '14px', margin: 0 }}
+          >
+            {t('noUpcomingSubEvents')}
+          </Text>
+          <Text
+            variant="caption"
+            weight={500}
+            color={colors.neutral[700]}
+            style={{ fontSize: '11.5px', opacity: 0.8, margin: 0 }}
+          >
+            {t('checkBackLater')}
+          </Text>
+        </EmptyStateCard>
+      )}
     </SectionWrapper>
   );
 }

@@ -372,6 +372,83 @@ export default function EventMapPage() {
   // GPS-derived movement heading
   const [gpsHeading, setGpsHeading] = useState<number>(0);
   const [mapZoom, setMapZoom] = useState<number>(16);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(userGps);
+
+  // Helper to map category to color
+  const categoryColor = (catName: string): string => {
+    const c = (catName || '').toLowerCase();
+    if (c.includes('toilet') || c.includes('washroom') || c.includes('restroom')) return '#f59e0b';
+    if (c.includes('police') || c.includes('security')) return '#3b82f6';
+    if (c.includes('medical') || c.includes('hospital') || c.includes('health') || c.includes('first')) return '#ef4444';
+    if (c.includes('water') || c.includes('drink')) return '#06b6d4';
+    if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) return '#10b981';
+    if (c.includes('parking')) return '#6366f1';
+    if (c.includes('food') || c.includes('eat')) return '#f97316';
+    return '#a1a1aa';
+  };
+
+  // Helper to return upright SVG icons for speech bubbles (stroke matching category color)
+  const getBubbleIconSvg = (catName: string, color: string, size: number = 18): string => {
+    const c = (catName || '').toLowerCase();
+    if (c.includes('toilet') || c.includes('washroom')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22V10h-3V6a5 5 0 0 0-10 0v4H2v12"></path><path d="M6 10V6a3 3 0 0 1 6 0v4"></path></svg>`;
+    }
+    if (c.includes('police') || c.includes('security')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+    }
+    if (c.includes('medical') || c.includes('hospital') || c.includes('first')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>`;
+    }
+    if (c.includes('water') || c.includes('drink')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-13-7-13S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
+    }
+    if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path></svg>`;
+    }
+    if (c.includes('parking')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17V5h5a4 4 0 0 1 0 8H9"></path></svg>`;
+    }
+    if (c.includes('food') || c.includes('eat')) {
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7 6 13 6 13s6-6 6-13z"></path><path d="M12 2v6M12 11h.01"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>`;
+  };
+
+  const getDistanceString = (distMeters: number) => {
+    const d = Math.round(distMeters);
+    if (language === 'hi') return `${d} मीटर दूर`;
+    if (language === 'or') return `${d} ମିଟର ଦୂର`;
+    if (language === 'bn') return `${d} মিটার দূরে`;
+    return `${d}m away`;
+  };
+
+  // Helper for rotated icons in classic pins
+  const categoryIconSvg = (catName: string): string => {
+    const c = (catName || '').toLowerCase();
+    if (c.includes('toilet') || c.includes('washroom')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 22V10h-3V6a5 5 0 0 0-10 0v4H2v12"></path><path d="M6 10V6a3 3 0 0 1 6 0v4"></path></svg>`;
+    }
+    if (c.includes('police') || c.includes('security')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+    }
+    if (c.includes('medical') || c.includes('hospital') || c.includes('first')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 5v14M5 12h14"></path></svg>`;
+    }
+    if (c.includes('water') || c.includes('drink')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-13-7-13S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
+    }
+    if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path></svg>`;
+    }
+    if (c.includes('parking')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M9 17V5h5a4 4 0 0 1 0 8H9"></path></svg>`;
+    }
+    if (c.includes('food') || c.includes('eat')) {
+      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 8A6 6 0 0 0 6 8c0 7 6 13 6 13s6-6 6-13z"></path><path d="M12 2v6M12 11h.01"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><circle cx="12" cy="12" r="10"></circle></svg>`;
+  };
+
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
   const lastGpsRef = useRef<[number, number] | null>(null);
 
@@ -475,10 +552,44 @@ export default function EventMapPage() {
       }
     }
 
+    // Helper to check if a POI is within 30m of the path's sides
+    const isPoiWithinPathBuffer = (poi: any, pathName: string) => {
+      const pLat = Number(poi.latitude);
+      const pLng = Number(poi.longitude);
+      if (isNaN(pLat) || isNaN(pLng)) return false;
+
+      const pathEdges = routeEdges.filter(e => (e as any).path_name === pathName || (e as any).pathName === pathName);
+      if (pathEdges.length === 0) return false;
+
+      for (const edge of pathEdges) {
+        const startNodeId = edge.start_node_id || (edge as any).startNodeId;
+        const endNodeId = edge.end_node_id || (edge as any).endNodeId;
+        const startNode = routeNodes.find(n => n.id === startNodeId);
+        const endNode = routeNodes.find(n => n.id === endNodeId);
+        if (!startNode || !endNode) continue;
+
+        const dist = getDistanceToSegment(
+          pLat,
+          pLng,
+          Number(startNode.latitude),
+          Number(startNode.longitude),
+          Number(endNode.latitude),
+          Number(endNode.longitude)
+        );
+        if (dist <= 30) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     const filteredPoisList = userPathName
       ? poisList.filter((poi) => {
           const poiPath = poi.path_name || (poi as any).pathName;
-          return !poiPath || poiPath === userPathName;
+          if (!poiPath || poiPath === userPathName) {
+            return true;
+          }
+          return isPoiWithinPathBuffer(poi, userPathName);
         })
       : poisList;
 
@@ -787,17 +898,23 @@ export default function EventMapPage() {
 
     const map = L.map('standalone-leaflet-map-canvas', {
       zoomControl: false,
-      attributionControl: false
-    }).setView(userGps, 19);
+      attributionControl: false,
+      maxZoom: 22
+    }).setView(userGps, 22);
     mapRef.current = map;
 
     setMapZoom(map.getZoom());
+    setMapCenter([map.getCenter().lat, map.getCenter().lng]);
     map.on('zoomend', () => {
       setMapZoom(map.getZoom());
     });
+    map.on('moveend', () => {
+      setMapCenter([map.getCenter().lat, map.getCenter().lng]);
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
+      maxZoom: 22,
+      maxNativeZoom: 19
     }).addTo(map);
 
     // Bounding box for event
@@ -813,7 +930,7 @@ export default function EventMapPage() {
           fillOpacity: 0.05,
           dashArray: '5, 8'
         }).addTo(map);
-        map.setView(userGps, 19);
+        map.setView(userGps, 22);
       }
     }
 
@@ -874,85 +991,7 @@ export default function EventMapPage() {
       });
     }
 
-    // Draw POIs
-    const categoryColor = (catName: string): string => {
-      const c = (catName || '').toLowerCase();
-      if (c.includes('toilet') || c.includes('washroom') || c.includes('restroom')) return '#f59e0b';
-      if (c.includes('police') || c.includes('security')) return '#3b82f6';
-      if (c.includes('medical') || c.includes('hospital') || c.includes('health') || c.includes('first')) return '#ef4444';
-      if (c.includes('water') || c.includes('drink')) return '#06b6d4';
-      if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) return '#10b981';
-      if (c.includes('parking')) return '#6366f1';
-      if (c.includes('food') || c.includes('eat')) return '#f97316';
-      return '#a1a1aa';
-    };
-
-    const categoryIconSvg = (catName: string): string => {
-      const c = (catName || '').toLowerCase();
-      if (c.includes('toilet') || c.includes('washroom')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 22V10h-3V6a5 5 0 0 0-10 0v4H2v12"></path><path d="M6 10V6a3 3 0 0 1 6 0v4"></path></svg>`;
-      }
-      if (c.includes('police') || c.includes('security')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
-      }
-      if (c.includes('medical') || c.includes('hospital') || c.includes('first')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 5v14M5 12h14"></path></svg>`;
-      }
-      if (c.includes('water') || c.includes('drink')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-13-7-13S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
-      }
-      if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path></svg>`;
-      }
-      if (c.includes('parking')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M9 17V5h5a4 4 0 0 1 0 8H9"></path></svg>`;
-      }
-      if (c.includes('food') || c.includes('eat')) {
-        return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M18 8A6 6 0 0 0 6 8c0 7 6 13 6 13s6-6 6-13z"></path><path d="M12 2v6M12 11h.01"></path></svg>`;
-      }
-      return `<svg viewBox="0 0 24 24" width="12" height="12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><circle cx="12" cy="12" r="10"></circle></svg>`;
-    };
-
-    poisList.forEach((poi) => {
-      const color = categoryColor(poi.category_name);
-      const lat = Number(poi.latitude);
-      const lng = Number(poi.longitude);
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      const poiIcon = L.divIcon({
-        html: `
-          <div style="
-            background:${color};
-            width:28px;height:28px;border-radius:50% 50% 50% 0;
-            transform:rotate(-45deg);
-            border:2px solid rgba(0,0,0,0.6);
-            box-shadow:0 2px 6px rgba(0,0,0,0.5);
-            display:flex;align-items:center;justify-content:center;
-          ">
-            ${categoryIconSvg(poi.category_name)}
-          </div>
-        `,
-        className: '',
-        iconSize: [28, 28],
-        iconAnchor: [8, 28],
-        popupAnchor: [6, -28]
-      });
-
-      const marker = L.marker([lat, lng], { icon: poiIcon })
-        .addTo(poisLayerRef.current);
-
-      marker.on('click', () => {
-        setSelectedPoi(poi);
-      });
-
-      marker.bindPopup(`
-        <div style="font-family:sans-serif;min-width:140px">
-          <strong style="color:#333;font-size:12px">${poi.name_en || 'POI'}</strong>
-          <div style="font-size:10px;color:${color};text-transform:uppercase;margin-top:2px">${poi.category_name || ''}</div>
-          ${poi.description ? `<div style="font-size:10px;color:#666;margin-top:4px">${poi.description}</div>` : ''}
-        </div>
-      `);
-    });
+    // POI drawing logic has been moved to a dedicated reactive useEffect
 
     // Draw navTarget alert target
     if (navTarget && !poisList.some(p => p.id === navTarget.id)) {
@@ -1091,6 +1130,140 @@ export default function EventMapPage() {
       }
     };
   }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent, zonesList, showZones]);
+
+  // Dedicated effect to render and update POI markers on map
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current || !poisLayerRef.current) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
+
+    const poisLayer = poisLayerRef.current;
+    poisLayer.clearLayers();
+
+    if (!poisList || poisList.length === 0) return;
+
+    // Helpers are now declared at the component scope for reuse across rendering and JSX.
+
+    poisList.forEach((poi) => {
+      const color = categoryColor(poi.category_name);
+      const lat = Number(poi.latitude);
+      const lng = Number(poi.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const dist = userGps ? getHaversineDistance(userGps[0], userGps[1], lat, lng) : 0;
+      const isPremiumBubble = mapZoom >= 20;
+
+      const poiIcon = isPremiumBubble
+        ? L.divIcon({
+            html: `
+              <div style="
+                background: #ffffff;
+                border-radius: 16px;
+                padding: 8px 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                border: 1px solid rgba(0,0,0,0.05);
+                position: relative;
+                width: 170px;
+                box-sizing: border-box;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              ">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 50%;
+                  background: ${color}15;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-shrink: 0;
+                ">
+                  ${getBubbleIconSvg(poi.category_name, color, 16)}
+                </div>
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  overflow: hidden;
+                  text-align: left;
+                ">
+                  <div style="
+                    font-weight: 700;
+                    color: #1f2937;
+                    font-size: 12px;
+                    line-height: 1.2;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  ">
+                    ${tPoiName(poi) || poi.name_en || 'POI'}
+                  </div>
+                  <div style="
+                    font-weight: 500;
+                    color: #6b7280;
+                    font-size: 9px;
+                    margin-top: 1px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  ">
+                    ${(poi.description && poi.description.length < 20) ? poi.description : getDistanceString(dist)}
+                  </div>
+                </div>
+                <div style="
+                  position: absolute;
+                  bottom: -5px;
+                  left: 50%;
+                  transform: translateX(-50%) rotate(45deg);
+                  width: 10px;
+                  height: 10px;
+                  background: #ffffff;
+                  border-right: 1px solid rgba(0,0,0,0.05);
+                  border-bottom: 1px solid rgba(0,0,0,0.05);
+                "></div>
+              </div>
+            `,
+            className: '',
+            iconSize: [170, 46],
+            iconAnchor: [85, 51],
+            popupAnchor: [0, -46]
+          })
+        : L.divIcon({
+            html: `
+              <div style="
+                background:${color};
+                width:28px;height:28px;border-radius:50% 50% 50% 0;
+                transform:rotate(-45deg);
+                border:2px solid rgba(0,0,0,0.6);
+                box-shadow:0 2px 6px rgba(0,0,0,0.5);
+                display:flex;align-items:center;justify-content:center;
+              ">
+                ${categoryIconSvg(poi.category_name)}
+              </div>
+            `,
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [8, 28],
+            popupAnchor: [6, -28]
+          });
+
+      const marker = L.marker([lat, lng], { icon: poiIcon })
+        .addTo(poisLayer);
+
+      marker.on('click', () => {
+        setSelectedPoi(poi);
+      });
+
+      marker.bindPopup(`
+        <div style="font-family:sans-serif;min-width:140px">
+          <strong style="color:#333;font-size:12px">${tPoiName(poi) || poi.name_en || 'POI'}</strong>
+          <div style="font-size:10px;color:${color};text-transform:uppercase;margin-top:2px">${poi.category_name || ''}</div>
+          ${poi.description ? `<div style="font-size:10px;color:#666;margin-top:4px">${poi.description}</div>` : ''}
+        </div>
+      `);
+    });
+  }, [leafletLoaded, poisList, mapZoom, userGps, navTarget]);
 
   // ACTIVE ROUTE HIGHLIGHT EFFECT
   useEffect(() => {
@@ -1315,12 +1488,63 @@ export default function EventMapPage() {
   const explorePathStatus = checkIsOffPath();
 
   const getFloatingPois = () => {
-    if (mapZoom < 18 || !explorePathStatus || explorePathStatus.isOff) return [];
-    if (!explorePathStatus.pathName || explorePathStatus.pathName === 'Path') return [];
+    if (!mapRef.current || !poisList || poisList.length === 0) return [];
+    if (mapZoom < 18 || !userGps) return [];
+
+    // 1. Find if the user is physically on any path (closest route edge in the entire network within 30m)
+    let currentPhysicalPathName: string | null = null;
+    let minEdgeDist = Infinity;
+    let nearestEdge: any = null;
+
+    if (routeEdges && routeEdges.length > 0 && routeNodes && routeNodes.length > 0) {
+      routeEdges.forEach((edge) => {
+        const startNodeId = edge.start_node_id || (edge as any).startNodeId;
+        const endNodeId = edge.end_node_id || (edge as any).endNodeId;
+        const startNode = routeNodes.find((n) => n.id === startNodeId);
+        const endNode = routeNodes.find((n) => n.id === endNodeId);
+        if (!startNode || !endNode) return;
+
+        const dist = getDistanceToSegment(
+          userGps[0],
+          userGps[1],
+          Number(startNode.latitude),
+          Number(startNode.longitude),
+          Number(endNode.latitude),
+          Number(endNode.longitude)
+        );
+
+        if (dist < minEdgeDist) {
+          minEdgeDist = dist;
+          nearestEdge = edge;
+        }
+      });
+
+      const edgePathName = nearestEdge ? (nearestEdge.path_name || (nearestEdge as any).pathName) : null;
+      // Enforce a 30m path-offset threshold to verify the user is physically on/near the path
+      if (nearestEdge && minEdgeDist <= 30 && edgePathName) {
+        currentPhysicalPathName = edgePathName;
+      }
+    }
+
+    // Hide directional HUD if user is zoomed out or not physically close to any path
+    if (!currentPhysicalPathName || currentPhysicalPathName === 'Path') return [];
+
+    const map = mapRef.current;
     
+    // Safety check in case bounds are not loaded yet
+    let bounds: any = null;
+    try {
+      bounds = map.getBounds();
+    } catch (e) {
+      return [];
+    }
+    if (!bounds) return [];
+
+    const center = map.getCenter();
+
     const currentPathNodeIds = new Set<string>();
     routeEdges.forEach(e => {
-       if ((e as any).path_name === explorePathStatus.pathName) {
+       if ((e as any).path_name === currentPhysicalPathName || (e as any).pathName === currentPhysicalPathName) {
          currentPathNodeIds.add(e.start_node_id || (e as any).startNodeId);
          currentPathNodeIds.add(e.end_node_id || (e as any).endNodeId);
        }
@@ -1332,18 +1556,73 @@ export default function EventMapPage() {
          poiIdsOnPath.add(n.poi_id);
        }
     });
-    
-    const floatingPoisList = poisList.filter(p => poiIdsOnPath.has(p.id));
-    
+
+    // Helper to check if a POI is within 30m of the path's sides
+    const isPoiWithinPathBuffer = (poi: any, pathName: string) => {
+      const pLat = Number(poi.latitude);
+      const pLng = Number(poi.longitude);
+      if (isNaN(pLat) || isNaN(pLng)) return false;
+
+      const pathEdges = routeEdges.filter(e => (e as any).path_name === pathName || (e as any).pathName === pathName);
+      if (pathEdges.length === 0) return false;
+
+      for (const edge of pathEdges) {
+        const startNodeId = edge.start_node_id || (edge as any).startNodeId;
+        const endNodeId = edge.end_node_id || (edge as any).endNodeId;
+        const startNode = routeNodes.find(n => n.id === startNodeId);
+        const endNode = routeNodes.find(n => n.id === endNodeId);
+        if (!startNode || !endNode) continue;
+
+        const dist = getDistanceToSegment(
+          pLat,
+          pLng,
+          Number(startNode.latitude),
+          Number(startNode.longitude),
+          Number(endNode.latitude),
+          Number(endNode.longitude)
+        );
+        if (dist <= 30) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Filter POIs:
+    // 1. Must be off-screen
+    // 2. Must be on the path OR within the 30m lateral buffer of the path
+    const floatingPoisList = poisList.filter(p => {
+      const lat = Number(p.latitude);
+      const lng = Number(p.longitude);
+      if (isNaN(lat) || isNaN(lng)) return false;
+
+      // Off-screen check
+      if (bounds.contains([lat, lng])) return false;
+
+      // Path or buffer check
+      return poiIdsOnPath.has(p.id) || isPoiWithinPathBuffer(p, currentPhysicalPathName!);
+    });
+
+    // Map each POI to its relative direction and distance
     return floatingPoisList.map(poi => {
-      const b = getCompassBearing(userGps[0], userGps[1], Number(poi.latitude), Number(poi.longitude));
-      const rel = (b - deviceHeading + 360) % 360;
+      const lat = Number(poi.latitude);
+      const lng = Number(poi.longitude);
+      const dist = getHaversineDistance(center.lat, center.lng, lat, lng);
+      
+      // Calculate absolute bearing from map center to POI
+      const b = getCompassBearing(center.lat, center.lng, lat, lng);
+      
       let dir = '';
-      if (rel > 315 || rel <= 45) dir = 'front';
-      else if (rel > 45 && rel <= 135) dir = 'right';
-      else if (rel > 135 && rel <= 225) dir = 'back';
+      if (b >= 315 || b < 45) dir = 'front';
+      else if (b >= 45 && b < 135) dir = 'right';
+      else if (b >= 135 && b < 225) dir = 'back';
       else dir = 'left';
-      return { ...poi, relDir: dir, dist: Math.round(getHaversineDistance(userGps[0], userGps[1], Number(poi.latitude), Number(poi.longitude))) };
+
+      return {
+        ...poi,
+        relDir: dir,
+        dist: Math.round(dist)
+      };
     });
   };
   
@@ -1487,14 +1766,21 @@ export default function EventMapPage() {
                 onClick={() => {
                   setSelectedPoi(p);
                   if (mapRef.current) {
-                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 22);
                   }
                 }}
               >
-                <span className="arrow">▲</span>
-                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="name">{tPoiName(p) || p.category_name}</span>
-                <span className="dist">({p.dist}m)</span>
+                <div className="icon-circle" style={{
+                  background: `${categoryColor(p.category_name)}18`,
+                  color: categoryColor(p.category_name)
+                }} dangerouslySetInnerHTML={{ __html: getBubbleIconSvg(p.category_name, categoryColor(p.category_name), 16) }} />
+                
+                <div className="text-container">
+                  <span className="poi-title">{tPoiName(p) || p.name_en || 'POI'}</span>
+                  <span className="poi-subtitle">{(p.description && p.description.length < 20) ? p.description : getDistanceString(p.dist)}</span>
+                </div>
+
+                <span className="direction-arrow">▲</span>
               </HUDIndicatorBadge>
             ))}
           </HUDSection>
@@ -1508,14 +1794,21 @@ export default function EventMapPage() {
                 onClick={() => {
                   setSelectedPoi(p);
                   if (mapRef.current) {
-                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 22);
                   }
                 }}
               >
-                <span className="arrow">▼</span>
-                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="name">{tPoiName(p) || p.category_name}</span>
-                <span className="dist">({p.dist}m)</span>
+                <div className="icon-circle" style={{
+                  background: `${categoryColor(p.category_name)}18`,
+                  color: categoryColor(p.category_name)
+                }} dangerouslySetInnerHTML={{ __html: getBubbleIconSvg(p.category_name, categoryColor(p.category_name), 16) }} />
+                
+                <div className="text-container">
+                  <span className="poi-title">{tPoiName(p) || p.name_en || 'POI'}</span>
+                  <span className="poi-subtitle">{(p.description && p.description.length < 20) ? p.description : getDistanceString(p.dist)}</span>
+                </div>
+
+                <span className="direction-arrow">▼</span>
               </HUDIndicatorBadge>
             ))}
           </HUDSection>
@@ -1529,14 +1822,21 @@ export default function EventMapPage() {
                 onClick={() => {
                   setSelectedPoi(p);
                   if (mapRef.current) {
-                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 22);
                   }
                 }}
               >
-                <span className="arrow">◀</span>
-                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="name">{tPoiName(p) || p.category_name}</span>
-                <span className="dist">({p.dist}m)</span>
+                <div className="icon-circle" style={{
+                  background: `${categoryColor(p.category_name)}18`,
+                  color: categoryColor(p.category_name)
+                }} dangerouslySetInnerHTML={{ __html: getBubbleIconSvg(p.category_name, categoryColor(p.category_name), 16) }} />
+                
+                <div className="text-container">
+                  <span className="poi-title">{tPoiName(p) || p.name_en || 'POI'}</span>
+                  <span className="poi-subtitle">{(p.description && p.description.length < 20) ? p.description : getDistanceString(p.dist)}</span>
+                </div>
+
+                <span className="direction-arrow">◀</span>
               </HUDIndicatorBadge>
             ))}
           </HUDSection>
@@ -1550,14 +1850,21 @@ export default function EventMapPage() {
                 onClick={() => {
                   setSelectedPoi(p);
                   if (mapRef.current) {
-                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 19);
+                    mapRef.current.setView([Number(p.latitude), Number(p.longitude)], 22);
                   }
                 }}
               >
-                <span className="name">{tPoiName(p) || p.category_name}</span>
-                <span className="dist">({p.dist}m)</span>
-                <span className="icon">{getCategoryEmoji(p.category_name)}</span>
-                <span className="arrow">▶</span>
+                <div className="icon-circle" style={{
+                  background: `${categoryColor(p.category_name)}18`,
+                  color: categoryColor(p.category_name)
+                }} dangerouslySetInnerHTML={{ __html: getBubbleIconSvg(p.category_name, categoryColor(p.category_name), 16) }} />
+                
+                <div className="text-container">
+                  <span className="poi-title">{tPoiName(p) || p.name_en || 'POI'}</span>
+                  <span className="poi-subtitle">{(p.description && p.description.length < 20) ? p.description : getDistanceString(p.dist)}</span>
+                </div>
+
+                <span className="direction-arrow">▶</span>
               </HUDIndicatorBadge>
             ))}
           </HUDSection>
@@ -1582,9 +1889,9 @@ export default function EventMapPage() {
               const pos = await getRealGps();
               if (pos) {
                 setUserGps(pos);
-                if (mapRef.current) mapRef.current.setView(pos, 17);
+                 if (mapRef.current) mapRef.current.setView(pos, 22);
               } else if (mapRef.current) {
-                mapRef.current.setView(userGps, 17);
+                mapRef.current.setView(userGps, 22);
               }
             }}
             title="Recenter on my location"

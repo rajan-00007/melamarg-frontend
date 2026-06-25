@@ -1011,66 +1011,76 @@ export const HUDSection = styled.div<{ $position: 'front' | 'back' | 'left' | 'r
 `;
 
 export const HUDIndicatorBadge = styled.div<{ $direction: 'front' | 'back' | 'left' | 'right' }>`
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 8px 14px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #ffffff;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 10px 14px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   pointer-events: auto;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-left: 4px solid ${props => 
-    props.$direction === 'front' ? '#3b82f6' : 
-    props.$direction === 'right' ? '#10b981' : 
-    props.$direction === 'back' ? '#ef4444' : 
-    '#8b5cf6'
-  };
+  width: 170px;
+  box-sizing: border-box;
 
   &:hover {
-    transform: scale(1.05);
-    background: rgba(15, 23, 42, 0.95);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    transform: scale(1.03);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   }
 
   &:active {
     transform: scale(0.98);
   }
 
-  .arrow {
-    font-size: 13px;
+  .icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    color: ${props => 
-      props.$direction === 'front' ? '#3b82f6' : 
-      props.$direction === 'right' ? '#10b981' : 
-      props.$direction === 'back' ? '#ef4444' : 
-      '#8b5cf6'
-    };
+    justify-content: center;
+    flex-shrink: 0;
   }
 
-  .icon {
+  .text-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: left;
+    flex-grow: 1;
+  }
+
+  .poi-title {
     font-size: 12px;
-  }
-
-  .name {
-    max-width: 110px;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .dist {
-    opacity: 0.6;
+  .poi-subtitle {
     font-size: 9px;
     font-weight: 500;
+    color: #6b7280;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .direction-arrow {
+    font-size: 11px;
+    font-weight: 800;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: auto;
   }
 `;
 

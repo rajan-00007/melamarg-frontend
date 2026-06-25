@@ -416,8 +416,9 @@ export default function CompassNavigationPage() {
 
     const map = L.map('navigation-split-map-canvas', {
       zoomControl: false,
-      attributionControl: false
-    }).setView(userGps, 17);
+      attributionControl: false,
+      maxZoom: 22
+    }).setView(userGps, 22);
     mapRef.current = map;
 
     // Listen to zoom level changes
@@ -426,7 +427,8 @@ export default function CompassNavigationPage() {
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
+      maxZoom: 22,
+      maxNativeZoom: 19
     }).addTo(map);
 
     // Event boundary overlay
@@ -672,6 +674,41 @@ export default function CompassNavigationPage() {
 
     const path = stats?.pathNodes || [];
 
+    // Helper to return upright SVG icons for speech bubbles (stroke matching category color)
+    const getBubbleIconSvg = (catName: string, color: string, size: number = 18): string => {
+      const c = (catName || '').toLowerCase();
+      if (c.includes('toilet') || c.includes('washroom')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22V10h-3V6a5 5 0 0 0-10 0v4H2v12"></path><path d="M6 10V6a3 3 0 0 1 6 0v4"></path></svg>`;
+      }
+      if (c.includes('police') || c.includes('security')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+      }
+      if (c.includes('medical') || c.includes('hospital') || c.includes('first')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>`;
+      }
+      if (c.includes('water') || c.includes('drink')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-13-7-13S5 10.7 5 15a7 7 0 0 0 7 7z"></path></svg>`;
+      }
+      if (c.includes('exit') || c.includes('entrance') || c.includes('gate')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path></svg>`;
+      }
+      if (c.includes('parking')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17V5h5a4 4 0 0 1 0 8H9"></path></svg>`;
+      }
+      if (c.includes('food') || c.includes('eat')) {
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7 6 13 6 13s6-6 6-13z"></path><path d="M12 2v6M12 11h.01"></path></svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>`;
+    };
+
+    const getDistanceString = (distMeters: number) => {
+      const d = Math.round(distMeters);
+      if (language === 'hi') return `${d} मीटर दूर`;
+      if (language === 'or') return `${d} ମିଟର ଦୂର`;
+      if (language === 'bn') return `${d} মিটার দূরে`;
+      return `${d}m away`;
+    };
+
     poisList.forEach((poi: any) => {
       // Skip the active navigation target POI
       if (navTarget && poi.id === navTarget.id) return;
@@ -686,39 +723,115 @@ export default function CompassNavigationPage() {
 
       if (shouldShow) {
         const color = categoryColor(poi.category_name);
-        const iconSize = onPath ? 22 : 18;
-        const iconAnchor = onPath ? 11 : 9;
-        
-        const poiIcon = L.divIcon({
-          html: `
-            <div style="
-              background: ${color};
-              width: ${iconSize}px; height: ${iconSize}px; border-radius: 50%;
-              border: 2px solid white;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              display: flex; align-items: center; justify-content: center;
-              opacity: ${onPath ? 1 : 0.75};
-              transition: all 0.2s;
-            ">
-              ${categoryIconSvg(poi.category_name, onPath ? 10 : 8)}
-            </div>
-          `,
-          className: '',
-          iconSize: [iconSize, iconSize],
-          iconAnchor: [iconAnchor, iconAnchor]
-        });
+        const dist = userGps ? getHaversineDistance(userGps[0], userGps[1], lat, lng) : 0;
+        const isPremiumBubble = mapZoom >= 20;
+
+        const poiIcon = isPremiumBubble
+          ? L.divIcon({
+              html: `
+                <div style="
+                  background: #ffffff;
+                  border-radius: 16px;
+                  padding: 8px 12px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                  border: 1px solid rgba(0,0,0,0.05);
+                  position: relative;
+                  width: 170px;
+                  box-sizing: border-box;
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                ">
+                  <div style="
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    background: ${color}15;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  ">
+                    ${getBubbleIconSvg(poi.category_name, color, 16)}
+                  </div>
+                  <div style="
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    text-align: left;
+                  ">
+                    <div style="
+                      font-weight: 700;
+                      color: #1f2937;
+                      font-size: 12px;
+                      line-height: 1.2;
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                    ">
+                      ${tPoiName(poi) || poi.name_en || 'POI'}
+                    </div>
+                    <div style="
+                      font-weight: 500;
+                      color: #6b7280;
+                      font-size: 9px;
+                      margin-top: 1px;
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                    ">
+                      ${(poi.description && poi.description.length < 20) ? poi.description : getDistanceString(dist)}
+                    </div>
+                  </div>
+                  <div style="
+                    position: absolute;
+                    bottom: -5px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(45deg);
+                    width: 10px;
+                    height: 10px;
+                    background: #ffffff;
+                    border-right: 1px solid rgba(0,0,0,0.05);
+                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                  "></div>
+                </div>
+              `,
+              className: '',
+              iconSize: [170, 46],
+              iconAnchor: [85, 51],
+              popupAnchor: [0, -46]
+            })
+          : L.divIcon({
+              html: `
+                <div style="
+                  background: ${color};
+                  width: ${onPath ? 22 : 18}px; height: ${onPath ? 22 : 18}px; border-radius: 50%;
+                  border: 2px solid white;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                  display: flex; align-items: center; justify-content: center;
+                  opacity: ${onPath ? 1 : 0.75};
+                  transition: all 0.2s;
+                ">
+                  ${categoryIconSvg(poi.category_name, onPath ? 10 : 8)}
+                </div>
+              `,
+              className: '',
+              iconSize: [onPath ? 22 : 18, onPath ? 22 : 18],
+              iconAnchor: [onPath ? 11 : 9, onPath ? 11 : 9]
+            });
 
         L.marker([lat, lng], { icon: poiIcon })
           .addTo(poiMarkersLayer)
           .bindPopup(`
             <div style="font-family: sans-serif; font-size: 12px; color: #333; padding: 2px;">
-              <strong>${poi.name_en}</strong>
-              ${onPath ? '<div style="color: #16a34a; font-weight: bold; margin-top: 4px; font-size: 10px;">On your path</div>' : ''}
+              <strong>${tPoiName(poi) || poi.name_en}</strong>
+              ${onPath ? `<div style="color: #16a34a; font-weight: bold; margin-top: 4px; font-size: 10px;">${language === 'hi' ? 'आपके मार्ग पर' : language === 'or' ? 'ଆପଣଙ୍କ ମାର୍ଗରେ' : language === 'bn' ? 'আপনার পথে' : 'On your path'}</div>` : ''}
             </div>
           `);
       }
     });
-  }, [poisList, stats?.pathNodes, mapZoom, navTarget]);
+  }, [poisList, stats?.pathNodes, mapZoom, navTarget, userGps]);
 
   // Recenter map on active updates
   useEffect(() => {
@@ -931,9 +1044,9 @@ export default function CompassNavigationPage() {
                 const pos = await getRealGps();
                 if (pos) {
                   setUserGps(pos);
-                  if (mapRef.current) mapRef.current.setView(pos, 17);
+                  if (mapRef.current) mapRef.current.setView(pos, 22);
                 } else if (mapRef.current) {
-                  mapRef.current.setView(userGps, 17);
+                  mapRef.current.setView(userGps, 22);
                 }
               }}
               title="Recenter on my location"

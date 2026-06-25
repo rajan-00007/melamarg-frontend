@@ -244,6 +244,8 @@ export const translations = {
     currentAccessRules: "Current Access Rules",
     surroundingByYou: "Surrounding By You",
     todayHighlights: "Today's Highlights",
+    noUpcomingSubEvents: "No upcoming sub-events scheduled.",
+    checkBackLater: "Check back later for updates.",
   },
   hi: {
     appName: "रथ नेविगेटर",
@@ -489,6 +491,8 @@ export const translations = {
     currentAccessRules: "वर्तमान पहुंच नियम",
     surroundingByYou: "आपके आसपास",
     todayHighlights: "आज के मुख्य आकर्षण",
+    noUpcomingSubEvents: "कोई आगामी उप-कार्यक्रम निर्धारित नहीं है।",
+    checkBackLater: "अपडेट के लिए बाद में दोबारा जांचें।",
   },
   or: {
     appName: "ରଥ ନେଭିଗେଟର",
@@ -734,6 +738,8 @@ export const translations = {
     currentAccessRules: "ବର୍ତ୍ତମାନର ପ୍ରବେଶ ନିୟମ",
     surroundingByYou: "ଆପଣଙ୍କ ଚାରିପାଖରେ",
     todayHighlights: "ଆଜିର ମୁଖ୍ୟ ଆକର୍ଷଣ",
+    noUpcomingSubEvents: "କୌଣସି ଆଗାମୀ ଉପ-କାର୍ଯ୍ୟକ୍ରମ ନିର୍ଦ୍ଧାରିତ ହୋଇନାହିଁ।",
+    checkBackLater: "ଅପଡେଟ୍ ପାଇଁ ପରେ ଯାଞ୍ଚ କରନ୍ତୁ।",
   },
   bn: {
     appName: "রথ নেভিগেটর",
@@ -969,6 +975,8 @@ export const translations = {
     currentAccessRules: "বর্তমান প্রবেশ নিয়ম",
     surroundingByYou: "আপনার চারপাশে",
     todayHighlights: "আজকের হাইলাইটস",
+    noUpcomingSubEvents: "কোনো আসন্ন উপ-অনুষ্ঠান নির্ধারিত নেই।",
+    checkBackLater: "আপডেটের জন্য পরে আবার চেক করুন।",
   }
 } as const;
 
