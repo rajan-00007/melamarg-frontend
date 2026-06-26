@@ -23,7 +23,7 @@ import {
 export default function GpsWaitingOverlay() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   
   const {
     gpsStatus,
@@ -87,7 +87,13 @@ export default function GpsWaitingOverlay() {
         </CenterBox>
         <OverlayTitle>{t('waitingForGps')}</OverlayTitle>
         <OverlayText>
-          {t('gpsRequiredDesc')}
+          {language === 'hi' 
+            ? 'कमजोर जीपीएस सिग्नल। आप आगे बढ़ सकते हैं या प्रतीक्षा कर सकते हैं।' 
+            : language === 'or' 
+            ? 'ଦୁର୍ବଳ ଜିପିଏସ୍ ସିଗନାଲ୍ | ଆପଣ ଆଗକୁ ବଢିପାରିବେ କିମ୍ବା ଅପେକ୍ଷା କରିପାରିବେ |' 
+            : language === 'bn' 
+            ? 'দুর্বল জিপিএস সংকেত। আপনি এগিয়ে যেতে পারেন বা অপেক্ষা করতে পারেন।' 
+            : 'Weak GPS signal detected. You can proceed anyway or wait for a stronger signal.'}
         </OverlayText>
         <OverlayPillWrapper>
           {renderGpsStatusPill()}
@@ -99,7 +105,13 @@ export default function GpsWaitingOverlay() {
               timestamp: Date.now()
             })}
           >
-            {t('forceMockGps')}
+            {language === 'hi' 
+              ? 'कमजोर जीपीएस के साथ जाएं' 
+              : language === 'or' 
+              ? 'ଦୁର୍ବଳ ଜିପିଏସ୍ ସହିତ ଯାଆନ୍ତୁ' 
+              : language === 'bn' 
+              ? 'দুর্বল জিপিএস এর সাথে যান' 
+              : 'Go with weak GPS signal'}
           </BypassButton>
           <StopButton onClick={handleStopNavigation}>
             {t('stopNavigation')}

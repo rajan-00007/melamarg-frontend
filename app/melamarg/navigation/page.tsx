@@ -1031,7 +1031,7 @@ export default function CompassNavigationPage() {
           voiceOn={voiceOn}
           setVoiceOn={setVoiceOn}
         >
-          <FloatingControlsRow style={{ marginBottom: '10px' }}>
+          <FloatingControlsRow style={{ marginBottom: '10px', marginRight: '1.25rem' }}>
             <FloatingSimulateButton
               onClick={handleSimulateWalking}
               disabled={isWalking || arrivalNotify}

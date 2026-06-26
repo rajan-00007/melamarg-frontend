@@ -412,7 +412,7 @@ export const ContentArea = styled.div`
 `;
 
 // Bottom Navigation Bar
-export const BottomNav = styled.nav`
+export const BottomNav = styled.nav<{ $visible?: boolean; $isMapPage?: boolean }>`
   background-color: #ffffff;
   border-top: 1px solid #e5e7eb;
   padding: 0.85rem 0.5rem 0.65rem 0.5rem;
@@ -422,6 +422,21 @@ export const BottomNav = styled.nav`
   z-index: 30;
   user-select: none;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
+
+  /* Conditionally absolute position on the map page to allow full screen map overlay */
+  ${props => props.$isMapPage && css`
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+  `}
+
+  /* Smooth transition for auto-hiding */
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+  transform: ${props => props.$visible === false ? 'translateY(100%)' : 'translateY(0)'};
+  opacity: ${props => props.$visible === false ? 0 : 1};
+  pointer-events: ${props => props.$visible === false ? 'none' : 'auto'};
 `;
 
 interface NavButtonProps {

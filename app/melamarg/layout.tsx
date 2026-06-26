@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { UserTestProvider, useUserTest } from '@/context/UserTestContext';
 import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
@@ -124,6 +124,28 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   const [showDevBanner, setShowDevBanner] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Auto-hide bottom navigation bar on Map Page, synchronized with Map page state
+  const [isBottomNavVisible, setIsBottomNavVisible] = useState<boolean>(true);
+
+  useEffect(() => {
+    // If not on map page, ensure bottom nav is always visible
+    if (!pathname.endsWith('/map')) {
+      setIsBottomNavVisible(true);
+      return;
+    }
+
+    const handleSync = (e: Event) => {
+      const customEvent = e as CustomEvent<{ visible: boolean }>;
+      setIsBottomNavVisible(customEvent.detail.visible);
+    };
+
+    window.addEventListener('map-controls-visible', handleSync);
+
+    return () => {
+      window.removeEventListener('map-controls-visible', handleSync);
+    };
+  }, [pathname]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -192,10 +214,10 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
   else if (pathname.endsWith('/all-pois')) currentTab = 'all-pois';
   else if (pathname.endsWith('/advisories')) currentTab = 'advisories';
 
-  const isSetupRoute = pathname === '/melamarg' || pathname === '/melamarg/';
+  const isSetupRoute = pathname.endsWith('/melamarg') || pathname.endsWith('/melamarg/');
   const isNavigatingRoute = pathname.endsWith('/navigation');
-  const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
-  const showNav = selectedEvent && !isSetupRoute && !isNavigatingRoute && !isLanguageRoute;
+  const isLanguageRoute = pathname.includes('/language');
+  const showNav = selectedEvent && !isSetupRoute && !isLanguageRoute;
 
   const renderGpsStatusPill = () => {
     if (gpsStatus === 'locked') {
@@ -479,7 +501,7 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* BOTTOM TAB NAVIGATION BAR */}
       {showNav && (
-        <BottomNav>
+        <BottomNav $visible={isBottomNavVisible} $isMapPage={currentTab === 'map' || pathname.endsWith('/navigation')}>
           <NavButton
             $isActive={currentTab === 'home'}
             $activeColor="#1d4ed8"

@@ -985,7 +985,7 @@ export const HUDSection = styled.div<{ $position: 'front' | 'back' | 'left' | 'r
   `}
   
   ${props => props.$position === 'back' && `
-    bottom: 270px;
+    bottom: calc(30vh + 5.25rem);
     left: 50%;
     transform: translateX(-50%);
     justify-content: center;
@@ -1375,6 +1375,421 @@ export const FloatingToggleZonesButton = styled.button<{ $active: boolean }>`
     transform: scale(0.95);
   }
 `;
+
+// ==========================================
+// New Redesign Styled Components
+// ==========================================
+
+const rotate = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+export const SplitLayoutContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f8fafc;
+`;
+
+export const MapAreaContainer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+`;
+
+export const BottomContentContainer = styled.div<{ $bottomNavVisible: boolean; $isPoiSelected: boolean }>`
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 20;
+  overflow: hidden; /* Prevent any scrollbar */
+
+  bottom: 0px;
+
+  /* Smooth transition for height and padding-bottom, keeping the container stationary and aligned */
+  transition: padding-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: ${props => props.$isPoiSelected ? 'calc(14vh + 4.25rem)' : 'calc(30vh + 4.25rem)'};
+  padding: 1.25rem 1.25rem ${props => props.$bottomNavVisible ? '5.5rem' : '1.25rem'} 1.25rem;
+`;
+
+export const BottomHeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  flex-shrink: 0;
+`;
+
+export const BottomTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+`;
+
+export const BottomButtonsRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+export const BottomActionButton = styled.button<{ $variant?: 'warning' | 'primary' | 'secondary' }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  white-space: nowrap;
+  width: 100%;
+
+  ${props => props.$variant === 'warning' && css`
+    background-color: #fff7ed;
+    color: #c2410c;
+    border-color: #ffedd5;
+    &:active { background-color: #ffedd5; }
+  `}
+
+  ${props => props.$variant === 'primary' && css`
+    background-color: #e65100;
+    color: #ffffff;
+    border-color: #e65100;
+    &:active { opacity: 0.9; }
+  `}
+
+  ${props => (!props.$variant || props.$variant === 'secondary') && css`
+    background-color: #f1f5f9;
+    color: #475569;
+    &:active { background-color: #e2e8f0; }
+  `}
+`;
+
+export const PoisScrollList = styled.div`
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-right: 2px;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+`;
+
+export const PoiItemRow = styled.button`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+  &:hover {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+  }
+
+  &:active {
+    background: #f1f5f9;
+  }
+`;
+
+export const PoiLeftSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+`;
+
+export const PoiIconBox = styled.div<{ $bgColor?: string; $color?: string }>`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: ${props => props.$bgColor || '#e0f2fe'};
+  color: ${props => props.$color || '#0284c7'};
+`;
+
+export const PoiTextCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+export const PoiName = styled.span`
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+`;
+
+export const PoiMeta = styled.span`
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+`;
+
+export const PoiGoButton = styled.button`
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #e65100;
+  background: #ffffff;
+  color: #e65100;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+  &:hover {
+    background: #e65100;
+    color: #ffffff;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+export const CategoryScrollWrapper = styled.div`
+  position: absolute;
+  top: 3.25rem;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  pointer-events: none;
+`;
+
+export const CategoryScrollContainer = styled.div`
+  flex-grow: 1;
+  display: flex;
+  overflow-x: auto;
+  gap: 0.5rem;
+  scrollbar-width: none;
+  pointer-events: auto;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+export const CategoryPill = styled.button<{ $active: boolean }>`
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  ${props => props.$active ? css`
+    background-color: #e65100;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(230, 81, 0, 0.25);
+  ` : css`
+    background-color: #ffffff;
+    color: #334155;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  `}
+
+  &:active {
+    transform: scale(0.96);
+  }
+`;
+
+export const SearchTriggerButton = styled.button`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e65100;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.92);
+  }
+`;
+
+export const SearchOverlayContainer = styled.div`
+  width: 100%;
+  height: 2.25rem;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  z-index: 1000;
+  pointer-events: auto;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+`;
+
+export const SearchInput = styled.input`
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 0 8px;
+  background: transparent;
+`;
+
+export const SearchCloseButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+`;
+
+export const PathStatusBadgeContainer = styled.div`
+  position: absolute;
+  top: 3.65rem;
+  left: 1rem;
+  z-index: 999;
+  pointer-events: none;
+`;
+
+export const RadarOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+  overflow: hidden;
+`;
+
+export const RadarCircleLargeStyled = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 240px;
+  border: 1.5px dashed rgba(230, 81, 0, 0.2);
+  border-radius: 50%;
+  pointer-events: none;
+  box-sizing: border-box;
+`;
+
+export const RadarCircleSmallStyled = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border: 1px solid rgba(230, 81, 0, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+  box-sizing: border-box;
+`;
+
+export const RadarSweepStyled = styled.div`
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(230, 81, 0, 0.08) 0deg,
+    rgba(230, 81, 0, 0) 120deg
+  );
+  border-radius: 50%;
+  top: -50%;
+  left: -50%;
+  animation: ${rotate} 4s linear infinite;
+  pointer-events: none;
+  will-change: transform;
+`;
+
+export const RadarToggleBtn = styled.button<{ $active?: boolean }>`
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: ${props => props.$active ? '#e65100' : '#ffffff'};
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.$active ? '#ffffff' : '#e65100'};
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  pointer-events: auto;
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
 
 
 

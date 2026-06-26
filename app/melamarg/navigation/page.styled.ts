@@ -63,7 +63,7 @@ export const NavContainer = styled.div`
 export const Overlay = styled.div`
   position: absolute;
   inset: 0;
-  background-color: rgba(9, 9, 11, 0.85); /* bg-zinc-955/85 */
+  background-color: rgba(15, 23, 42, 0.3); /* slate-900/30 backdrop for light theme popups */
   backdrop-filter: blur(8px); /* backdrop-blur-md */
   z-index: 50;
   display: flex;
@@ -77,14 +77,14 @@ export const Overlay = styled.div`
 
 export const OverlayBox = styled.div`
   padding: 1.25rem; /* p-5 */
-  background-color: #121217; /* bg-zinc-900 */
-  border: 1px solid #27272a; /* border-zinc-800 */
+  background-color: #ffffff; /* white background for light theme */
+  border: 1px solid #e2e8f0; /* slate-200 border */
   border-radius: 1rem; /* rounded-2xl */
   max-w: 20rem; /* max-w-xs */
   display: flex;
   flex-direction: column;
   gap: 1rem; /* space-y-4 */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* premium shadow-xl */
 `;
 
 export const CenterBox = styled.div`
@@ -94,10 +94,10 @@ export const CenterBox = styled.div`
 
 export const WarningIconWrapper = styled.div`
   padding: 0.75rem; /* p-3 */
-  background-color: rgba(245, 158, 11, 0.1); /* bg-amber-500/10 */
-  border: 1px solid rgba(245, 158, 11, 0.2); /* border-amber-500/20 */
+  background-color: #fef3c7; /* amber-100 */
+  border: 1px solid #fde68a; /* amber-200 */
   border-radius: 9999px;
-  color: #fbbf24; /* text-amber-400 */
+  color: #d97706; /* amber-600 */
   animation: ${pulse} 2s infinite;
   display: flex;
   align-items: center;
@@ -107,13 +107,13 @@ export const WarningIconWrapper = styled.div`
 export const OverlayTitle = styled.h3`
   font-size: 0.875rem; /* text-sm */
   font-weight: 900;
-  color: #f4f4f5; /* text-zinc-100 */
+  color: #0f172a; /* slate-900 */
   margin: 0;
 `;
 
 export const OverlayText = styled.p`
   font-size: 10px;
-  color: #a1a1aa; /* text-zinc-400 */
+  color: #475569; /* slate-600 */
   line-height: 1.625;
   font-weight: 500;
   margin: 0;
@@ -127,7 +127,7 @@ export const OverlayPillWrapper = styled.div`
 
 export const OverlayButtons = styled.div`
   padding-top: 0.75rem; /* pt-3 */
-  border-top: 1px solid #27272a; /* border-zinc-800 */
+  border-top: 1px solid #e2e8f0; /* slate-200 border */
   display: flex;
   flex-direction: column;
   gap: 0.375rem; /* gap-1.5 */
@@ -137,7 +137,7 @@ export const OverlayButtons = styled.div`
 export const BypassButton = styled.button`
   width: 100%;
   padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-  background-color: #0891b2; /* bg-cyan-600 */
+  background-color: #0ea5e9; /* sky-500 */
   color: #ffffff;
   border-radius: 0.5rem; /* rounded-lg */
   font-size: 10px;
@@ -148,16 +148,16 @@ export const BypassButton = styled.button`
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
   &:hover {
-    background-color: #06b6d4; /* hover:bg-cyan-500 */
+    background-color: #0284c7; /* sky-600 */
   }
 `;
 
 export const StopButton = styled.button`
   width: 100%;
   padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-  background-color: rgba(127, 29, 29, 0.4); /* bg-red-955/40 */
-  color: #f87171; /* text-red-400 */
-  border: 1px solid rgba(185, 28, 28, 0.4); /* border-red-900/40 */
+  background-color: #fef2f2; /* red-50 */
+  color: #ef4444; /* red-500 */
+  border: 1px solid #fecaca; /* red-200 */
   border-radius: 0.5rem; /* rounded-lg */
   font-size: 10px;
   font-weight: 700;
@@ -165,7 +165,7 @@ export const StopButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: rgba(185, 28, 28, 0.6);
+    background-color: #fee2e2; /* red-100 */
   }
 `;
 
@@ -945,7 +945,7 @@ export const FloatingBottomWrapper = styled.div`
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 1rem;
+  padding: 0;
   box-sizing: border-box;
   pointer-events: none;
   display: flex;
@@ -1004,13 +1004,17 @@ export const PremiumBottomCard = styled.div`
   pointer-events: auto;
   width: 100%;
   background: #ffffff;
-  border-radius: 1.5rem;
-  padding: 1rem 1.25rem;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  padding: 1.25rem 1.25rem 5.5rem 1.25rem;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  justify-content: space-between;
+  height: calc(30vh + 4.25rem);
 `;
 
 export const BottomCardProgressHeader = styled.div`
