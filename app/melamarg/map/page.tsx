@@ -258,6 +258,19 @@ export default function EventMapPage() {
   const router = useRouter();
   const [selectedPoi, setSelectedPoi] = useState<any | null>(null);
 
+  // State for filtering POIs in Family Mode
+  const [isFamilyMode, setIsFamilyMode] = useState(false);
+  const [showEventPois, setShowEventPois] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode') === 'family' || !!params.get('groupId');
+      setIsFamilyMode(mode);
+      setShowEventPois(!mode); // Default to hiding POIs if in family mode
+    }
+  }, []);
+
   const {
     selectedEvent,
     userGps,
@@ -1155,6 +1168,9 @@ export default function EventMapPage() {
     const poisLayer = poisLayerRef.current;
     poisLayer.clearLayers();
 
+    // If in family mode and showEventPois is false, hide all general attractions
+    if (isFamilyMode && !showEventPois) return;
+
     if (!poisList || poisList.length === 0) return;
 
     // Helpers are now declared at the component scope for reuse across rendering and JSX.
@@ -1278,7 +1294,7 @@ export default function EventMapPage() {
         </div>
       `);
     });
-  }, [leafletLoaded, poisList, mapZoom, userGps, navTarget]);
+  }, [leafletLoaded, poisList, mapZoom, userGps, navTarget, isFamilyMode, showEventPois]);
 
   // Dedicated effect to render real-time Family Meetup members and assembly point (Zero Polling)
   useEffect(() => {
@@ -1663,6 +1679,9 @@ export default function EventMapPage() {
   const getFloatingPois = () => {
     if (!mapRef.current || !poisList || poisList.length === 0) return [];
     if (mapZoom < 18 || !userGps) return [];
+
+    // Hide floating indicators if attractions are toggled off in family mode
+    if (isFamilyMode && !showEventPois) return [];
 
     // 1. Find if the user is physically on any path (closest route edge in the entire network within 30m)
     let currentPhysicalPathName: string | null = null;
@@ -2082,6 +2101,31 @@ export default function EventMapPage() {
           >
             <Layers style={{ width: '1.2rem', height: '1.2rem' }} />
           </FloatingToggleZonesButton>
+
+          {isFamilyMode && (
+            <button
+              onClick={() => setShowEventPois(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.25rem',
+                height: '2.25rem',
+                backgroundColor: showEventPois ? '#e65100' : '#ffffff',
+                border: '1px solid rgba(0,0,0,0.05)',
+                borderRadius: '50%',
+                color: showEventPois ? '#ffffff' : '#e65100',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                pointerEvents: 'auto',
+                transition: 'all 0.2s ease-out'
+              }}
+              title={showEventPois ? "Hide attractions" : "Show attractions"}
+              type="button"
+            >
+              <MapIcon size={18} />
+            </button>
+          )}
         </FloatingControlsRow>
 
         {currentZone && (

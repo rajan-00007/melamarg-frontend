@@ -360,18 +360,38 @@ export default function FamilyDashboard() {
               </Text>
             </div>
             
-            <StyledButton 
-              variant="soft" 
-              height="30px" 
-              onClick={() => setShowPoiModal(true)}
-              style={{ fontSize: '11px', padding: '0 10px', borderRadius: '20px' }}
-            >
-              Set/Change
-            </StyledButton>
+            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+              {(currentGroup.assembly_point_id || (currentGroup.assembly_custom_lat && currentGroup.assembly_custom_lng)) && (
+                <StyledButton 
+                  variant="secondary" 
+                  height="30px" 
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to remove the assembly point?')) {
+                      await updateAssemblyPoint(null, null, null, null);
+                    }
+                  }}
+                  textColor="#ef4444"
+                  strokeColor="#fca5a5"
+                  style={{ fontSize: '11px', padding: '0 10px', borderRadius: '20px' }}
+                >
+                  Remove
+                </StyledButton>
+              )}
+              <StyledButton 
+                variant="soft" 
+                height="30px" 
+                onClick={() => setShowPoiModal(true)}
+                style={{ fontSize: '11px', padding: '0 10px', borderRadius: '20px' }}
+              >
+                {currentGroup.assembly_point_id || (currentGroup.assembly_custom_lat && currentGroup.assembly_custom_lng)
+                  ? 'Change'
+                  : 'Set'}
+              </StyledButton>
+            </div>
           </AssemblyRow>
 
-          {/* Show arrival calculations if assembly coordinates exist */}
-          {(currentGroup.assembly_point_id || (currentGroup.assembly_custom_lat && currentGroup.assembly_custom_lng)) && (
+          {/* Show arrival calculations and actions if assembly coordinates exist, else show general View Map button */}
+          {(currentGroup.assembly_point_id || (currentGroup.assembly_custom_lat && currentGroup.assembly_custom_lng)) ? (
             <>
               <ArrivalStatusContainer>
                 <Text variant="bodySmall" weight={500} color={colors.neutral[800]} style={{ fontSize: '13px' }}>
@@ -395,8 +415,8 @@ export default function FamilyDashboard() {
                 <StyledButton 
                   variant="secondary" 
                   onClick={() => {
-                    // Redirect to Map page and show assembly point
-                    router.push('/melamarg/map');
+                    // Redirect to Map page in Family Focus Mode
+                    router.push('/melamarg/map?mode=family');
                   }} 
                   style={{ flex: 1, backgroundColor: colors.base.white, border: `1.5px solid ${colors.neutral[500]}`, color: colors.neutral[900] }}
                 >
@@ -405,6 +425,20 @@ export default function FamilyDashboard() {
                 </StyledButton>
               </div>
             </>
+          ) : (
+            <div style={{ display: 'flex', marginTop: '0.5rem' }}>
+              <StyledButton 
+                variant="secondary" 
+                onClick={() => {
+                  // Redirect to Map page in Family Focus Mode
+                  router.push('/melamarg/map?mode=family');
+                }} 
+                style={{ flex: 1, backgroundColor: colors.base.white, border: `1.5px solid ${colors.neutral[500]}`, color: colors.neutral[900] }}
+              >
+                <Compass size={15} />
+                <span>View Family Map</span>
+              </StyledButton>
+            </div>
           )}
         </AssemblyCard>
       </ScrollArea>
