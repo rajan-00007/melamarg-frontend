@@ -6,6 +6,7 @@ import { useUserTest } from '@/context/UserTestContext';
 import { findOptimalPathToPoi } from '@/context/types';
 import { Navigation, MapPin, Compass, AlertTriangle, LogOut, CheckCircle, Info, Map as MapIcon, Menu, X, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useFamily } from '@/context/FamilyContext';
 import {
   MapWrapper,
   MapCanvas,
@@ -257,6 +258,19 @@ export default function EventMapPage() {
   const router = useRouter();
   const [selectedPoi, setSelectedPoi] = useState<any | null>(null);
 
+  // State for filtering POIs in Family Mode
+  const [isFamilyMode, setIsFamilyMode] = useState(false);
+  const [showEventPois, setShowEventPois] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode') === 'family' || !!params.get('groupId');
+      setIsFamilyMode(mode);
+      setShowEventPois(!mode); // Default to hiding POIs if in family mode
+    }
+  }, []);
+
   const {
     selectedEvent,
     userGps,
@@ -269,6 +283,9 @@ export default function EventMapPage() {
     leafletLoaded,
     navTarget,
     setNavTarget,
+    setScreenMode,
+    setArrivalNotify,
+    logNavigationInstructions,
     getRealGps,
     handleGpsUpdate,
     screenMode,
@@ -282,6 +299,15 @@ export default function EventMapPage() {
   } = useUserTest();
 
   const { language, t, tPoiName, tPoiDesc, tEventName } = useLanguage();
+
+  // Family Meetup Context
+  let familyContext: any;
+  try {
+    familyContext = useFamily();
+  } catch (e) {
+    familyContext = { currentGroup: null, membersList: [], myMemberInfo: null };
+  }
+  const { currentGroup, membersList, myMemberInfo } = familyContext;
 
   const getOffPathInstruction = () => {
     if (language === 'hi') {
@@ -685,6 +711,7 @@ export default function EventMapPage() {
   const routeLayerRef = useRef<any>(null);
   const activeRouteLayerRef = useRef<any>(null);
   const zonesLayerRef = useRef<any>(null);
+  const familyLayerRef = useRef<any>(null);
   const LRef = useRef<any>(null);
 
   const findOptimalEntranceNode = (
@@ -964,6 +991,7 @@ export default function EventMapPage() {
     poisLayerRef.current = L.layerGroup().addTo(map);
     routeLayerRef.current = L.layerGroup().addTo(map);
     zonesLayerRef.current = L.layerGroup().addTo(map);
+    familyLayerRef.current = L.layerGroup().addTo(map);
 
     // Draw Zones
     if (showZones && zonesList && zonesList.length > 0) {
@@ -1140,6 +1168,9 @@ export default function EventMapPage() {
     const poisLayer = poisLayerRef.current;
     poisLayer.clearLayers();
 
+    // If in family mode and showEventPois is false, hide all general attractions
+    if (isFamilyMode && !showEventPois) return;
+
     if (!poisList || poisList.length === 0) return;
 
     // Helpers are now declared at the component scope for reuse across rendering and JSX.
@@ -1263,7 +1294,192 @@ export default function EventMapPage() {
         </div>
       `);
     });
-  }, [leafletLoaded, poisList, mapZoom, userGps, navTarget]);
+  }, [leafletLoaded, poisList, mapZoom, userGps, navTarget, isFamilyMode, showEventPois]);
+
+  // Dedicated effect to render real-time Family Meetup members and assembly point (Zero Polling)
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current || !familyLayerRef.current) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
+
+    const familyLayer = familyLayerRef.current;
+    familyLayer.clearLayers();
+
+    if (!currentGroup || !myMemberInfo) return;
+
+    // 1. Resolve Assembly Point Coordinates
+    let assemblyLat: number | null = null;
+    let assemblyLng: number | null = null;
+    let assemblyName = 'Agreed Assembly Point';
+
+    if (currentGroup.assembly_point_id) {
+      const matchPoi = poisList.find(p => p.id === currentGroup.assembly_point_id);
+      if (matchPoi) {
+        assemblyLat = Number(matchPoi.latitude);
+        assemblyLng = Number(matchPoi.longitude);
+        assemblyName = tPoiName(matchPoi) || matchPoi.name_en;
+      }
+    } else if (currentGroup.assembly_custom_lat && currentGroup.assembly_custom_lng) {
+      assemblyLat = Number(currentGroup.assembly_custom_lat);
+      assemblyLng = Number(currentGroup.assembly_custom_lng);
+      assemblyName = currentGroup.assembly_custom_name || 'Agreed Custom Spot';
+    }
+
+    // Draw Assembly Point Marker
+    if (assemblyLat && !isNaN(assemblyLat) && assemblyLng && !isNaN(assemblyLng)) {
+      const flagIcon = L.divIcon({
+        html: `
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+            <div style="position:absolute;width:32px;height:32px;border-radius:50%;background:rgba(230,81,0,0.15);animation:ping 2s infinite;"></div>
+            <div style="position:relative;width:24px;height:24px;border-radius:50%;background:#e65100;border:2px solid white;box-shadow:0 2px 8px rgba(230,81,0,0.4);display:flex;align-items:center;justify-content:center;color:white;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                <line x1="4" y1="22" x2="4" y2="15"></line>
+              </svg>
+            </div>
+          </div>
+        `,
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      L.marker([assemblyLat, assemblyLng], { icon: flagIcon, zIndexOffset: 900 })
+        .addTo(familyLayer)
+        .bindPopup(`
+          <div style="font-family:sans-serif;min-width:140px;text-align:center">
+            <strong style="color:#e65100;font-size:12px">Agreed Assembly Point</strong>
+            <div style="font-size:11px;color:#333;margin-top:4px;font-weight:600">${assemblyName}</div>
+            <button 
+              onclick="window.location.href='/melamarg/family'" 
+              style="margin-top:6px;background:#e65100;color:white;border:none;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;"
+            >
+              Manage Group
+            </button>
+          </div>
+        `);
+
+      // Draw dashed connector line from the user themselves to the assembly point
+      if (userGps && userGps[0] !== 0 && userGps[1] !== 0) {
+        L.polyline([userGps, [assemblyLat, assemblyLng]], {
+          color: '#e65100',
+          weight: 2,
+          dashArray: '6, 8',
+          opacity: 0.75
+        }).addTo(familyLayer);
+      }
+    }
+
+    // 2. Draw Family Members (excluding me)
+    membersList.forEach((member: any) => {
+      if (member.id === myMemberInfo.id) return; // Already rendered as user's blue dot
+      
+      const lat = Number(member.latitude);
+      const lng = Number(member.longitude);
+      if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
+      const isOnline = (new Date().getTime() - new Date(member.last_active_at).getTime()) < 60000;
+      const initials = member.name.substring(0, 2).toUpperCase();
+
+      const memberIcon = L.divIcon({
+        html: `
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+            ${isOnline ? `<span style="position:absolute;width:28px;height:28px;border-radius:50%;background:rgba(230,81,0,0.3);animation:ping 1.5s infinite;"></span>` : ''}
+            <div style="position:relative;width:20px;height:20px;border-radius:50%;background:#e65100;border:2px solid white;box-shadow:0 2px 6px rgba(230,81,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:600;">
+              ${initials}
+            </div>
+            <span style="position:absolute;bottom:-1px;right:-1px;width:7px;height:7px;border-radius:50%;background:${isOnline ? '#22c55e' : '#94a3b8'};border:1.5px solid white;"></span>
+          </div>
+        `,
+        className: '',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+
+      const memberMarker = L.marker([lat, lng], { icon: memberIcon, zIndexOffset: 850 }).addTo(familyLayer);
+
+      // Simple local search for nearest POI/landmark name
+      let nearestPoiName = 'Unknown Landmark';
+      if (poisList && poisList.length > 0) {
+        let minD = Infinity;
+        poisList.forEach(poi => {
+          const d = getHaversineDistance(lat, lng, Number(poi.latitude), Number(poi.longitude));
+          if (d < minD) {
+            minD = d;
+            nearestPoiName = tPoiName(poi) || poi.name_en;
+          }
+        });
+        nearestPoiName = minD < 30 ? `At ${nearestPoiName}` : minD < 100 ? `Near ${nearestPoiName}` : `${Math.round(minD)}m from ${nearestPoiName}`;
+      }
+
+      // Calculate distance between user and this family member
+      let distanceLabel = '';
+      if (userGps && userGps[0] !== 0) {
+        const d = getHaversineDistance(userGps[0], userGps[1], lat, lng);
+        distanceLabel = `<div style="font-size:10px;color:#475569;margin-top:2px;font-weight:500">${Math.round(d)}m away from you</div>`;
+      }
+
+      memberMarker.bindPopup(`
+        <div style="font-family:sans-serif;min-width:150px">
+          <div style="display:flex;align-items:center;gap:4px">
+            <strong style="color:#333;font-size:12px">${member.name}</strong>
+            <span style="font-size:8px;font-weight:600;padding:1px 4px;border-radius:3px;background:${isOnline ? '#dcfce7;color:#15803d' : '#f1f5f9;color:#475569'}">
+              ${isOnline ? 'Online' : 'Offline'}
+            </span>
+          </div>
+          <div style="font-size:10px;color:#666;margin-top:4px">${nearestPoiName}</div>
+          ${distanceLabel}
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <button 
+              id="nav-to-member-${member.id}"
+              style="flex:1;background:#e65100;color:white;border:none;border-radius:4px;padding:4px;font-size:9px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:2px"
+            >
+              Navigate
+            </button>
+            <button 
+              onclick="window.location.href='/melamarg/family'"
+              style="background:white;border:1px solid #cbd5e1;color:#333;border-radius:4px;padding:4px;font-size:9px;font-weight:600;cursor:pointer;"
+            >
+              Pulse
+            </button>
+          </div>
+        </div>
+      `);
+
+      // Bind dynamic click navigation handler to the popup open event
+      memberMarker.on('popupopen', () => {
+        const btn = document.getElementById(`nav-to-member-${member.id}`);
+        if (btn) {
+          btn.onclick = () => {
+            const targetPoi = {
+              id: `family-member-${member.id}`,
+              name_en: member.name,
+              latitude: lat,
+              longitude: lng,
+              category_name: 'Family Member',
+              description: `Live location of ${member.name}`
+            };
+            setNavTarget(targetPoi);
+            setScreenMode('navigation');
+            setArrivalNotify(false);
+            logNavigationInstructions(targetPoi);
+            router.push('/melamarg/navigation?returnUrl=/melamarg/map');
+          };
+        }
+      });
+
+      // Draw dashed connector from member to assembly point
+      if (assemblyLat && !isNaN(assemblyLat) && assemblyLng && !isNaN(assemblyLng)) {
+        L.polyline([[lat, lng], [assemblyLat, assemblyLng]], {
+          color: '#e65100',
+          weight: 1.5,
+          dashArray: '4, 6',
+          opacity: 0.5
+        }).addTo(familyLayer);
+      }
+    });
+
+  }, [leafletLoaded, poisList, userGps, mapZoom, currentGroup, membersList, myMemberInfo]);
 
   // ACTIVE ROUTE HIGHLIGHT EFFECT
   useEffect(() => {
@@ -1463,6 +1679,9 @@ export default function EventMapPage() {
   const getFloatingPois = () => {
     if (!mapRef.current || !poisList || poisList.length === 0) return [];
     if (mapZoom < 18 || !userGps) return [];
+
+    // Hide floating indicators if attractions are toggled off in family mode
+    if (isFamilyMode && !showEventPois) return [];
 
     // 1. Find if the user is physically on any path (closest route edge in the entire network within 30m)
     let currentPhysicalPathName: string | null = null;
@@ -1882,6 +2101,31 @@ export default function EventMapPage() {
           >
             <Layers style={{ width: '1.2rem', height: '1.2rem' }} />
           </FloatingToggleZonesButton>
+
+          {isFamilyMode && (
+            <button
+              onClick={() => setShowEventPois(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.25rem',
+                height: '2.25rem',
+                backgroundColor: showEventPois ? '#e65100' : '#ffffff',
+                border: '1px solid rgba(0,0,0,0.05)',
+                borderRadius: '50%',
+                color: showEventPois ? '#ffffff' : '#e65100',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                pointerEvents: 'auto',
+                transition: 'all 0.2s ease-out'
+              }}
+              title={showEventPois ? "Hide attractions" : "Show attractions"}
+              type="button"
+            >
+              <MapIcon size={18} />
+            </button>
+          )}
         </FloatingControlsRow>
 
         {currentZone && (

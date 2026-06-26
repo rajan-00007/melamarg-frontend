@@ -110,7 +110,7 @@ export default function QuickActions() {
     <SectionWrapper>
       <GridContainer>
         {/* Left Column: Family Meetup (Double Height) */}
-        <FamilyCard onClick={() => router.push('/melamarg/saved')}>
+        <FamilyCard onClick={() => router.push('/melamarg/family')}>
           <IconWrapper $bg="transparent" $color="#E65100" style={{ padding: 0, justifyContent: 'flex-start', alignItems: 'flex-start' }}>
             <Users size={28} />
           </IconWrapper>

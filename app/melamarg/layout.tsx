@@ -28,10 +28,12 @@ import {
   Route,
   Bookmark,
   Globe,
-  Car
+  Car,
+  Users
 } from 'lucide-react';
 
 import { getEventNavigatorName } from '@/components/NavigatorHeader';
+import { FamilyProvider } from '@/context/FamilyContext';
 
 import {
   RootContainer,
@@ -257,6 +259,17 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
 
         <SidebarList>
+          <SidebarItem 
+            $isActive={pathname.includes('/family')}
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push('/melamarg/family');
+            }}
+          >
+            <Users />
+            <span>{t('familyMeetup') || 'Family Meetup'}</span>
+          </SidebarItem>
+
           <SidebarItem 
             $isActive={pathname.endsWith('/saved-spot')}
             onClick={() => {
@@ -560,7 +573,9 @@ export default function UserTestLayout({ children }: { children: React.ReactNode
   return (
     <UserTestProvider>
       <LanguageProvider>
-        <UserTestLayoutContent>{children}</UserTestLayoutContent>
+        <FamilyProvider>
+          <UserTestLayoutContent>{children}</UserTestLayoutContent>
+        </FamilyProvider>
       </LanguageProvider>
     </UserTestProvider>
   );
