@@ -607,6 +607,8 @@ export function useEventMap() {
   const zonesLayerRef = useRef<any>(null);
   const familyLayerRef = useRef<any>(null);
   const LRef = useRef<any>(null);
+  const eventBoundsLayerRef = useRef<any>(null);
+  const hasCenteredMapRef = useRef<boolean>(false);
 
   const findOptimalEntranceNode = (
     userLat: number,
@@ -691,10 +693,38 @@ export function useEventMap() {
     const L = LRef.current || (window as any).L;
     if (!L) return;
 
-    if (userMarkerRef.current) {
+    // Create or update user location marker
+    if (!userMarkerRef.current) {
+      const gpsIcon = L.divIcon({
+        html: `
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+            <span style="position:absolute;width:24px;height:24px;border-radius:50%;background:rgba(6,182,212,0.4);animation:ping 1.2s cubic-bezier(0,0,0.2,1) infinite;"></span>
+            <div style="position:relative;width:16px;height:16px;border-radius:50%;background:#06b6d4;border:3px solid white;box-shadow:0 0 8px #06b6d4;"></div>
+          </div>
+        `,
+        className: '',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      const userMarker = L.marker(userGps, { icon: gpsIcon, zIndexOffset: 1000 }).addTo(mapRef.current);
+      userMarkerRef.current = userMarker;
+      userMarker.bindPopup('<strong style="color:#06b6d4">Your Location</strong>');
+    } else {
       userMarkerRef.current.setLatLng(userGps);
     }
-    if (userAccuracyCircleRef.current) {
+
+    // Create or update user accuracy ring
+    if (!userAccuracyCircleRef.current) {
+      const initialCircleColor = gpsStatus === 'locked' ? '#10b981' : gpsStatus === 'searching' ? '#f59e0b' : '#ef4444';
+      const accuracyCircle = L.circle(userGps, {
+        radius: gpsAccuracy || 15,
+        color: initialCircleColor,
+        fillColor: initialCircleColor,
+        fillOpacity: 0.08,
+        weight: 1
+      }).addTo(mapRef.current);
+      userAccuracyCircleRef.current = accuracyCircle;
+    } else {
       userAccuracyCircleRef.current.setLatLng(userGps);
       if (gpsAccuracy !== null) {
         userAccuracyCircleRef.current.setRadius(gpsAccuracy);
@@ -704,6 +734,12 @@ export function useEventMap() {
         color: color,
         fillColor: color
       });
+    }
+
+    // Center map on user location only once when first real GPS coordinate is locked
+    if (!hasCenteredMapRef.current && userGps && (userGps[0] !== 19.8050 || userGps[1] !== 85.8250)) {
+      mapRef.current.setView(userGps, 18);
+      hasCenteredMapRef.current = true;
     }
 
     // Dynamic clean up and draw outside guidance line
@@ -788,6 +824,7 @@ export function useEventMap() {
     }
   }, [userGps, gpsAccuracy, gpsStatus, isUserOutsideEvent, nearestEntrance, leafletLoaded, routeEdges, routeNodes]);
 
+
   // Force Leaflet recalculation on expanded state toggle
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
@@ -801,24 +838,19 @@ export function useEventMap() {
     };
   }, [isMapExpanded]);
 
-  // Map rendering logic
+  // Map rendering logic - Initialize Map and stable Layer Groups once
   useEffect(() => {
     if (!leafletLoaded || typeof window === 'undefined') return;
     const L = LRef.current || (window as any).L;
     if (!L) return;
 
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-      userMarkerRef.current = null;
-      userAccuracyCircleRef.current = null;
-    }
+    if (mapRef.current) return; // Prevent recreation
 
     const map = L.map('standalone-leaflet-map-canvas', {
       zoomControl: false,
       attributionControl: false,
       maxZoom: 22
-    }).setView(userGps, 18);
+    }).setView(userGps || [19.8050, 85.8250], 18);
     mapRef.current = map;
 
     setMapZoom(map.getZoom());
@@ -840,7 +872,43 @@ export function useEventMap() {
       maxNativeZoom: 19
     }).addTo(map);
 
-    // Bounding box for event
+    // Initialize layer groups and assign to refs
+    poisLayerRef.current = L.layerGroup().addTo(map);
+    routeLayerRef.current = L.layerGroup().addTo(map);
+    zonesLayerRef.current = L.layerGroup().addTo(map);
+    familyLayerRef.current = L.layerGroup().addTo(map);
+    eventBoundsLayerRef.current = L.layerGroup().addTo(map);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        userMarkerRef.current = null;
+        userAccuracyCircleRef.current = null;
+        poisLayerRef.current = null;
+        routeLayerRef.current = null;
+        zonesLayerRef.current = null;
+        familyLayerRef.current = null;
+        eventBoundsLayerRef.current = null;
+      }
+      if (entranceGuidanceLineRef.current) {
+        entranceGuidanceLineRef.current = null;
+      }
+      if (offPathConnectorLineRef.current) {
+        offPathConnectorLineRef.current = null;
+      }
+    };
+  }, [leafletLoaded, resetInteractionTimer]);
+
+  // Event Bounding Box Effect
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current || !eventBoundsLayerRef.current) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
+
+    const eventBoundsLayer = eventBoundsLayerRef.current;
+    eventBoundsLayer.clearLayers();
+
     if (selectedEvent) {
       const { north, south, east, west } = selectedEvent;
       if (north && south && east && west) {
@@ -852,44 +920,20 @@ export function useEventMap() {
           fillColor: '#10b981',
           fillOpacity: 0.05,
           dashArray: '5, 8'
-        }).addTo(map);
-        map.setView(userGps, 18);
+        }).addTo(eventBoundsLayer);
       }
     }
+  }, [leafletLoaded, selectedEvent]);
 
-    // User GPS location pin
-    const gpsIcon = L.divIcon({
-      html: `
-        <div style="position:relative;display:flex;align-items:center;justify-content:center;">
-          <span style="position:absolute;width:24px;height:24px;border-radius:50%;background:rgba(6,182,212,0.4);animation:ping 1.2s cubic-bezier(0,0,0.2,1) infinite;"></span>
-          <div style="position:relative;width:16px;height:16px;border-radius:50%;background:#06b6d4;border:3px solid white;box-shadow:0 0 8px #06b6d4;"></div>
-        </div>
-      `,
-      className: '',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
-    });
-    const userMarker = L.marker(userGps, { icon: gpsIcon, zIndexOffset: 1000 }).addTo(map);
-    userMarkerRef.current = userMarker;
-    userMarker.bindPopup('<strong style="color:#06b6d4">Your Location</strong>');
+  // Zones Boundary Effect
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current || !zonesLayerRef.current) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
 
-    // Accuracy ring
-    const initialCircleColor = gpsStatus === 'locked' ? '#10b981' : gpsStatus === 'searching' ? '#f59e0b' : '#ef4444';
-    const accuracyCircle = L.circle(userGps, {
-      radius: gpsAccuracy || 15,
-      color: initialCircleColor,
-      fillColor: initialCircleColor,
-      fillOpacity: 0.08,
-      weight: 1
-    }).addTo(map);
-    userAccuracyCircleRef.current = accuracyCircle;
+    const zonesLayer = zonesLayerRef.current;
+    zonesLayer.clearLayers();
 
-    poisLayerRef.current = L.layerGroup().addTo(map);
-    routeLayerRef.current = L.layerGroup().addTo(map);
-    zonesLayerRef.current = L.layerGroup().addTo(map);
-    familyLayerRef.current = L.layerGroup().addTo(map);
-
-    // Draw Zones
     if (showZones && zonesList && zonesList.length > 0) {
       zonesList.forEach((zone) => {
         const boundary = typeof zone.boundary === 'string' ? JSON.parse(zone.boundary) : zone.boundary;
@@ -906,7 +950,7 @@ export function useEventMap() {
           fillOpacity: 0.06,
           weight: 1.5,
           dashArray: '4, 4'
-        }).addTo(zonesLayerRef.current)
+        }).addTo(zonesLayer)
           .bindTooltip(zone.name, {
             permanent: true,
             direction: 'center',
@@ -914,44 +958,18 @@ export function useEventMap() {
           });
       });
     }
+  }, [leafletLoaded, showZones, zonesList]);
 
-    // Draw navTarget alert target
-    if (navTarget && !poisList.some(p => p.id === navTarget.id)) {
-      const lat = Number(navTarget.latitude);
-      const lng = Number(navTarget.longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const alertIcon = L.divIcon({
-          html: `
-            <div style="
-              background:#ef4444;
-              width:32px;height:32px;border-radius:50% 50% 50% 0;
-              transform:rotate(-45deg);
-              border:2px solid #fff;
-              box-shadow:0 0 10px rgba(239,68,68,0.8);
-              display:flex;align-items:center;justify-content:center;
-            ">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </div>
-          `,
-          className: '',
-          iconSize: [32, 32],
-          iconAnchor: [10, 32],
-          popupAnchor: [6, -32]
-        });
+  // Route Network Effect
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current || !routeLayerRef.current) return;
+    const L = LRef.current || (window as any).L;
+    if (!L) return;
 
-        const targetMarker = L.marker([lat, lng], { icon: alertIcon })
-          .addTo(poisLayerRef.current)
-          .bindPopup(`
-            <div style="font-family:sans-serif;min-width:140px">
-              <strong style="color:#ef4444;font-size:12px">ALERT TARGET</strong>
-              <div style="font-size:11px;color:#f4f4f5;margin-top:4px">${navTarget.name_en}</div>
-              ${navTarget.description ? `<div style="font-size:10px;color:#a1a1aa;margin-top:4px">${navTarget.description}</div>` : ''}
-            </div>
-          `);
-        
-        targetMarker.openPopup();
-      }
-    }
+    const routeLayer = routeLayerRef.current;
+    routeLayer.clearLayers();
+
+    if (!routeEdges || !routeNodes) return;
 
     // Draw route segments
     routeEdges.forEach((edge) => {
@@ -990,7 +1008,7 @@ export function useEventMap() {
           opacity: 0.12,
           lineCap: 'round',
           lineJoin: 'round'
-        }).addTo(routeLayerRef.current);
+        }).addTo(routeLayer);
 
         L.polyline([
           [Number(startNode.latitude), Number(startNode.longitude)],
@@ -1000,7 +1018,7 @@ export function useEventMap() {
           weight: 3,
           opacity: 0.75,
           dashArray: isDashed ? '6, 6' : undefined
-        }).addTo(routeLayerRef.current);
+        }).addTo(routeLayer);
       }
     });
 
@@ -1017,7 +1035,7 @@ export function useEventMap() {
           color: '#fff',
           weight: 2,
           fillOpacity: 1
-        }).addTo(routeLayerRef.current)
+        }).addTo(routeLayer)
           .bindPopup(`<strong style="color:#c084fc;font-size:12px">Entrance: ${node.name || 'Point'}</strong><div style="font-size:10px;color:#a1a1aa;margin-top:2px">Designated Event Entrance</div>`);
       } else {
         L.circleMarker([lat, lng], {
@@ -1026,29 +1044,11 @@ export function useEventMap() {
           color: '#fff',
           weight: 1.5,
           fillOpacity: 1
-        }).addTo(routeLayerRef.current)
+        }).addTo(routeLayer)
           .bindPopup(`<span style="color:#22d3ee;font-size:11px">${node.name || 'Node'}</span>`);
       }
     });
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        userMarkerRef.current = null;
-        activeRouteLayerRef.current = null;
-      }
-      if (entranceGuidanceLineRef.current) {
-        entranceGuidanceLineRef.current = null;
-      }
-      if (offPathConnectorLineRef.current) {
-        offPathConnectorLineRef.current = null;
-      }
-      if (zonesLayerRef.current) {
-        zonesLayerRef.current = null;
-      }
-    };
-  }, [leafletLoaded, poisList, routeNodes, routeEdges, navTarget, selectedEvent, zonesList, showZones, userGps, gpsAccuracy, gpsStatus, activeAdvisories, resetInteractionTimer]);
+  }, [leafletLoaded, routeEdges, routeNodes, activeAdvisories]);
 
   // Dedicated effect to render and update POI markers on map
   useEffect(() => {
@@ -1058,6 +1058,44 @@ export function useEventMap() {
 
     const poisLayer = poisLayerRef.current;
     poisLayer.clearLayers();
+
+    // Draw navTarget alert target if not already in poisList
+    if (navTarget && poisList && !poisList.some(p => p.id === navTarget.id)) {
+      const lat = Number(navTarget.latitude);
+      const lng = Number(navTarget.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const alertIcon = L.divIcon({
+          html: `
+            <div style="
+              background:#ef4444;
+              width:32px;height:32px;border-radius:50% 50% 50% 0;
+              transform:rotate(-45deg);
+              border:2px solid #fff;
+              box-shadow:0 0 10px rgba(239,68,68,0.8);
+              display:flex;align-items:center;justify-content:center;
+            ">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+          `,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [10, 32],
+          popupAnchor: [6, -32]
+        });
+
+        const targetMarker = L.marker([lat, lng], { icon: alertIcon })
+          .addTo(poisLayer)
+          .bindPopup(`
+            <div style="font-family:sans-serif;min-width:140px">
+              <strong style="color:#ef4444;font-size:12px">ALERT TARGET</strong>
+              <div style="font-size:11px;color:#f4f4f5;margin-top:4px">${navTarget.name_en}</div>
+              ${navTarget.description ? `<div style="font-size:10px;color:#a1a1aa;margin-top:4px">${navTarget.description}</div>` : ''}
+            </div>
+          `);
+        
+        targetMarker.openPopup();
+      }
+    }
 
     if (isFamilyMode && !showEventPois) return;
     if (!filteredPois || filteredPois.length === 0) return;
@@ -1386,7 +1424,7 @@ export function useEventMap() {
         }).addTo(familyLayer);
       }
     });
-  }, [leafletLoaded, poisList, userGps, mapZoom, currentGroup, membersList, myMemberInfo, showFamilyMembers, router, setNavTarget, setScreenMode, setArrivalNotify, logNavigationInstructions, tPoiName]);
+  }, [leafletLoaded, poisList, userGps, mapZoom, currentGroup, membersList, myMemberInfo, showFamilyMembers, router, navTarget, setNavTarget, setScreenMode, setArrivalNotify, logNavigationInstructions, tPoiName]);
 
   // ACTIVE ROUTE HIGHLIGHT EFFECT
   useEffect(() => {

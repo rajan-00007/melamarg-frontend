@@ -222,6 +222,9 @@ export default function SurroundingByYou() {
   const { poisList, userGps, setNavTarget, setScreenMode, setArrivalNotify, logNavigationInstructions, leafletLoaded, selectedEvent } = useUserTest();
   const { t, tPoiName } = useLanguage();
   const mapInstanceRef = useRef<any>(null);
+  const userLayerRef = useRef<any>(null);
+  const poisLayerRef = useRef<any>(null);
+
 
   // Find nearest dynamic POIs based on categories
   const surroundingItems = useMemo(() => {
@@ -333,22 +336,17 @@ export default function SurroundingByYou() {
     return list;
   }, [poisList, userGps, tPoiName]);
 
-  // Leaflet Mini-Map Initialization
+  // 1. Initialize locked static mini-map ONCE
   useEffect(() => {
     if (!leafletLoaded || !selectedEvent || typeof window === 'undefined') return;
     const L = (window as any).L;
     if (!L) return;
 
-    // Clean up existing map instance
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
+    if (mapInstanceRef.current) return;
 
-    const centerLat = userGps && userGps[0] !== 0 ? userGps[0] : (selectedEvent.center_lat ? Number(selectedEvent.center_lat) : 19.8050);
-    const centerLng = userGps && userGps[1] !== 0 ? userGps[1] : (selectedEvent.center_lng ? Number(selectedEvent.center_lng) : 85.8250);
+    const initialLat = selectedEvent.center_lat ? Number(selectedEvent.center_lat) : 19.8050;
+    const initialLng = selectedEvent.center_lng ? Number(selectedEvent.center_lng) : 85.8250;
 
-    // Initialize locked static mini-map centered on event area / user location
     const miniMap = L.map('mini-leaflet-map-canvas', {
       zoomControl: false,
       dragging: false,
@@ -358,13 +356,56 @@ export default function SurroundingByYou() {
       boxZoom: false,
       keyboard: false,
       attributionControl: false
-    }).setView([centerLat, centerLng], 17);
+    }).setView([initialLat, initialLng], 17);
 
     mapInstanceRef.current = miniMap;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
     }).addTo(miniMap);
+
+    userLayerRef.current = L.layerGroup().addTo(miniMap);
+    poisLayerRef.current = L.layerGroup().addTo(miniMap);
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        userLayerRef.current = null;
+        poisLayerRef.current = null;
+      }
+    };
+  }, [leafletLoaded, selectedEvent]);
+
+  // 2. Dynamically update mini-map center, user position and POI markers
+  useEffect(() => {
+    if (!leafletLoaded || !mapInstanceRef.current || !userLayerRef.current || !poisLayerRef.current) return;
+    const L = (window as any).L;
+    if (!L) return;
+
+    const miniMap = mapInstanceRef.current;
+    const userLayer = userLayerRef.current;
+    const poisLayer = poisLayerRef.current;
+
+    userLayer.clearLayers();
+    poisLayer.clearLayers();
+
+    // Center map on user location or event center fallback
+    const centerLat = userGps && userGps[0] !== 0 ? userGps[0] : (selectedEvent?.center_lat ? Number(selectedEvent.center_lat) : 19.8050);
+    const centerLng = userGps && userGps[1] !== 0 ? userGps[1] : (selectedEvent?.center_lng ? Number(selectedEvent.center_lng) : 85.8250);
+
+    miniMap.setView([centerLat, centerLng], 17);
+
+    // Plot user position
+    if (userGps && userGps[0] !== 0) {
+      const userIcon = L.divIcon({
+        className: 'user-marker-container',
+        html: '<div class="user-gps-dot"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+      L.marker([userGps[0], userGps[1]], { icon: userIcon }).addTo(userLayer);
+    }
 
     // Custom Breathing Marker Icon for POIs
     const breathingIcon = L.divIcon({
@@ -374,24 +415,11 @@ export default function SurroundingByYou() {
       iconAnchor: [10, 10]
     });
 
-    // User Blue Pulse Dot Icon
-    const userIcon = L.divIcon({
-      className: 'user-marker-container',
-      html: '<div class="user-gps-dot"></div>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
-    });
-
-    // Plot user position
-    if (userGps && userGps[0] !== 0) {
-      L.marker([userGps[0], userGps[1]], { icon: userIcon }).addTo(miniMap);
-    }
-
     // Plot nearest POIs with text tooltips
     surroundingItems.forEach((item) => {
       if (item.rawPoi && item.rawPoi.latitude && item.rawPoi.longitude) {
         L.marker([item.rawPoi.latitude, item.rawPoi.longitude], { icon: breathingIcon })
-          .addTo(miniMap)
+          .addTo(poisLayer)
           .bindTooltip(item.name, {
             permanent: true,
             direction: 'top',
@@ -399,14 +427,7 @@ export default function SurroundingByYou() {
           });
       }
     });
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [leafletLoaded, selectedEvent, userGps, surroundingItems]);
+  }, [leafletLoaded, userGps, surroundingItems, selectedEvent]);
 
   const handlePoiNavigate = (rawPoi: any) => {
     setNavTarget(rawPoi);
