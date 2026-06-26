@@ -84,6 +84,22 @@ const StableBadge = styled.span<{ $severity?: string }>`
   `}
 `;
 
+const EmptyZoneCard = styled.div`
+  background-color: #FAF8F5;
+  border-radius: 1.25rem;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.01);
+  border: 1px dashed #E5D0C0;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 0.4rem;
+`;
+
 export default function CurrentZoneBlock() {
   const { userGps, findZoneForCoordinate, activeAdvisories } = useUserTest();
   const { t } = useLanguage();
@@ -105,7 +121,7 @@ export default function CurrentZoneBlock() {
     );
   }, [currentZone, activeAdvisories]);
 
-  const zoneName = currentZone?.name || 'Grand Road';
+  const zoneName = currentZone?.name;
   
   // Find highest severity advisory
   const activeAlert = useMemo(() => {
@@ -138,6 +154,31 @@ export default function CurrentZoneBlock() {
   const statusSubtitle = activeAlert 
     ? activeAlert.title 
     : (currentZone?.crowd_status || 'Moderate Crowd');
+
+  // Early return for empty zone state must be placed after all hook declarations to satisfy the Rules of Hooks
+  if (!currentZone) {
+    return (
+      <EmptyZoneCard>
+        <span style={{ fontSize: '22px', marginBottom: '0.2rem' }}>📍</span>
+        <Text
+          variant="bodyPrimary"
+          weight={600}
+          color={colors.brand.primary}
+          style={{ margin: 0, fontSize: '15px' }}
+        >
+          {(t as any)('noZoneData') || 'No Zone Data Available'}
+        </Text>
+        <Text
+          variant="caption"
+          weight={500}
+          color={colors.neutral[800]}
+          style={{ fontSize: '11.5px', opacity: 0.7, maxWidth: '280px', lineHeight: '1.3' }}
+        >
+          {(t as any)('noZoneDataDesc') || 'You are currently outside designated event zones or GPS is disabled.'}
+        </Text>
+      </EmptyZoneCard>
+    );
+  }
 
   return (
     <ZoneCard>

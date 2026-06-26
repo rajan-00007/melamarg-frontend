@@ -40,12 +40,27 @@ const buttonVariants = cva(
   }
 )
 
+interface ButtonProps extends ButtonPrimitive.Props {
+  bgColor?: string;
+  textColor?: string;
+  strokeColor?: string;
+  width?: string;
+  height?: string;
+  radius?: string;
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  bgColor,
+  textColor,
+  strokeColor,
+  width,
+  height,
+  radius,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"

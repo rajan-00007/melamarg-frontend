@@ -246,6 +246,10 @@ export const translations = {
     todayHighlights: "Today's Highlights",
     noUpcomingSubEvents: "No upcoming sub-events scheduled.",
     checkBackLater: "Check back later for updates.",
+    noZoneData: "No Zone Data Available",
+    noZoneDataDesc: "You are currently outside the designated event zones or GPS is disabled.",
+    noAdvisoriesNearMe: "No Advisories Near You",
+    noAdvisoriesNearMeDesc: "All routes around you are currently clear. Check back later for updates.",
   },
   hi: {
     appName: "रथ नेविगेटर",
@@ -493,6 +497,10 @@ export const translations = {
     todayHighlights: "आज के मुख्य आकर्षण",
     noUpcomingSubEvents: "कोई आगामी उप-कार्यक्रम निर्धारित नहीं है।",
     checkBackLater: "अपडेट के लिए बाद में दोबारा जांचें।",
+    noZoneData: "कोई ज़ोन डेटा उपलब्ध नहीं है",
+    noZoneDataDesc: "आप वर्तमान में निर्दिष्ट कार्यक्रम क्षेत्रों से बाहर हैं या जीपीएस बंद है।",
+    noAdvisoriesNearMe: "आपके पास कोई सलाह नहीं है",
+    noAdvisoriesNearMeDesc: "आपके आस-पास के सभी मार्ग वर्तमान में स्पष्ट हैं। अपडेट के लिए बाद में जांचें।",
   },
   or: {
     appName: "ରଥ ନେଭିଗେଟର",
@@ -740,6 +748,10 @@ export const translations = {
     todayHighlights: "ଆଜିର ମୁଖ୍ୟ ଆକର୍ଷଣ",
     noUpcomingSubEvents: "କୌଣସି ଆଗାମୀ ଉପ-କାର୍ଯ୍ୟକ୍ରମ ନିର୍ଦ୍ଧାରିତ ହୋଇନାହିଁ।",
     checkBackLater: "ଅପଡେଟ୍ ପାଇଁ ପରେ ଯାଞ୍ଚ କରନ୍ତୁ।",
+    noZoneData: "କୌଣସି ଜୋନ୍ ତଥ୍ୟ ଉପଲବ୍ଧ ନାହିଁ",
+    noZoneDataDesc: "ଆପଣ ବର୍ତ୍ତମାନ ନିର୍ଦ୍ଧାରିତ କାର୍ଯ୍ୟକ୍ରମ ଜୋନ୍ ବାହାରେ ଅଛନ୍ତି କିମ୍ବା ଜିପିଏସ୍ ଅକ୍ଷମ ଅଛି।",
+    noAdvisoriesNearMe: "ଆପଣଙ୍କ ନିକଟରେ କୌଣସି ପରାମର୍ଶ ନାହିଁ",
+    noAdvisoriesNearMeDesc: "ଆପଣଙ୍କ ଚାରିପାଖରେ ଥିବା ସମସ୍ତ ମାର୍ଗ ବର୍ତ୍ତମାନ ସ୍ପଷ୍ଟ ଅଛି। ଅପଡେଟ୍ ପାଇଁ ପରେ ଯାଞ୍ଚ କରନ୍ତୁ।",
   },
   bn: {
     appName: "রথ নেভিগেটর",
@@ -977,6 +989,10 @@ export const translations = {
     todayHighlights: "আজকের হাইলাইটস",
     noUpcomingSubEvents: "কোনো আসন্ন উপ-অনুষ্ঠান নির্ধারিত নেই।",
     checkBackLater: "আপডেটের জন্য পরে আবার চেক করুন।",
+    noZoneData: "কোনো জোন ডেটা উপলব্ধ নেই",
+    noZoneDataDesc: "আপনি বর্তমানে নির্ধারিত ইভেন্ট জোনের বাইরে আছেন অথবা জিপিএস নিষ্ক্রিয় রয়েছে।",
+    noAdvisoriesNearMe: "আপনার কাছাকাছি কোনো পরামর্শ নেই",
+    noAdvisoriesNearMeDesc: "আপনার আশেপাশের সব পথ বর্তমানে স্বাভাবিক রয়েছে। আপডেটের জন্য পরে আবার চেক করুন।",
   }
 } as const;
 
