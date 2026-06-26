@@ -14,6 +14,7 @@ import {
   Map, 
   Megaphone, 
   HelpCircle, 
+  LifeBuoy,
   X, 
   ArrowRight,
   Smartphone,
@@ -326,6 +327,17 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
           </SidebarItem>
 
           <SidebarItem 
+            $isActive={pathname.endsWith('/all-pois')}
+            onClick={() => {
+              setIsSidebarOpen(false);
+              router.push('/melamarg/all-pois');
+            }}
+          >
+            <LayoutGrid />
+            <span>{t('categories') || 'Categories'}</span>
+          </SidebarItem>
+
+          <SidebarItem 
             onClick={() => {
               setIsSidebarOpen(false);
               router.push('/melamarg');
@@ -530,19 +542,6 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
           </NavButton>
 
           <NavButton
-            $isActive={currentTab === 'all-pois'}
-            $activeColor="#1d4ed8"
-            onClick={() => {
-              router.push('/melamarg/all-pois');
-            }}
-          >
-            <NavIconWrapper $isActive={currentTab === 'all-pois'}>
-              <LayoutGrid />
-            </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'all-pois'}>{t('categories')}</NavButtonText>
-          </NavButton>
-
-          <NavButton
             $isActive={currentTab === 'alerts'}
             $activeColor="#1d4ed8"
             onClick={() => {
@@ -562,15 +561,29 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
 
           <NavButton
             $isActive={currentTab === 'help'}
-            $activeColor="#1d4ed8"
+            $activeColor="#dc2626"
             onClick={() => {
               router.push('/melamarg/help');
             }}
           >
-            <NavIconWrapper $isActive={currentTab === 'help'}>
-              <HelpCircle />
+            <NavIconWrapper 
+              $isActive={currentTab === 'help'}
+              style={{ 
+                color: currentTab === 'help' ? '#dc2626' : '#ef4444', 
+                backgroundColor: currentTab === 'help' ? '#fee2e2' : 'transparent' 
+              }}
+            >
+              <LifeBuoy />
             </NavIconWrapper>
-            <NavButtonText $isActive={currentTab === 'help'}>{t('support')}</NavButtonText>
+            <NavButtonText 
+              $isActive={currentTab === 'help'}
+              style={{ 
+                color: currentTab === 'help' ? '#dc2626' : '#ef4444', 
+                fontWeight: 'bold' 
+              }}
+            >
+              SOS
+            </NavButtonText>
           </NavButton>
 
           <NavButton
