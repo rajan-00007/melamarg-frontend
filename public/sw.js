@@ -1,6 +1,22 @@
-const CACHE_NAME = 'melamarg-cache-v3';
+const CACHE_NAME = 'melamarg-cache-v5';
 const ASSETS_TO_CACHE = [
   '/melamarg',
+  '/melamarg/home',
+  '/melamarg/map',
+  '/melamarg/all-pois',
+  '/melamarg/alerts',
+  '/melamarg/help',
+  '/melamarg/ideas',
+  '/melamarg/pois',
+  '/melamarg/language',
+  '/melamarg/saved-spot',
+  '/melamarg/navigation',
+  '/melamarg/advisories',
+  '/melamarg/family',
+  '/melamarg/family/create',
+  '/melamarg/family/how-it-works',
+  '/melamarg/family/join',
+  '/melamarg/parking',
   '/manifest.json',
   '/favicon.ico',
   '/leaflet/leaflet.js',
@@ -32,17 +48,25 @@ function fetchWithTimeout(request, timeoutMs = 4000) {
   });
 }
 
-// Safari redirection bug fix: clean response to remove the "redirected" flag
+// Clean response: removes the "Vary" header to avoid cache mismatches on RSC requests,
+// and resolves Safari's "redirected" response crashes.
 function cleanResponse(response) {
-  if (!response || !response.redirected) return response;
-  
-  // Construct a new response from the original body, ignoring the redirected flag
-  const headers = new Headers(response.headers);
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: headers
-  });
+  if (!response) return response;
+  if (response.type === 'opaque') return response;
+
+  try {
+    const headers = new Headers(response.headers);
+    headers.delete('Vary');
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: headers
+    });
+  } catch (err) {
+    console.warn('[SW] Failed to clean response headers:', err);
+    return response;
+  }
 }
 
 // Install Event: cache core assets
@@ -92,7 +116,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 1. Navigation requests (HTML documents)
-  // Use Network First with a fast timeout, falling back to cached root '/' (App Shell)
+  // Use Network First with a fast timeout, falling back to cached HTML of target sub-route
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetchWithTimeout(event.request, 4000)
@@ -108,9 +132,20 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch((err) => {
-          console.log('[SW] Navigation failed. Falling back to App Shell.', err);
+          console.log('[SW] Navigation failed. Falling back to cached sub-route HTML or App Shell.', err);
           return caches.match(event.request).then((cachedResponse) => {
-            return cachedResponse || caches.match('/melamarg');
+            if (cachedResponse) return cachedResponse;
+
+            // Normalize path by stripping trailing slash to match pre-cached assets
+            const cleanUrl = new URL(event.request.url);
+            let path = cleanUrl.pathname;
+            if (path.endsWith('/') && path.length > 1) {
+              path = path.slice(0, -1);
+            }
+
+            return caches.match(path).then((matchByPath) => {
+              return matchByPath || caches.match('/melamarg');
+            });
           });
         })
     );
@@ -206,6 +241,19 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
+
+          // RSC requests fallback: match cache ignoring search parameters (ignoreSearch: true)
+          const isRscRequest = url.searchParams.has('_rsc') || event.request.headers.get('RSC') === '1';
+          if (isRscRequest) {
+            return caches.match(event.request, { ignoreSearch: true }).then((rscResponse) => {
+              if (rscResponse) {
+                console.log('[SW] Found search-insensitive cache match for RSC request:', url.pathname);
+                return rscResponse;
+              }
+              throw err;
+            });
+          }
+
           throw err;
         });
       })
