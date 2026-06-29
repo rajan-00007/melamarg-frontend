@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Camera, HelpCircle, Lock, QrCode } from 'lucide-react';
+import { ChevronLeft, Camera, HelpCircle, Lock, QrCode, AlertCircle } from 'lucide-react';
 import Text from '@/components/style/text/Text';
 import { colors } from '@/components/style/colors';
 import { StyledButton } from '@/components/style/button/Button.Styled';
@@ -27,6 +27,24 @@ export default function JoinFamilyGroup() {
   const [memberName, setMemberName] = useState('');
   const [pinDigits, setPinDigits] = useState(['', '', '', '', '', '']);
   const [isScanning, setIsScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const scannerRef = useRef<any>(null);
+
+  // Auto-fill group details if passed in the URL (e.g., from deep links or QR scans)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlCode = params.get('code');
+      const urlPin = params.get('pin');
+      if (urlCode) {
+        setGroupCode(urlCode.toUpperCase());
+      }
+      if (urlPin && urlPin.length === 6) {
+        setPinDigits(urlPin.split(''));
+      }
+    }
+  }, []);
 
   // Refs for auto-focus PIN digits
   const pinRefs = [
@@ -57,18 +75,106 @@ export default function JoinFamilyGroup() {
     }
   };
 
-  // Simulate scanning a QR code (mock trigger for premium testing)
-  const handleTriggerMockScan = async () => {
+  const startScanning = async () => {
+    setCameraError(null);
     setIsScanning(true);
-    // Simulate a 1.5s camera focus and scan
-    setTimeout(() => {
-      // Mocks scanning a QR that contains Code: "DASP89" and PIN: "123456"
-      setGroupCode('DASP89');
-      setPinDigits(['1', '2', '3', '4', '5', '6']);
+
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode');
+
+      // Small delay to ensure the DOM element #qr-reader is mounted and available
+      setTimeout(async () => {
+        try {
+          const scanner = new Html5Qrcode('qr-reader');
+          scannerRef.current = scanner;
+
+          const config = {
+            fps: 15,
+            qrbox: (width: number, height: number) => {
+              const size = Math.min(width, height) * 0.7;
+              return { width: size, height: size };
+            }
+          };
+
+          await scanner.start(
+            { facingMode: 'environment' },
+            config,
+            (decodedText) => {
+              let code = '';
+              let pin = '';
+
+              try {
+                if (decodedText.startsWith('melamarg://')) {
+                  const queryString = decodedText.split('?')[1];
+                  const urlParams = new URLSearchParams(queryString);
+                  code = urlParams.get('code') || '';
+                  pin = urlParams.get('pin') || '';
+                } else {
+                  const url = new URL(decodedText);
+                  code = url.searchParams.get('code') || '';
+                  pin = url.searchParams.get('pin') || '';
+                }
+              } catch (e) {
+                const urlParams = new URLSearchParams(decodedText);
+                code = urlParams.get('code') || '';
+                pin = urlParams.get('pin') || '';
+              }
+
+              if (code && pin && pin.length === 6) {
+                setGroupCode(code.toUpperCase());
+                setPinDigits(pin.split(''));
+
+                // Stop scanner
+                scanner.stop().then(() => {
+                  scannerRef.current = null;
+                }).catch(err => console.error(err));
+
+                setIsScanning(false);
+
+                // Haptic feedback
+                if (typeof window !== 'undefined' && navigator.vibrate) {
+                  navigator.vibrate([100]);
+                }
+              }
+            },
+            () => {
+              // Ignore frame analysis errors
+            }
+          );
+        } catch (err: any) {
+          console.error('[Scanner] Failed to start:', err);
+          setCameraError('Camera access denied or device has no camera. Please enter details manually.');
+          setIsScanning(false);
+          scannerRef.current = null;
+        }
+      }, 300);
+    } catch (e) {
+      console.error('[Scanner] Failed to load library:', e);
       setIsScanning(false);
-      alert('QR Code Scanned Successfully!\nGroup Code: DASP89\nPIN: 123456\n\nPlease enter your name to join.');
-    }, 1500);
+    }
   };
+
+  const stopScanning = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+      } catch (err) {
+        console.error('[Scanner] Error stopping camera:', err);
+      } finally {
+        scannerRef.current = null;
+      }
+    }
+    setIsScanning(false);
+  };
+
+  // Component cleanup
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch((e: any) => console.error('[Scanner] Cleanup error:', e));
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +228,7 @@ export default function JoinFamilyGroup() {
           </Text>
         </ScreenHeader>
 
-        {/* QR Code Scanner Card (Visually premium mockup container) */}
+        {/* QR Code Scanner Card */}
         <div style={{
           position: 'relative',
           width: '100%',
@@ -130,34 +236,40 @@ export default function JoinFamilyGroup() {
           border: `1.5px solid ${isScanning ? colors.brand.primary : colors.neutral[500]}`,
           aspectRatio: '1.4',
           overflow: 'hidden',
-          backgroundColor: '#0F172A',
+          backgroundColor: '#0f172a',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '1rem',
           boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
           margin: '0.25rem 0'
         }}>
           {isScanning ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{
-                width: '60px',
-                height: '60px',
-                border: `3px solid rgba(230, 81, 0, 0.2)`,
-                borderTopColor: colors.brand.primary,
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-              <style>{`
-                @keyframes spin {
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
-              <Text variant="bodySmall" weight={600} color={colors.base.white}>
-                Scanning viewfinder...
-              </Text>
-            </div>
+            <>
+              {/* QR Reader DOM Element container */}
+              <div id="qr-reader" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              
+              {/* Floating Cancel Button */}
+              <StyledButton
+                variant="secondary"
+                onClick={stopScanning}
+                style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  zIndex: 10,
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: 'none',
+                  height: '32px',
+                  borderRadius: '16px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#ef4444',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                }}
+              >
+                Cancel Scan
+              </StyledButton>
+            </>
           ) : (
             <>
               {/* QR Target Frame Overlay */}
@@ -171,7 +283,7 @@ export default function JoinFamilyGroup() {
               <Camera size={36} color="rgba(255, 255, 255, 0.6)" style={{ zIndex: 2 }} />
               <StyledButton
                 variant="primary"
-                onClick={handleTriggerMockScan}
+                onClick={startScanning}
                 style={{
                   zIndex: 2,
                   backgroundColor: colors.brand.primary,
@@ -186,6 +298,26 @@ export default function JoinFamilyGroup() {
             </>
           )}
         </div>
+
+        {/* Camera Access Error Alert */}
+        {cameraError && (
+          <div style={{
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            backgroundColor: '#fee2e2',
+            border: '1px solid #fca5a5',
+            color: '#b91c1c',
+            fontSize: '12px',
+            fontWeight: '600',
+            margin: '0.5rem 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <AlertCircle size={16} />
+            <span>{cameraError}</span>
+          </div>
+        )}
 
         {/* Form separator */}
         <div style={{ display: 'flex', alignItems: 'center', margin: '0.25rem 0' }}>

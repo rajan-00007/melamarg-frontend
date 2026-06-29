@@ -19,4 +19,7 @@ export const API_ENDPOINTS = {
     get register() { return `${getBase()}/notifications/register`; },
     eventAlerts: (eventId: string) => `${getBase()}/notifications/events/${eventId}`,
   },
+  feedback: {
+    get submit() { return `${getBase()}/feedback`; },
+  },
 };

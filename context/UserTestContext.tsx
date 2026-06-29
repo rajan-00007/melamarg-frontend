@@ -5,6 +5,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { App } from '@capacitor/app';
 import axiosClient from '@/lib/axios/axiosClient';
 import { API_ENDPOINTS } from '@/lib/axios/endpoints';
+import { useFeedbackStore } from '@/app/melamarg/stores/feedbackStore';
 
 // Re-export types, mock data, and routing classes from types.ts to preserve complete backward-compatibility
 export {
@@ -531,6 +532,53 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
       autoLoad();
     }
   }, [selectedEvent, loadingMapData, locationPermission, initializeUserGps, loadEventPoisAndGraph]);
+
+  // Synchronize pending feedbacks when coming online
+  const syncOfflineFeedbacks = useCallback(async () => {
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    if (!isOnline || offlineMode) return;
+
+    const pendingFeedbacks = useFeedbackStore.getState().pendingFeedbacks;
+    if (pendingFeedbacks.length === 0) return;
+
+    console.log(`[FeedbackSync] Found ${pendingFeedbacks.length} pending offline feedbacks. Starting sync...`);
+    
+    for (const fb of pendingFeedbacks) {
+      try {
+        const feedbackUrl = API_ENDPOINTS.feedback?.submit || '/feedback';
+        await axiosClient.post(feedbackUrl, {
+          event_id: fb.event_id,
+          rating: fb.rating,
+          thoughts: fb.thoughts
+        });
+        
+        // Remove from store upon successful submit
+        useFeedbackStore.getState().removePendingFeedback(fb.id);
+        console.log(`[FeedbackSync] Successfully synced offline feedback: ${fb.id}`);
+      } catch (err) {
+        console.error(`[FeedbackSync] Failed to sync feedback ${fb.id}:`, err);
+      }
+    }
+  }, [offlineMode]);
+
+  // Hook up window online listener and try syncing on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener('online', syncOfflineFeedbacks);
+    syncOfflineFeedbacks();
+
+    return () => {
+      window.removeEventListener('online', syncOfflineFeedbacks);
+    };
+  }, [syncOfflineFeedbacks]);
+
+  // Sync feedbacks when offlineMode turns false
+  useEffect(() => {
+    if (!offlineMode) {
+      syncOfflineFeedbacks();
+    }
+  }, [offlineMode, syncOfflineFeedbacks]);
 
   const value = React.useMemo(() => ({
     // Config context fields

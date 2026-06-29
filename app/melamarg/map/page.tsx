@@ -98,7 +98,7 @@ export default function EventMapPage() {
         <FloatingHUDIndicators {...mapState} />
 
         {/* Floating Zone badges (active card) */}
-        <ZoneHUD {...mapState} />
+        <ZoneHUD {...mapState} /> 
 
         {/* Floating Controls: Recenter, Radar, Attractions, Family */}
         <MapControls {...mapState} />
@@ -108,7 +108,7 @@ export default function EventMapPage() {
       <BottomContentContainer
         ref={mapState.bottomSheetRef}
         $bottomNavVisible={mapState.areControlsVisible}
-        $isPoiSelected={!!mapState.selectedPoi}
+        $isPoiSelected={!!mapState.selectedPoi}  
       >
         <BottomSheetContent {...mapState} />
       </BottomContentContainer>
