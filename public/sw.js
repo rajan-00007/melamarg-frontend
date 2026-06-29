@@ -133,7 +133,7 @@ self.addEventListener('fetch', (event) => {
         })
         .catch((err) => {
           console.log('[SW] Navigation failed. Falling back to cached sub-route HTML or App Shell.', err);
-          return caches.match(event.request).then((cachedResponse) => {
+          return caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
 
             // Normalize path by stripping trailing slash to match pre-cached assets
@@ -143,8 +143,8 @@ self.addEventListener('fetch', (event) => {
               path = path.slice(0, -1);
             }
 
-            return caches.match(path).then((matchByPath) => {
-              return matchByPath || caches.match('/melamarg');
+            return caches.match(path, { ignoreSearch: true }).then((matchByPath) => {
+              return matchByPath || caches.match('/melamarg', { ignoreSearch: true });
             });
           });
         })

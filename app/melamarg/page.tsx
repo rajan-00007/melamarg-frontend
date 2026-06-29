@@ -114,7 +114,20 @@ export default function UserTestPage() {
   useEffect(() => {
     if (screenMode !== 'selector' && selectedEvent && downloadedEventIds.includes(selectedEvent.id) && locationPermission !== null) {
       const params = new URLSearchParams(window.location.search);
-      const returnUrl = params.get('returnUrl');
+      let returnUrl = params.get('returnUrl');
+      // Override secondary paths to land on /home first
+      if (returnUrl && (
+        returnUrl.includes('/alerts') || 
+        returnUrl.includes('/advisories') || 
+        returnUrl.includes('/parking') || 
+        returnUrl.includes('/help') || 
+        returnUrl.includes('/all-pois') || 
+        returnUrl.includes('/family') ||
+        returnUrl === '/melamarg' ||
+        returnUrl === '/melamarg/'
+      )) {
+        returnUrl = '/melamarg/home';
+      }
       router.push(returnUrl || '/melamarg/home');
     }
   }, [screenMode, selectedEvent, downloadedEventIds, locationPermission, router]);

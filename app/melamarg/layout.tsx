@@ -169,7 +169,20 @@ function UserTestLayoutContent({ children }: { children: React.ReactNode }) {
     const isSetupRoute = pathname === '/melamarg' || pathname === '/melamarg/';
     const isLanguageRoute = pathname === '/melamarg/language' || pathname === '/melamarg/language/';
     if (!selectedEvent && !isSetupRoute && !isLanguageRoute) {
-      router.push(`/melamarg?returnUrl=${pathname}`);
+      // Normalize target route: secondary paths default to /home
+      let targetPath = pathname;
+      if (
+        pathname.includes('/alerts') || 
+        pathname.includes('/advisories') || 
+        pathname.includes('/parking') || 
+        pathname.includes('/help') || 
+        pathname.includes('/all-pois') || 
+        pathname.includes('/family') || 
+        pathname.includes('/navigation')
+      ) {
+        targetPath = '/melamarg/home';
+      }
+      router.push(`/melamarg?returnUrl=${targetPath}`);
     }
   }, [isInitialized, selectedEvent, pathname, router]);
 

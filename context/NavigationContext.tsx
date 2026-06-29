@@ -41,7 +41,37 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const { userGps, setUserGps } = useGps();
   const { routeNodes, routeEdges, activeAdvisories } = useMapData();
 
-  const [navTarget, setNavTarget] = useState<POIItem | null>(null);
+  const [navTarget, setNavTargetState] = useState<POIItem | null>(null);
+
+  // Wrap setNavTarget to save to localStorage synchronously
+  const setNavTarget = useCallback((target: React.SetStateAction<POIItem | null>) => {
+    setNavTargetState((prev) => {
+      const next = typeof target === 'function' ? (target as Function)(prev) : target;
+      if (typeof window !== 'undefined') {
+        if (next) {
+          localStorage.setItem('mm_nav_target', JSON.stringify(next));
+        } else {
+          localStorage.removeItem('mm_nav_target');
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  // Restore navTarget from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mm_nav_target');
+      if (saved) {
+        try {
+          setNavTargetState(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse mm_nav_target:', e);
+        }
+      }
+    }
+  }, []);
+
   const [deviceHeading, setDeviceHeading] = useState(0);
   const [isWalking, setIsWalking] = useState(false);
   const [arrivalNotify, setArrivalNotify] = useState(false);
