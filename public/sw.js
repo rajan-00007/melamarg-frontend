@@ -132,19 +132,34 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch((err) => {
-          console.log('[SW] Navigation failed. Falling back to cached sub-route HTML or App Shell.', err);
-          return caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-            if (cachedResponse) return cachedResponse;
+          console.log('[SW] Navigation failed. Falling back to cached HTML.', err);
+          
+          const getHtmlResponse = (responses) => {
+            return responses.find(res => {
+              const ct = res.headers.get('content-type');
+              return ct && ct.includes('text/html');
+            });
+          };
 
-            // Normalize path by stripping trailing slash to match pre-cached assets
+          return caches.matchAll(event.request, { ignoreSearch: true }).then((responses) => {
+            const htmlMatch = getHtmlResponse(responses);
+            if (htmlMatch) return htmlMatch;
+
+            // Normalize path by stripping trailing slash
             const cleanUrl = new URL(event.request.url);
             let path = cleanUrl.pathname;
             if (path.endsWith('/') && path.length > 1) {
               path = path.slice(0, -1);
             }
 
-            return caches.match(path, { ignoreSearch: true }).then((matchByPath) => {
-              return matchByPath || caches.match('/melamarg', { ignoreSearch: true });
+            return caches.matchAll(path, { ignoreSearch: true }).then((pathResponses) => {
+              const htmlPathMatch = getHtmlResponse(pathResponses);
+              if (htmlPathMatch) return htmlPathMatch;
+
+              // Absolute fallback to /melamarg
+              return caches.matchAll('/melamarg', { ignoreSearch: true }).then((fallbackResponses) => {
+                return getHtmlResponse(fallbackResponses) || fallbackResponses[0];
+              });
             });
           });
         })
