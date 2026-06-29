@@ -98,8 +98,11 @@ export default function UserTestPage() {
 
   // Reset selected event and screen mode on mount to ensure we always show the selector first
   useEffect(() => {
-    setSelectedEvent(null);
-    setScreenMode('selector');
+    // Only reset if the URL is actually /melamarg, preventing reset if this component is erroneously hydrated on a sub-route
+    if (window.location.pathname === '/melamarg' || window.location.pathname === '/melamarg/') {
+      setSelectedEvent(null);
+      setScreenMode('selector');
+    }
 
     // Prefetch all main sub-routes so their JS chunks are cached offline
     router.prefetch('/melamarg/home');

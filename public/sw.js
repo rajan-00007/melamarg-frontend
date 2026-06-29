@@ -242,15 +242,15 @@ self.addEventListener('fetch', (event) => {
             return cachedResponse;
           }
 
-          // RSC requests fallback: match cache ignoring search parameters (ignoreSearch: true)
+          // RSC requests fallback: match cache WITHOUT ignoring search parameters (so we don't return HTML for RSC)
           const isRscRequest = url.searchParams.has('_rsc') || event.request.headers.get('RSC') === '1';
           if (isRscRequest) {
-            return caches.match(event.request, { ignoreSearch: true }).then((rscResponse) => {
-              if (rscResponse) {
-                console.log('[SW] Found search-insensitive cache match for RSC request:', url.pathname);
-                return rscResponse;
-              }
-              throw err;
+            return caches.match(event.request).then((rscResponse) => {
+              if (rscResponse) return rscResponse;
+              return fetch(event.request).catch(() => {
+                // Return a basic 404 or a minimal fallback for RSC to force Next.js hard reload
+                return new Response('RSC fallback', { status: 404 });
+              });
             });
           }
 
