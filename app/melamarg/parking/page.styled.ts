@@ -480,3 +480,159 @@ export const PriceBadge = styled.div<{ $isPaid: boolean }>`
   align-items: center;
   gap: 4px;
 `;
+
+// Slots Selector Modal Styles
+export const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 16px 90px 16px;
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
+export const ModalContent = styled.div`
+  background: #ffffff;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(241, 245, 249, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes slideUp {
+    from { transform: translateY(100px); }
+    to { transform: translateY(0); }
+  }
+`;
+
+export const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+`;
+
+export const ModalTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+`;
+
+export const ModalSubtitle = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin: 4px 0 0 0;
+  font-weight: 500;
+`;
+
+export const CloseButton = styled.button`
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+`;
+
+export const CounterWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px 0;
+`;
+
+export const CounterButton = styled.button`
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #0f172a;
+    background: #f1f5f9;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+export const CounterValue = styled.span`
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  min-width: 40px;
+  text-align: center;
+`;
+
+export const ModalInfoCard = styled.div`
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1.5px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+`;
+
+export const ConfirmButton = styled.button`
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+
+  &:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;

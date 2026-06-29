@@ -15,6 +15,9 @@ import {
   Bookmark,
   ArrowRight,
   Compass,
+  X,
+  Minus,
+  Plus,
 } from 'lucide-react';
 
 import {
@@ -57,6 +60,17 @@ import {
   CompactReserveButton,
   CompactRouteButton,
   PriceBadge,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalSubtitle,
+  CloseButton,
+  CounterWrapper,
+  CounterButton,
+  CounterValue,
+  ModalInfoCard,
+  ConfirmButton,
 } from './page.styled';
 
 // Haversine distance calculator
@@ -83,6 +97,11 @@ export default function ParkingFinderPage() {
   const [activeReservation, setActiveReservation] = useState<any | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Slot modal states
+  const [showSlotsModal, setShowSlotsModal] = useState(false);
+  const [selectedLotForModal, setSelectedLotForModal] = useState<any | null>(null);
+  const [modalSlotsCount, setModalSlotsCount] = useState(1);
 
   // Generate or get anonymous device ID for tracking reservations
   const getDeviceId = (): string => {
@@ -199,7 +218,7 @@ export default function ParkingFinderPage() {
   }, [activeReservation]);
 
   // Handle reserve click
-  const handleReserve = async (lot: any) => {
+  const handleReserve = async (lot: any, slotsCount: number) => {
     if (offlineMode) {
       alert('You are currently offline. Real-time reservations require network connectivity. Please navigate directly to the lot.');
       return;
@@ -209,7 +228,8 @@ export default function ParkingFinderPage() {
       const deviceId = getDeviceId();
       const res = await axiosClient.post('/parking/reserve', {
         parkingLotId: lot.id,
-        deviceId
+        deviceId,
+        slotsCount
       });
 
       if (res.data && res.data.success) {
@@ -229,6 +249,18 @@ export default function ParkingFinderPage() {
     } catch (err: any) {
       alert(err.response?.data?.error || err.message || 'Failed to reserve spot');
     }
+  };
+
+  const openReserveModal = (lot: any) => {
+    if (offlineMode) {
+      alert('You are currently offline. Real-time reservations require network connectivity. Please navigate directly to the lot.');
+      return;
+    }
+    if (activeReservation) return;
+
+    setSelectedLotForModal(lot);
+    setModalSlotsCount(1);
+    setShowSlotsModal(true);
   };
 
   // Handle cancel click
@@ -431,6 +463,10 @@ export default function ParkingFinderPage() {
                 <span className="value">{activeReservation.token}</span>
               </TicketRow>
               <TicketRow>
+                <span>Slots Reserved:</span>
+                <span className="value" style={{ fontWeight: 'bold' }}>{activeReservation.slots_count || 1}</span>
+              </TicketRow>
+              <TicketRow>
                 <span>{t('validFor')}:</span>
                 <span className="countdown">{timeLeft}</span>
               </TicketRow>
@@ -474,7 +510,7 @@ export default function ParkingFinderPage() {
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
             <ReserveButton
-              onClick={() => handleReserve(spotlightLot)}
+              onClick={() => openReserveModal(spotlightLot)}
               $disabled={spotlightLot.available_spots <= 0 || !!activeReservation}
               style={{ flex: 1 }}
             >
@@ -524,7 +560,7 @@ export default function ParkingFinderPage() {
                   <CompactReserveButton
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleReserve(lot);
+                      openReserveModal(lot);
                     }}
                     $disabled={isFull || !!activeReservation}
                   >
@@ -552,6 +588,61 @@ export default function ParkingFinderPage() {
         <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: '15px' }}>
           No parking lots matching search query found.
         </div>
+      )}
+
+      {showSlotsModal && selectedLotForModal && (
+        <ModalOverlay onClick={() => setShowSlotsModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <div>
+                <ModalTitle>Book Parking Slots</ModalTitle>
+                <ModalSubtitle>Select slots for {selectedLotForModal.name}</ModalSubtitle>
+              </div>
+              <CloseButton onClick={() => setShowSlotsModal(false)}>
+                <X size={18} />
+              </CloseButton>
+            </ModalHeader>
+
+            <CounterWrapper>
+              <CounterButton
+                onClick={() => setModalSlotsCount(prev => Math.max(1, prev - 1))}
+                disabled={modalSlotsCount <= 1}
+              >
+                <Minus size={20} />
+              </CounterButton>
+              <CounterValue>{modalSlotsCount}</CounterValue>
+              <CounterButton
+                onClick={() => setModalSlotsCount(prev => Math.min(Math.min(4, selectedLotForModal.available_spots), prev + 1))}
+                disabled={modalSlotsCount >= Math.min(4, selectedLotForModal.available_spots)}
+              >
+                <Plus size={20} />
+              </CounterButton>
+            </CounterWrapper>
+
+            {Number(selectedLotForModal.price_per_hour) > 0 && (
+              <ModalInfoCard>
+                <span>Total Hourly Price:</span>
+                <span style={{ color: '#ef4444', fontSize: '16px' }}>
+                  ₹{Number(selectedLotForModal.price_per_hour) * modalSlotsCount}/hr
+                </span>
+              </ModalInfoCard>
+            )}
+
+            <ModalInfoCard style={{ background: '#f0fdf4', borderColor: '#dcfce7', color: '#16a34a' }}>
+              <span>Booking limit per user:</span>
+              <span>Max 4 slots</span>
+            </ModalInfoCard>
+
+            <ConfirmButton
+              onClick={() => {
+                handleReserve(selectedLotForModal, modalSlotsCount);
+                setShowSlotsModal(false);
+              }}
+            >
+              Confirm Reservation ({modalSlotsCount} {modalSlotsCount === 1 ? 'Slot' : 'Slots'})
+            </ConfirmButton>
+          </ModalContent>
+        </ModalOverlay>
       )}
     </Container>
   );
