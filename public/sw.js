@@ -141,24 +141,26 @@ self.addEventListener('fetch', (event) => {
             });
           };
 
-          return caches.matchAll(event.request, { ignoreSearch: true }).then((responses) => {
-            const htmlMatch = getHtmlResponse(responses);
-            if (htmlMatch) return htmlMatch;
+          return caches.open(CACHE_NAME).then((cache) => {
+            return cache.matchAll(event.request, { ignoreSearch: true }).then((responses) => {
+              const htmlMatch = getHtmlResponse(responses);
+              if (htmlMatch) return htmlMatch;
 
-            // Normalize path by stripping trailing slash
-            const cleanUrl = new URL(event.request.url);
-            let path = cleanUrl.pathname;
-            if (path.endsWith('/') && path.length > 1) {
-              path = path.slice(0, -1);
-            }
+              // Normalize path by stripping trailing slash
+              const cleanUrl = new URL(event.request.url);
+              let path = cleanUrl.pathname;
+              if (path.endsWith('/') && path.length > 1) {
+                path = path.slice(0, -1);
+              }
 
-            return caches.matchAll(path, { ignoreSearch: true }).then((pathResponses) => {
-              const htmlPathMatch = getHtmlResponse(pathResponses);
-              if (htmlPathMatch) return htmlPathMatch;
+              return cache.matchAll(path, { ignoreSearch: true }).then((pathResponses) => {
+                const htmlPathMatch = getHtmlResponse(pathResponses);
+                if (htmlPathMatch) return htmlPathMatch;
 
-              // Absolute fallback to /melamarg
-              return caches.matchAll('/melamarg', { ignoreSearch: true }).then((fallbackResponses) => {
-                return getHtmlResponse(fallbackResponses) || fallbackResponses[0];
+                // Absolute fallback to /melamarg
+                return cache.matchAll('/melamarg', { ignoreSearch: true }).then((fallbackResponses) => {
+                  return getHtmlResponse(fallbackResponses) || fallbackResponses[0];
+                });
               });
             });
           });
