@@ -54,13 +54,19 @@ import {
   StyledZap,
   StyledRefreshCw,
   DownloadButtonSvg,
-  PermissionSvg
+  PermissionSvg,
+  SectionContainer,
+  SectionHeader,
+  SectionTitleText,
+  HorizontalEventList,
+  UpcomingEventCard
 } from './page.styled';
 
 export default function UserTestPage() {
   const router = useRouter();
   const {
     events,
+    upcomingEvents,
     loadingEvents,
     downloadedEventIds,
     apiError,
@@ -172,65 +178,142 @@ export default function UserTestPage() {
             </LoadingContainer>
           ) : (
             <EventList>
-              {events.length === 0 ? (
+              {events.length === 0 && upcomingEvents.length === 0 ? (
                 <EmptyState>
                   {t('noMapsConnectInternet')}
                 </EmptyState>
               ) : (
-                events.map((event: any) => {
-                  const isDownloaded = downloadedEventIds.includes(event.id);
-                  return (
-                    <EventCard key={event.id} $isDownloaded={isDownloaded}>
-                      <EventBannerImage src={getEventBannerImage(event)} alt={tEventName(event)} />
-                      <EventHeaderRow>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          <EventTitle>
-                            <span>{tEventName(event)}</span>
-                            {isDownloaded && (
-                              <DownloadedBadge>
-                                <StyledCheckCircle />
-                                <span>{t('downloaded')}</span>
-                              </DownloadedBadge>
-                            )}
-                          </EventTitle>
-                          <EventDescription>
-                            {tEventDesc(event) || t('offlineDesc')}
-                          </EventDescription>
-                        </div>
-                      </EventHeaderRow>
+                <>
+                  {/* Current Active Events Section */}
+                  {events.length > 0 && (
+                    <SectionContainer>
+                      <SectionHeader>
+                        <SectionTitleText>{t('currentActiveEvents')}</SectionTitleText>
+                      </SectionHeader>
+                      <EventList>
+                        {events.map((event: any) => {
+                          const isDownloaded = downloadedEventIds.includes(event.id);
+                          return (
+                            <EventCard key={event.id} $isDownloaded={isDownloaded}>
+                              <EventBannerImage src={getEventBannerImage(event)} alt={tEventName(event)} />
+                              <EventHeaderRow>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                  <EventTitle>
+                                    <span>{tEventName(event)}</span>
+                                    {isDownloaded && (
+                                      <DownloadedBadge>
+                                        <StyledCheckCircle />
+                                        <span>{t('downloaded')}</span>
+                                      </DownloadedBadge>
+                                    )}
+                                  </EventTitle>
+                                  <EventDescription>
+                                    {tEventDesc(event) || t('offlineDesc')}
+                                  </EventDescription>
+                                </div>
+                              </EventHeaderRow>
 
-                      <ActionsRow>
-                        <DownloadOrOpenButton
-                          $isDownloaded={isDownloaded}
-                          onClick={() => handleEventSelection(event)}
-                        >
-                          {isDownloaded ? (
-                            <>
-                              <StyledZap fill="currentColor" />
-                              <span>{t('openOfflineMap')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <DownloadButtonSvg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </DownloadButtonSvg>
-                              <span>{t('downloadOfflinePackage')}</span>
-                            </>
-                          )}
-                        </DownloadOrOpenButton>
+                              <ActionsRow>
+                                <DownloadOrOpenButton
+                                  $isDownloaded={isDownloaded}
+                                  onClick={() => handleEventSelection(event)}
+                                >
+                                  {isDownloaded ? (
+                                    <>
+                                      <StyledZap fill="currentColor" />
+                                      <span>{t('openOfflineMap')}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DownloadButtonSvg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </DownloadButtonSvg>
+                                      <span>{t('downloadOfflinePackage')}</span>
+                                    </>
+                                  )}
+                                </DownloadOrOpenButton>
 
-                        {isDownloaded && (
-                          <RedownloadButton
-                            onClick={(e: React.MouseEvent) => triggerExplicitRedownload(event, e)}
-                            title="Re-download bundle"
-                          >
-                            <StyledRefreshCw />
-                          </RedownloadButton>
-                        )}
-                      </ActionsRow>
-                    </EventCard>
-                  );
-                })
+                                {isDownloaded && (
+                                  <RedownloadButton
+                                    onClick={(e: React.MouseEvent) => triggerExplicitRedownload(event, e)}
+                                    title="Re-download bundle"
+                                  >
+                                    <StyledRefreshCw />
+                                  </RedownloadButton>
+                                )}
+                              </ActionsRow>
+                            </EventCard>
+                          );
+                        })}
+                      </EventList>
+                    </SectionContainer>
+                  )}
+
+                  {/* Upcoming Events Section */}
+                  {upcomingEvents.length > 0 && (
+                    <SectionContainer style={{ marginTop: '0.5rem' }}>
+                      <SectionHeader>
+                        <SectionTitleText>{t('upcomingEvents')}</SectionTitleText>
+                      </SectionHeader>
+                      <HorizontalEventList>
+                        {upcomingEvents.map((event: any) => {
+                          const isDownloaded = downloadedEventIds.includes(event.id);
+                          return (
+                            <UpcomingEventCard key={event.id} $isDownloaded={isDownloaded}>
+                              <EventBannerImage src={getEventBannerImage(event)} alt={tEventName(event)} />
+                              <EventHeaderRow>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                  <EventTitle>
+                                    <span>{tEventName(event)}</span>
+                                    {isDownloaded && (
+                                      <DownloadedBadge>
+                                        <StyledCheckCircle />
+                                        <span>{t('downloaded')}</span>
+                                      </DownloadedBadge>
+                                    )}
+                                  </EventTitle>
+                                  <EventDescription>
+                                    {tEventDesc(event) || t('offlineDesc')}
+                                  </EventDescription>
+                                </div>
+                              </EventHeaderRow>
+
+                              <ActionsRow>
+                                <DownloadOrOpenButton
+                                  $isDownloaded={isDownloaded}
+                                  onClick={() => handleEventSelection(event)}
+                                >
+                                  {isDownloaded ? (
+                                    <>
+                                      <StyledZap fill="currentColor" />
+                                      <span>{t('openOfflineMap')}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DownloadButtonSvg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </DownloadButtonSvg>
+                                      <span>{t('downloadOfflinePackage')}</span>
+                                    </>
+                                  )}
+                                </DownloadOrOpenButton>
+
+                                {isDownloaded && (
+                                  <RedownloadButton
+                                    onClick={(e: React.MouseEvent) => triggerExplicitRedownload(event, e)}
+                                    title="Re-download bundle"
+                                  >
+                                    <StyledRefreshCw />
+                                  </RedownloadButton>
+                                )}
+                              </ActionsRow>
+                            </UpcomingEventCard>
+                          );
+                        })}
+                      </HorizontalEventList>
+                    </SectionContainer>
+                  )}
+                </>
               )}
             </EventList>
           )}

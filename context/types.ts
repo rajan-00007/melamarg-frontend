@@ -19,6 +19,8 @@ export interface EventItem {
   bundle_url?: string;
   bundle_size?: number;
   metadata?: Record<string, any>;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface POIItem {
@@ -212,6 +214,8 @@ export const MOCK_EVENTS: EventItem[] = [
     west: 85.8150,
     center_lat: 19.8050,
     center_lng: 85.8250,
+    start_date: '2026-06-20',
+    end_date: '2026-07-10',
   },
   {
     id: 'mock-kumbh-mela',
@@ -227,6 +231,8 @@ export const MOCK_EVENTS: EventItem[] = [
     west: 81.8750,
     center_lat: 25.4250,
     center_lng: 81.8850,
+    start_date: '2026-06-25',
+    end_date: '2026-07-05',
   },
   {
     id: 'mock-thrissur-pooram',
@@ -242,6 +248,8 @@ export const MOCK_EVENTS: EventItem[] = [
     west: 76.2040,
     center_lat: 10.5244,
     center_lng: 76.2144,
+    start_date: '2026-07-15',
+    end_date: '2026-07-25',
   }
 ];
 

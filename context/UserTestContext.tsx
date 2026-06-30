@@ -96,6 +96,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
   const {
     events,
     setEvents,
+    upcomingEvents,
+    setUpcomingEvents,
     loadingEvents,
     setLoadingEvents,
     downloadedEventIds,
@@ -184,10 +186,40 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     setApiError(false);
     console.log('[fetchEventsCatalog] Fetching events via axiosClient...');
 
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const filterActiveAndUpcoming = (allEvents: EventItem[]) => {
+      const active = allEvents.filter(e => {
+        const start = e.start_date ? new Date(e.start_date) : null;
+        const end = e.end_date ? new Date(e.end_date) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(0, 0, 0, 0);
+        return (start === null || start <= now) && (end === null || end >= now);
+      });
+
+      const upcoming = allEvents.filter(e => {
+        const start = e.start_date ? new Date(e.start_date) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        return start !== null && start > now;
+      });
+
+      upcoming.sort((a, b) => {
+        const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+        const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      return { active, upcoming };
+    };
+
     // Fast-path: if offline, bypass the network call completely and show downloaded list instantly
     if (typeof window !== 'undefined' && !navigator.onLine) {
       console.log('[fetchEventsCatalog] Browser offline. Instantly loading cached downloaded maps.');
-      setEvents(getOfflineEvents(downloadedEventIds));
+      const offlineList = getOfflineEvents(downloadedEventIds);
+      const { active, upcoming } = filterActiveAndUpcoming(offlineList);
+      setEvents(active);
+      setUpcomingEvents(upcoming);
       setLoadingEvents(false);
       return;
     }
@@ -204,15 +236,27 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
       
       const res = await axiosClient.get(url);
       const json = res.data;
-      if (json && json.success && Array.isArray(json.data)) {
-        const backendEvents = json.data;
-        if (backendEvents.length > 0) {
-          setEvents(backendEvents);
+      if (json && json.success && json.data) {
+        if (json.data.active && json.data.upcoming) {
+          const activeEvents = json.data.active;
+          const upcomingEvents = json.data.upcoming;
+          setEvents(activeEvents);
+          setUpcomingEvents(upcomingEvents);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('mm_cached_events', JSON.stringify([...activeEvents, ...upcomingEvents]));
+          }
+        } else if (Array.isArray(json.data)) {
+          const backendEvents = json.data;
+          const { active, upcoming } = filterActiveAndUpcoming(backendEvents);
+          setEvents(active);
+          setUpcomingEvents(upcoming);
           if (typeof window !== 'undefined') {
             localStorage.setItem('mm_cached_events', JSON.stringify(backendEvents));
           }
         } else {
-          setEvents(MOCK_EVENTS);
+          const { active, upcoming } = filterActiveAndUpcoming(MOCK_EVENTS);
+          setEvents(active);
+          setUpcomingEvents(upcoming);
         }
       } else {
         throw new Error('Fallback empty list');
@@ -220,11 +264,14 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.log('Unable to reach server. Displaying cached downloaded events.', err);
       setApiError(true);
-      setEvents(getOfflineEvents(downloadedEventIds));
+      const offlineList = getOfflineEvents(downloadedEventIds);
+      const { active, upcoming } = filterActiveAndUpcoming(offlineList);
+      setEvents(active);
+      setUpcomingEvents(upcoming);
     } finally {
       setLoadingEvents(false);
     }
-  }, [downloadedEventIds, getOfflineEvents, getRealGps, setEvents, setLoadingEvents, setApiError, setUserGps]);
+  }, [downloadedEventIds, getOfflineEvents, getRealGps, setEvents, setUpcomingEvents, setLoadingEvents, setApiError, setUserGps]);
 
   const initializeUserGps = useCallback(async (event: EventItem) => {
     try {
@@ -472,9 +519,25 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     if (!offlineMode) {
       fetchEventsCatalog();
     } else {
-      setEvents(getOfflineEvents(downloadedEventIds));
+      const offlineList = getOfflineEvents(downloadedEventIds);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const active = offlineList.filter(e => {
+        const start = e.start_date ? new Date(e.start_date) : null;
+        const end = e.end_date ? new Date(e.end_date) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(0, 0, 0, 0);
+        return (start === null || start <= now) && (end === null || end >= now);
+      });
+      const upcoming = offlineList.filter(e => {
+        const start = e.start_date ? new Date(e.start_date) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        return start !== null && start > now;
+      });
+      setEvents(active);
+      setUpcomingEvents(upcoming);
     }
-  }, [backendUrl, offlineMode, downloadedEventIds, getOfflineEvents, fetchEventsCatalog, setEvents, urlReadySignal]);
+  }, [backendUrl, offlineMode, downloadedEventIds, getOfflineEvents, fetchEventsCatalog, setEvents, setUpcomingEvents, urlReadySignal]);
 
   // Start/stop GPS watch continuously when inside an event and permission is granted
   useEffect(() => {
@@ -595,6 +658,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     // Events context fields
     events,
     setEvents,
+    upcomingEvents,
+    setUpcomingEvents,
     loadingEvents,
     downloadedEventIds,
     setDownloadedEventIds,
@@ -686,6 +751,8 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     setApiError,
     events,
     setEvents,
+    upcomingEvents,
+    setUpcomingEvents,
     loadingEvents,
     downloadedEventIds,
     setDownloadedEventIds,

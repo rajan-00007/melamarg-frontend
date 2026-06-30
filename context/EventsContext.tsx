@@ -6,6 +6,8 @@ import { EventItem, MOCK_EVENTS } from './types';
 export interface EventsContextType {
   events: EventItem[];
   setEvents: React.Dispatch<React.SetStateAction<EventItem[]>>;
+  upcomingEvents: EventItem[];
+  setUpcomingEvents: React.Dispatch<React.SetStateAction<EventItem[]>>;
   loadingEvents: boolean;
   setLoadingEvents: React.Dispatch<React.SetStateAction<boolean>>;
   downloadedEventIds: string[];
@@ -24,6 +26,7 @@ const EventsContext = createContext<EventsContextType | undefined>(undefined);
 
 export function EventsProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [downloadedEventIds, setDownloadedEventIds] = useState<string[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
@@ -87,6 +90,8 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo(() => ({
     events,
     setEvents,
+    upcomingEvents,
+    setUpcomingEvents,
     loadingEvents,
     setLoadingEvents,
     downloadedEventIds,
@@ -101,6 +106,7 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
     isInitialized,
   }), [
     events,
+    upcomingEvents,
     loadingEvents,
     downloadedEventIds,
     selectedEvent,

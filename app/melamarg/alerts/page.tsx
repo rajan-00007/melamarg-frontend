@@ -16,7 +16,9 @@ import {
   Volume2, 
   Compass, 
   PhoneCall, 
-  ChevronRight 
+  ChevronRight,
+  WifiOff,
+  BellOff
 } from 'lucide-react';
 
 // Subcomponents
@@ -106,10 +108,34 @@ export default function EventAlertsPage() {
     setScreenMode,
     setArrivalNotify,
     logNavigationInstructions,
-    triggerToast
+    triggerToast,
+    offlineMode
   } = useUserTest();
 
   const { t } = useLanguage();
+  const [isBrowserOnline, setIsBrowserOnline] = React.useState(true);
+
+  React.useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      setIsBrowserOnline(navigator.onLine);
+    }
+
+    const handleOnline = () => setIsBrowserOnline(true);
+    const handleOffline = () => setIsBrowserOnline(false);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
+    };
+  }, []);
+
+  const isEffectiveOnline = isBrowserOnline && !offlineMode;
 
   if (!selectedEvent) return null;
 
@@ -126,8 +152,8 @@ export default function EventAlertsPage() {
     return new Date(dateStr).toLocaleDateString().toUpperCase();
   };
 
-  // Map active live notifications or load mock notifications matching screenshot
-  const displayAlerts = activeAlerts.length > 0 ? activeAlerts.map(alert => {
+  // Map active live notifications
+  const displayAlerts = activeAlerts.map(alert => {
     const isEmergency = alert.is_emergency;
     const isAdvisory = alert.title.toUpperCase().includes('ADVISORY') || 
                        alert.title.toUpperCase().includes('CROWD') || 
@@ -156,7 +182,7 @@ export default function EventAlertsPage() {
       longitude: alert.longitude,
       actionText
     };
-  }) : MOCK_PAGE_ALERTS;
+  });
 
   // Handles coordinate updates
   const handleUpdateLocation = async () => {
@@ -252,11 +278,17 @@ export default function EventAlertsPage() {
         </Text>
         
         <AlertsFeed>
-          {displayAlerts.length === 0 ? (
+          {!isEffectiveOnline ? (
             <EmptyFeed>
-              <Bell size={32} />
-              <EmptyTitle>{t('allClearSector')}</EmptyTitle>
-              <EmptySubtitle>{t('noSafetyAlerts')}</EmptySubtitle>
+              <WifiOff size={32} style={{ color: colors.neutral[700] }} />
+              <EmptyTitle>{t('noInternet')}</EmptyTitle>
+              <EmptySubtitle>{t('noInternetDesc')}</EmptySubtitle>
+            </EmptyFeed>
+          ) : displayAlerts.length === 0 ? (
+            <EmptyFeed>
+              <BellOff size={32} style={{ color: colors.neutral[700] }} />
+              <EmptyTitle>{t('noNotifications')}</EmptyTitle>
+              <EmptySubtitle>{t('noNotificationsDesc')}</EmptySubtitle>
             </EmptyFeed>
           ) : (
             displayAlerts.map((alert) => (

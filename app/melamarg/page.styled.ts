@@ -635,3 +635,63 @@ export const PermissionSvg = styled.svg`
   width: 2rem;
   height: 2rem;
 `;
+
+// Active & Upcoming Events Sections
+export const SectionContainer = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 28rem;
+`;
+
+export const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.25rem;
+`;
+
+export const SectionTitleText = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: ${colors.neutral[900]};
+  margin: 0;
+  font-family: var(--font-inter, sans-serif);
+`;
+
+export const HorizontalEventList = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #dddddd;
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #cccccc;
+  }
+`;
+
+export const UpcomingEventCard = styled(EventCard)`
+  min-width: 280px;
+  max-width: 280px;
+  flex-shrink: 0;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+`;
