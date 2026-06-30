@@ -233,7 +233,13 @@ export default function RedesignedEventHomePage() {
   }, [userGps, offlineMode, selectedEvent?.id]);
 
   const getEventSlides = () => {
-    if (!selectedEvent) return EVENT_SLIDES_MAP.rathyatra;
+    if (!selectedEvent) return [];
+
+    let eventBanner = selectedEvent.banner_url;
+    if (eventBanner && eventBanner.startsWith('/') && backendUrl) {
+      eventBanner = `${backendUrl.replace(/\/+$/, '')}${eventBanner}`;
+    }
+
     const name = selectedEvent.name.toLowerCase();
     const id = selectedEvent.id.toLowerCase();
     
@@ -241,18 +247,54 @@ export default function RedesignedEventHomePage() {
     if (name.includes('bali') || id.includes('bali')) baseSlides = EVENT_SLIDES_MAP.baliyatra;
     else if (name.includes('kumbh') || id.includes('kumbh')) baseSlides = EVENT_SLIDES_MAP.kumbhmela;
 
-    // Resolve absolute banner image path if it's served from the backend relative path
-    let eventBanner = selectedEvent.banner_url;
-    if (eventBanner && eventBanner.startsWith('/') && backendUrl) {
-      eventBanner = `${backendUrl.replace(/\/+$/, '')}${eventBanner}`;
+    const getBadgeForIndex = (idx: number) => {
+      if (idx % 3 === 0) return { label: t('featured') || 'Featured', color: '#E65100' };
+      if (idx % 3 === 1) return { label: t('artCulture') || 'Art & Culture', color: '#00695C' };
+      return { label: t('liveEvent') || 'Live Event', color: '#4C616C' };
+    };
+
+    let meta: any = {};
+    if (selectedEvent.metadata) {
+      if (typeof selectedEvent.metadata === 'string') {
+        try {
+          meta = JSON.parse(selectedEvent.metadata);
+        } catch (_) {
+          meta = {};
+        }
+      } else {
+        meta = selectedEvent.metadata;
+      }
+    }
+    
+    const customBanners = meta.banners || [];
+
+    if (customBanners && customBanners.length > 0) {
+      return customBanners.map((banner: any, idx: number) => {
+        let imgUrl = banner.image_url;
+        if (imgUrl && imgUrl.startsWith('/') && backendUrl) {
+          imgUrl = `${backendUrl.replace(/\/+$/, '')}${imgUrl}`;
+        }
+        
+        // Fallback image using local slide images sequentially, or event banner
+        const fallbackImage = baseSlides[idx % baseSlides.length]?.image || eventBanner || rathyatraBanner1.src;
+        const defaultBadge = getBadgeForIndex(idx);
+
+        return {
+          image: imgUrl || fallbackImage,
+          title: banner.title || selectedEvent.name,
+          badge: banner.badge || defaultBadge.label,
+          badgeColor: banner.badgeColor || defaultBadge.color
+        };
+      });
     }
 
+    // Fallback to static slides if no backend custom banners exist
     return baseSlides.map((slide, idx) => {
       if (idx === 0) {
         return {
           ...slide,
-          title: tEventName(selectedEvent), // Display actual event name on the banner
-          image: eventBanner || slide.image // Display actual event image if available, otherwise fallback to local
+          title: tEventName(selectedEvent),
+          image: eventBanner || slide.image
         };
       }
       return slide;
@@ -264,10 +306,10 @@ export default function RedesignedEventHomePage() {
   // Handle slide dots on scroll
   const handleSliderScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
-    if (container) {
+    if (container && slides.length > 1) {
       const scrollPercent = container.scrollLeft / (container.scrollWidth - container.clientWidth);
-      const index = Math.round(scrollPercent * 2); // 3 slides total (0, 1, 2)
-      if (!isNaN(index) && index >= 0 && index <= 2) {
+      const index = Math.round(scrollPercent * (slides.length - 1));
+      if (!isNaN(index) && index >= 0 && index < slides.length) {
         setActiveSlide(index);
       }
     }
@@ -388,7 +430,7 @@ export default function RedesignedEventHomePage() {
     if (isEmergency) return 'CRITICAL';
     if (isAdvisory) return 'WARNING';
     return 'INFO';
-  };
+  }; 
 
   const alertCategory = getAlertCategory(latestAlert);
   
@@ -436,7 +478,7 @@ export default function RedesignedEventHomePage() {
       {/* 1. Event Highlights Slider */}
       <SliderWrapper>
         <SliderContainer ref={sliderRef} onScroll={handleSliderScroll}>
-          {slides.map((slide, idx) => (
+          {slides.map((slide: any, idx: number) => (
             <SlideItem key={idx}>
               <SlideImage src={slide.image} alt={slide.title} />
               <SlideOverlay />
@@ -461,7 +503,7 @@ export default function RedesignedEventHomePage() {
         </SliderContainer>
 
         <DotIndicators>
-          {slides.map((_, idx) => (
+          {slides.map((_: any, idx: number) => (
             <Dot key={idx} $active={activeSlide === idx} />
           ))}
         </DotIndicators>

@@ -393,7 +393,7 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('mm_offline_pois_') || key.startsWith('mm_offline_routes_'))) {
+        if (key && key.startsWith('mm_offline_')) {
           keysToRemove.push(key);
         }
       }
@@ -662,6 +662,14 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
       syncOfflineFeedbacks();
     }
   }, [offlineMode, syncOfflineFeedbacks]);
+
+  // Sync highlights, POIs, and graph details when coming online
+  useEffect(() => {
+    if (!offlineMode && selectedEvent) {
+      console.log(`[OnlineSync] App transitioned online. Fetching fresh assets for event ${selectedEvent.id}...`);
+      loadEventPoisAndGraph(selectedEvent);
+    }
+  }, [offlineMode, selectedEvent, loadEventPoisAndGraph]);
 
   const value = React.useMemo(() => ({
     // Config context fields
