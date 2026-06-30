@@ -465,9 +465,9 @@ export default function RedesignedEventHomePage() {
             <Dot key={idx} $active={activeSlide === idx} />
           ))}
         </DotIndicators>
-      </SliderWrapper>
+      </SliderWrapper> 
 
-      {/* Main Body Contents */}
+      {/* Main Body Contents */} 
       <HomeBody>
         <CurrentZoneBlock />
         <AdvisoryNearMe />

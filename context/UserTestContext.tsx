@@ -294,8 +294,27 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getRealGps, setUserGps]);
 
+  const trackVisitActivity = useCallback((eventId: string, platform: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      let deviceId = localStorage.getItem('mm_device_id');
+      if (!deviceId) {
+        deviceId = 'dev-' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('mm_device_id', deviceId);
+      }
+      axiosClient.post('analytics/track-visit', {
+        event_id: eventId,
+        device_id: deviceId,
+        platform: platform
+      }).catch(err => console.log('[Analytics] Visitor check-in failed to report:', err));
+    } catch (e) {
+      // Fail silently
+    }
+  }, []);
+
   const handleEventSelection = async (event: EventItem) => {
     setSelectedEvent(event);
+    trackVisitActivity(event.id, platformName);
     
     if (downloadedEventIds.includes(event.id)) {
       if (locationPermission !== null) {
@@ -591,10 +610,11 @@ function UserTestCombinedProvider({ children }: { children: React.ReactNode }) {
           await initializeUserGps(selectedEvent);
         }
         await loadEventPoisAndGraph(selectedEvent);
+        trackVisitActivity(selectedEvent.id, platformName);
       };
       autoLoad();
     }
-  }, [selectedEvent, loadingMapData, locationPermission, initializeUserGps, loadEventPoisAndGraph]);
+  }, [selectedEvent, loadingMapData, locationPermission, initializeUserGps, loadEventPoisAndGraph, platformName, trackVisitActivity]);
 
   // Synchronize pending feedbacks when coming online
   const syncOfflineFeedbacks = useCallback(async () => {
