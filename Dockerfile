@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,7 @@ ENV NEXT_PUBLIC_FIREBASE_VAPID_KEY=$NEXT_PUBLIC_FIREBASE_VAPID_KEY
 RUN NEXT_STANDALONE=true npm run build
 
 # Stage 2: Production Runtime (Optimized to be <120MB)
-FROM alpine:3.19 AS runner
+FROM public.ecr.aws/docker/library/alpine:3.19 AS runner
 
 WORKDIR /app
 
